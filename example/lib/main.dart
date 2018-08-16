@@ -12,6 +12,8 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
+  FlutterBluetoothSerial bluetooth = FlutterBluetoothSerial.instance;
+
   List<BluetoothDevice> _devices = [];
 
   @override
@@ -24,10 +26,14 @@ class _MyAppState extends State<MyApp> {
     List<BluetoothDevice> devices = [];
 
     try {
-      devices = await FlutterBluetoothSerial.bondedDevices;
+      devices = await bluetooth.getBondedDevices();
     } on PlatformException {
       // platformVersion = 'Failed to get platform version.';
     }
+
+    bluetooth.onStateChanged().listen((msg) => print(msg));
+
+    bluetooth.onRead().listen((msg) => print(msg));
 
     if (!mounted) return;
     setState(() {
@@ -47,10 +53,21 @@ class _MyAppState extends State<MyApp> {
               .map((device) => ListTile(
                     title: Text(device.name),
                     subtitle: Text(device.address),
+                    trailing: RaisedButton(
+                        onPressed: () {
+                          _connect(device);
+                        },
+                        child:
+                            Text(device.connected ? "Disconnect" : "Connect")),
                   ))
               .toList(),
         ),
       ),
     );
+  }
+
+  void _connect(BluetoothDevice device) async {
+    var connected = await bluetooth.connect(device);
+    print(connected);
   }
 }
