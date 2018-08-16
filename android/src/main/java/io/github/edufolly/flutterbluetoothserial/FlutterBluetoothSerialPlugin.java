@@ -4,22 +4,26 @@ import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
+import android.bluetooth.BluetoothSocket;
 import android.content.Context;
-import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.util.Log;
 
 import java.util.ArrayList;
-import java.util.Set;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
+import io.flutter.plugin.common.EventChannel;
 import io.flutter.plugin.common.MethodCall;
 import io.flutter.plugin.common.MethodChannel;
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler;
 import io.flutter.plugin.common.MethodChannel.Result;
-import io.flutter.plugin.common.PluginRegistry.RequestPermissionsResultListener;
 import io.flutter.plugin.common.PluginRegistry.Registrar;
+import io.flutter.plugin.common.PluginRegistry.RequestPermissionsResultListener;
 
 
 public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestPermissionsResultListener {
@@ -27,8 +31,10 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
     private static final String TAG = "FlutterBluePlugin";
     private static final String NAMESPACE = "flutter_bluetooth_serial";
     private static final int REQUEST_COARSE_LOCATION_PERMISSIONS = 1451;
+    private static final UUID CCCD_ID = UUID.fromString("106bc14c1-f8d7-45c7-ac02-5789ff915220");
     private final Registrar registrar;
     private final MethodChannel channel;
+    private final EventChannel readChannel;
     private final BluetoothManager mBluetoothManager;
     private BluetoothAdapter mBluetoothAdapter;
 
@@ -44,6 +50,7 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
     FlutterBluetoothSerialPlugin(Registrar registrar) {
         this.registrar = registrar;
         this.channel = new MethodChannel(registrar.messenger(), NAMESPACE + "/methods");
+        this.readChannel = new EventChannel(registrar.messenger(), NAMESPACE + "/readChannel");
         this.mBluetoothManager = (BluetoothManager) registrar.activity()
                 .getSystemService(Context.BLUETOOTH_SERVICE);
         this.mBluetoothAdapter = mBluetoothManager.getAdapter();
@@ -65,11 +72,9 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
             return;
         }
 
-        switch (call.method) {
-            case "getPlatformVersion":
-                result.success("Android " + android.os.Build.VERSION.RELEASE);
-                break;
+        final Map<String, Object> arguments = call.arguments();
 
+        switch (call.method) {
             case "getBondedDevices":
                 try {
                     if (ContextCompat.checkSelfPermission(registrar.activity(),
@@ -86,6 +91,16 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
                     getBondedDevices(call, result);
                 } catch (Exception ex) {
                     result.error("Erro", ex.getMessage(), ex);
+                }
+                break;
+
+            case "connect":
+                if (arguments.containsKey("address")) {
+                    String address = (String) arguments.get("address");
+                    connect(result, address);
+                } else {
+                    // TODO - Error
+                    result.error("invalid_argument", "Argument 'address' not found.", null);
                 }
                 break;
 
@@ -116,13 +131,15 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
 
     private void getBondedDevices(MethodCall call, Result result) {
 
-        ArrayList list = new ArrayList<>();
+        List<Map<String, Object>> list = new ArrayList<>();
 
-        Set<BluetoothDevice> pairedDevices = mBluetoothAdapter.getBondedDevices();
-
-        for(BluetoothDevice device : pairedDevices) {
+        for (BluetoothDevice device : mBluetoothAdapter.getBondedDevices()) {
             Log.d(TAG, device.toString());
-            list.add(device.toString());
+            Map<String, Object> ret = new HashMap<>();
+            ret.put("address", device.getAddress());
+            ret.put("name", device.getName());
+            ret.put("type", device.getType());
+            list.add(ret);
         }
 
         result.success(list);
@@ -136,5 +153,16 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
 //                mArrayAdapter.add(device.getName() + "\n" + device.getAddress());
 //            }
 //        }
+    }
+
+    private void connect(Result result, String address) {
+        try {
+            BluetoothDevice device = mBluetoothAdapter.getRemoteDevice(address);
+            BluetoothSocket bluetoothSocket = device.createRfcommSocketToServiceRecord(CCCD_ID);
+            // TODO - I stopped here...
+        } catch (Exception ex) {
+            Log.e(TAG, ex.getMessage(), ex);
+            result.error("connect_error", ex.getMessage(), ex);
+        }
     }
 }
