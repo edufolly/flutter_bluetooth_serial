@@ -3,6 +3,17 @@ import 'dart:async';
 import 'package:flutter/services.dart';
 
 class FlutterBluetoothSerial {
+  static const int STATE_OFF = 10;
+  static const int STATE_TURNING_ON = 11;
+  static const int STATE_ON = 12;
+  static const int STATE_TURNING_OFF = 13;
+  static const int STATE_BLE_TURNING_ON = 14;
+  static const int STATE_BLE_ON = 15;
+  static const int STATE_BLE_TURNING_OFF = 16;
+  static const int ERROR = -1;
+  static const int CONNECTED = 1;
+  static const int DISCONNECTED = 0;
+
   static const String namespace = 'flutter_bluetooth_serial';
 
   static const MethodChannel _channel =
@@ -29,8 +40,8 @@ class FlutterBluetoothSerial {
 
   static FlutterBluetoothSerial get instance => _instance;
 
-  Stream<String> onStateChanged() =>
-      _stateChannel.receiveBroadcastStream().map((buffer) => buffer.toString());
+  Stream<int> onStateChanged() =>
+      _stateChannel.receiveBroadcastStream().map((buffer) => buffer);
 
   Stream<String> onRead() =>
       _readChannel.receiveBroadcastStream().map((buffer) => buffer.toString());
@@ -46,6 +57,11 @@ class FlutterBluetoothSerial {
 
   Future<dynamic> connect(BluetoothDevice device) =>
       _channel.invokeMethod('connect', device.toMap());
+
+  Future<dynamic> disconnect() => _channel.invokeMethod('disconnect');
+
+  Future<dynamic> write(String message) =>
+      _channel.invokeMethod('write', {'message': message});
 }
 
 class BluetoothDevice {

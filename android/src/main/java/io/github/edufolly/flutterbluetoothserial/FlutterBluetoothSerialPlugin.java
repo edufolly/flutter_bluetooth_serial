@@ -40,6 +40,7 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
     private static final String NAMESPACE = "flutter_bluetooth_serial";
     private static final int REQUEST_COARSE_LOCATION_PERMISSIONS = 1451;
     private static final UUID MY_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
+    private static ConnectedThread THREAD = null;
     private final Registrar registrar;
     private final MethodChannel channel;
     private final EventChannel stateChannel;
@@ -47,8 +48,6 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
     private final BluetoothManager mBluetoothManager;
     private BluetoothAdapter mBluetoothAdapter;
 
-    // Pending call and result for startScan, in the case where permissions are needed
-    private MethodCall pendingCall;
     private Result pendingResult;
 
     public static void registerWith(Registrar registrar) {
@@ -98,12 +97,11 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
                                 new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},
                                 REQUEST_COARSE_LOCATION_PERMISSIONS);
 
-                        pendingCall = call;
                         pendingResult = result;
                         break;
                     }
 
-                    getBondedDevices(call, result);
+                    getBondedDevices(result);
 
                 } catch (Exception ex) {
                     result.error("Erro", ex.getMessage(), ex);
@@ -116,8 +114,20 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
                     String address = (String) arguments.get("address");
                     connect(result, address);
                 } else {
-                    // TODO - Error
                     result.error("invalid_argument", "argument 'address' not found", null);
+                }
+                break;
+
+            case "disconnect":
+                disconnect(result);
+                break;
+
+            case "write":
+                if (arguments.containsKey("message")) {
+                    String message = (String) arguments.get("message");
+                    write(result, message);
+                } else {
+                    result.error("invalid_argument", "argument 'message' not found", null);
                 }
                 break;
 
@@ -128,10 +138,10 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
     }
 
     /**
-     * @param requestCode
-     * @param permissions
-     * @param grantResults
-     * @return
+     * @param requestCode  requestCode
+     * @param permissions  permissions
+     * @param grantResults grantResults
+     * @return boolean
      */
     @Override
     public boolean onRequestPermissionsResult(int requestCode, String[] permissions,
@@ -139,13 +149,11 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
 
         if (requestCode == REQUEST_COARSE_LOCATION_PERMISSIONS) {
             if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                //  TODO - Continue...
-                getBondedDevices(pendingCall, pendingResult);
+                getBondedDevices(pendingResult);
             } else {
                 pendingResult.error("no_permissions",
                         "this plugin requires location permissions for scanning", null);
                 pendingResult = null;
-                pendingCall = null;
             }
             return true;
         }
@@ -153,10 +161,9 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
     }
 
     /**
-     * @param call
-     * @param result
+     * @param result result
      */
-    private void getBondedDevices(MethodCall call, Result result) {
+    private void getBondedDevices(Result result) {
 
         List<Map<String, Object>> list = new ArrayList<>();
 
@@ -172,43 +179,80 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
     }
 
     /**
-     * @param result
-     * @param address
+     * @param result  result
+     * @param address address
      */
     private void connect(Result result, String address) {
+
+        if (THREAD != null) {
+            result.error("connect_error", "already connected", null);
+            return;
+        }
+
         try {
-            Log.d(TAG, address);
             BluetoothDevice device = mBluetoothAdapter.getRemoteDevice(address);
 
             if (device == null) {
                 result.error("connect_error", "device not found", null);
+                return;
             }
-
-
-            assert device != null;
 
             BluetoothSocket socket = device.createRfcommSocketToServiceRecord(MY_UUID);
 
             if (socket == null) {
                 result.error("connect_error", "socket connection not established", null);
+                return;
             }
-
-            assert socket != null;
 
             socket.connect();
 
-//            while (!socket.isConnected()) {
-//                Log.i(TAG, "Esperando...");
-//            }
-
-            Log.d(TAG, "Conectado.");
-
-            new ConnectedThread(socket).start();
+            THREAD = new ConnectedThread(socket);
+            THREAD.start();
 
             result.success(true);
         } catch (Exception ex) {
             Log.e(TAG, ex.getMessage(), ex);
             result.error("connect_error", ex.getMessage(), ex);
+        }
+    }
+
+    /**
+     * @param result result
+     */
+    private void disconnect(Result result) {
+
+        if (THREAD == null) {
+            result.error("disconnection_error", "not connected", null);
+            return;
+        }
+
+        try {
+            THREAD.cancel();
+            THREAD = null;
+            result.success(true);
+        } catch (Exception ex) {
+            Log.e(TAG, ex.getMessage(), ex);
+            result.error("disconnection_error", ex.getMessage(), ex);
+        }
+
+    }
+
+    /**
+     * @param result  result
+     * @param message message
+     */
+    private void write(Result result, String message) {
+        if (THREAD == null) {
+            result.error("write_error", "not connected", null);
+            return;
+        }
+
+        try {
+            THREAD.write(message.getBytes());
+            result.success(true);
+        } catch (Exception ex) {
+            Log.e(TAG, ex.getMessage(), ex);
+            result.error("write_error", ex.getMessage(), ex);
         }
     }
 
@@ -220,13 +264,11 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
         private final InputStream mmInStream;
         private final OutputStream mmOutStream;
 
-        public ConnectedThread(BluetoothSocket socket) {
+        ConnectedThread(BluetoothSocket socket) {
             mmSocket = socket;
             InputStream tmpIn = null;
             OutputStream tmpOut = null;
 
-            // Get the input and output streams, using temp objects because
-            // member streams are final
             try {
                 tmpIn = socket.getInputStream();
                 tmpOut = socket.getOutputStream();
@@ -239,27 +281,19 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
         }
 
         public void run() {
-            byte[] buffer = new byte[1024];  // buffer store for the stream
-            int bytes; // bytes returned from read()
+            byte[] buffer = new byte[1024];
+            int bytes;
 
-            // Keep listening to the InputStream until an exception occurs
             while (true) {
                 try {
-                    // Read from the InputStream
                     bytes = mmInStream.read(buffer);
-                    // Send the obtained bytes to the UI activity
-//                    mHandler.obtainMessage(MESSAGE_READ, bytes, -1, buffer)
-//                            .sendToTarget();
-
-                    Log.i(TAG, "(" + bytes + ") " + new String(buffer, 0, bytes));
-                    readResultsSink.success(new String(buffer, 0, bytes));
+                    readSink.success(new String(buffer, 0, bytes));
                 } catch (IOException e) {
                     break;
                 }
             }
         }
 
-        /* Call this from the main activity to send data to the remote device */
         public void write(byte[] bytes) {
             try {
                 mmOutStream.write(bytes);
@@ -268,9 +302,13 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
             }
         }
 
-        /* Call this from the main activity to shutdown the connection */
         public void cancel() {
             try {
+                mmOutStream.flush();
+                mmOutStream.close();
+
+                mmInStream.close();
+
                 mmSocket.close();
             } catch (IOException e) {
                 e.printStackTrace();
@@ -281,47 +319,43 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
     /**
      *
      */
+    private EventSink statusSink;
     private final StreamHandler stateStreamHandler = new StreamHandler() {
-        private EventSink sink;
 
         private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
                 final String action = intent.getAction();
 
-                if (action.equals(BluetoothAdapter.ACTION_STATE_CHANGED)) {
+                Log.d(TAG, action);
 
-                    final int state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE,
-                            BluetoothAdapter.ERROR);
-
-                    switch (state) {
-                        case BluetoothAdapter.STATE_OFF:
-                            sink.success("STATE_OFF");
-                            break;
-                        case BluetoothAdapter.STATE_TURNING_OFF:
-                            sink.success("STATE_TURNING_OFF");
-                            break;
-                        case BluetoothAdapter.STATE_ON:
-                            sink.success("STATE_ON");
-                            break;
-                        case BluetoothAdapter.STATE_TURNING_ON:
-                            sink.success("STATE_TURNING_ON");
-                            break;
-                    }
+                if (BluetoothAdapter.ACTION_STATE_CHANGED.equals(action)) {
+                    THREAD = null;
+                    statusSink.success(intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, -1));
+                } else if (BluetoothDevice.ACTION_ACL_CONNECTED.equals(action)) {
+                    statusSink.success(1);
+                } else if (BluetoothDevice.ACTION_ACL_DISCONNECTED.equals(action)) {
+                    statusSink.success(0);
                 }
             }
         };
 
         @Override
         public void onListen(Object o, EventSink eventSink) {
-            sink = eventSink;
-            IntentFilter filter = new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED);
-            registrar.activity().registerReceiver(mReceiver, filter);
+            statusSink = eventSink;
+            registrar.activity().registerReceiver(mReceiver,
+                    new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED));
+
+            registrar.activeContext().registerReceiver(mReceiver,
+                    new IntentFilter(BluetoothDevice.ACTION_ACL_CONNECTED));
+
+            registrar.activeContext().registerReceiver(mReceiver,
+                    new IntentFilter(BluetoothDevice.ACTION_ACL_DISCONNECTED));
         }
 
         @Override
         public void onCancel(Object o) {
-            sink = null;
+            statusSink = null;
             registrar.activity().unregisterReceiver(mReceiver);
         }
     };
@@ -329,16 +363,16 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
     /**
      *
      */
-    private EventSink readResultsSink;
+    private EventSink readSink;
     private final StreamHandler readResultsHandler = new StreamHandler() {
         @Override
-        public void onListen(Object o, EventChannel.EventSink eventSink) {
-            readResultsSink = eventSink;
+        public void onListen(Object o, EventSink eventSink) {
+            readSink = eventSink;
         }
 
         @Override
         public void onCancel(Object o) {
-            readResultsSink = null;
+            readSink = null;
         }
     };
 }
