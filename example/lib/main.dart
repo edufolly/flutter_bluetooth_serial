@@ -129,15 +129,17 @@ class _MyAppState extends State<MyApp> {
                   ],
                 ),
               ),
-              TextField(
-                controller: _text,
-                maxLines: null,
-                enabled: false,
-                decoration: new InputDecoration(
-                  border: InputBorder.none,
-                  labelText: 'Message:',
+              Padding(
+                padding: const EdgeInsets.only(left: 10.0, right: 10.0),
+                child: TextField(
+                  controller: _text,
+                  maxLines: null,
+                  enabled: false,
+                  decoration: new InputDecoration(
+                    border: InputBorder.none,
+                    labelText: 'Message:',
+                  ),
                 ),
-
               ),
             ],
           ),
@@ -167,16 +169,16 @@ class _MyAppState extends State<MyApp> {
     if (_device == null) {
       show('No device selected.');
     } else {
-      setState(() => _pressed = true);
       bluetooth.connect(_device).catchError((error) {
         setState(() => _pressed = false);
       });
+      setState(() => _pressed = true);
     }
   }
 
   void _disconnect() {
-    setState(() => _pressed = true);
     bluetooth.disconnect();
+    setState(() => _pressed = true);
   }
 
   void _writeTest() {
