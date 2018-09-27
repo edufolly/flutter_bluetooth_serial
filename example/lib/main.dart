@@ -169,10 +169,14 @@ class _MyAppState extends State<MyApp> {
     if (_device == null) {
       show('No device selected.');
     } else {
-      bluetooth.connect(_device).catchError((error) {
-        setState(() => _pressed = false);
+      bluetooth.isConnected.then((isConnected) {
+        if (!isConnected) {
+          bluetooth.connect(_device).catchError((error) {
+            setState(() => _pressed = false);
+          });
+          setState(() => _pressed = true);
+        }
       });
-      setState(() => _pressed = true);
     }
   }
 
@@ -182,7 +186,11 @@ class _MyAppState extends State<MyApp> {
   }
 
   void _writeTest() {
-    bluetooth.write(_message.text);
+    bluetooth.isConnected.then((isConnected) {
+      if (isConnected) {
+        bluetooth.write(_message.text);
+      }
+    });
   }
 
   Future show(String message,

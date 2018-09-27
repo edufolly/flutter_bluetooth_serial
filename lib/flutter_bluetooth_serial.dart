@@ -46,11 +46,11 @@ class FlutterBluetoothSerial {
   Stream<String> onRead() =>
       _readChannel.receiveBroadcastStream().map((buffer) => buffer.toString());
 
-  Future<bool> get isAvailable => _channel.invokeMethod('isAvailable');
+  Future<bool> get isAvailable async => await _channel.invokeMethod('isAvailable');
 
-  Future<bool> get isOn => _channel.invokeMethod('isOn');
+  Future<bool> get isOn async => await _channel.invokeMethod('isOn');
 
-  Future<bool> get isConnected => _channel.invokeMethod('isConnected');
+  Future<bool> get isConnected async => await _channel.invokeMethod('isConnected');
 
   Future<List> getBondedDevices() async {
     final List list = await _channel.invokeMethod('getBondedDevices');
