@@ -62,6 +62,7 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
         this.readChannel = new EventChannel(registrar.messenger(), NAMESPACE + "/read");
         this.mBluetoothManager = (BluetoothManager) registrar.activity()
                 .getSystemService(Context.BLUETOOTH_SERVICE);
+        assert mBluetoothManager != null;
         this.mBluetoothAdapter = mBluetoothManager.getAdapter();
         channel.setMethodCallHandler(this);
         stateChannel.setStreamHandler(stateStreamHandler);
@@ -84,7 +85,12 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
                 break;
 
             case "isOn":
-                result.success(mBluetoothAdapter.isEnabled());
+                try {
+                    assert mBluetoothAdapter != null;
+                    result.success(mBluetoothAdapter.isEnabled());
+                } catch (Exception ex) {
+                    result.error("Error", ex.getMessage(), ex);
+                }
                 break;
 
             case "isConnected":
@@ -108,7 +114,7 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
                     getBondedDevices(result);
 
                 } catch (Exception ex) {
-                    result.error("Erro", ex.getMessage(), ex);
+                    result.error("Error", ex.getMessage(), ex);
                 }
 
                 break;

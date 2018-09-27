@@ -6,11 +6,17 @@ import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 
 void main() => runApp(new MyApp());
 
+///
+///
+///
 class MyApp extends StatefulWidget {
   @override
   _MyAppState createState() => new _MyAppState();
 }
 
+///
+///
+///
 class _MyAppState extends State<MyApp> {
   static final TextEditingController _message = new TextEditingController();
   static final TextEditingController _text = new TextEditingController();
@@ -22,12 +28,18 @@ class _MyAppState extends State<MyApp> {
   bool _connected = false;
   bool _pressed = false;
 
+  ///
+  ///
+  ///
   @override
   void initState() {
-    initPlatformState();
     super.initState();
+    initPlatformState();
   }
 
+  ///
+  ///
+  ///
   Future<void> initPlatformState() async {
     List<BluetoothDevice> devices = [];
 
@@ -71,6 +83,9 @@ class _MyAppState extends State<MyApp> {
     });
   }
 
+  ///
+  ///
+  ///
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -82,7 +97,7 @@ class _MyAppState extends State<MyApp> {
           child: ListView(
             children: <Widget>[
               Padding(
-                padding: const EdgeInsets.only(left: 10.0, top: 10.0, right: 10.0),
+                padding: const EdgeInsets.fromLTRB(10.0, 10.0, 10.0, 0.0),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: <Widget>[
@@ -98,14 +113,15 @@ class _MyAppState extends State<MyApp> {
                       value: _device,
                     ),
                     RaisedButton(
-                      onPressed: _pressed ? null : _connected ? _disconnect : _connect,
+                      onPressed:
+                          _pressed ? null : _connected ? _disconnect : _connect,
                       child: Text(_connected ? 'Disconnect' : 'Connect'),
                     ),
                   ],
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.only(left: 10.0, top: 6.0, right: 10.0),
+                padding: const EdgeInsets.fromLTRB(10.0, 6.0, 10.0, 0.0),
                 child: Row(
                   children: <Widget>[
                     Expanded(
@@ -145,6 +161,9 @@ class _MyAppState extends State<MyApp> {
     );
   }
 
+  ///
+  ///
+  ///
   List<DropdownMenuItem<BluetoothDevice>> _getDeviceItems() {
     List<DropdownMenuItem<BluetoothDevice>> items = [];
     if (_devices.isEmpty) {
@@ -162,6 +181,9 @@ class _MyAppState extends State<MyApp> {
     return items;
   }
 
+  ///
+  ///
+  ///
   void _connect() {
     if (_device == null) {
       show('No device selected.');
@@ -177,11 +199,17 @@ class _MyAppState extends State<MyApp> {
     }
   }
 
+  ///
+  ///
+  ///
   void _disconnect() {
     bluetooth.disconnect();
     setState(() => _pressed = true);
   }
 
+  ///
+  ///
+  ///
   void _writeTest() {
     bluetooth.isConnected.then((isConnected) {
       if (isConnected) {
@@ -190,7 +218,13 @@ class _MyAppState extends State<MyApp> {
     });
   }
 
-  Future show(String message, {Duration duration: const Duration(seconds: 3)}) async {
+  ///
+  ///
+  ///
+  Future show(
+    String message, {
+    Duration duration: const Duration(seconds: 3),
+  }) async {
     await new Future.delayed(new Duration(milliseconds: 100));
     Scaffold.of(context).showSnackBar(
       new SnackBar(
