@@ -16,17 +16,13 @@ class FlutterBluetoothSerial {
 
   static const String namespace = 'flutter_bluetooth_serial';
 
-  static const MethodChannel _channel =
-      const MethodChannel('$namespace/methods');
+  static const MethodChannel _channel = const MethodChannel('$namespace/methods');
 
-  static const EventChannel _readChannel =
-      const EventChannel('$namespace/read');
+  static const EventChannel _readChannel = const EventChannel('$namespace/read');
 
-  static const EventChannel _stateChannel =
-      const EventChannel('$namespace/state');
+  static const EventChannel _stateChannel = const EventChannel('$namespace/state');
 
-  final StreamController<MethodCall> _methodStreamController =
-      new StreamController.broadcast();
+  final StreamController<MethodCall> _methodStreamController = new StreamController.broadcast();
 
   Stream<MethodCall> get _methodStream => _methodStreamController.stream;
 
@@ -40,28 +36,26 @@ class FlutterBluetoothSerial {
 
   static FlutterBluetoothSerial get instance => _instance;
 
-  Stream<int> onStateChanged() =>
-      _stateChannel.receiveBroadcastStream().map((buffer) => buffer);
+  Stream<int> onStateChanged() => _stateChannel.receiveBroadcastStream().map((buffer) => buffer);
 
-  Stream<String> onRead() =>
-      _readChannel.receiveBroadcastStream().map((buffer) => buffer.toString());
+  Stream<String> onRead() => _readChannel.receiveBroadcastStream().map((buffer) => buffer.toString());
 
-  Future<bool> get isAvailable => _channel.invokeMethod('isAvailable');
+  Future<bool> get isAvailable async => await _channel.invokeMethod('isAvailable');
 
-  Future<bool> get isOn => _channel.invokeMethod('isOn');
+  Future<bool> get isOn async => await _channel.invokeMethod('isOn');
+
+  Future<bool> get isConnected async => await _channel.invokeMethod('isConnected');
 
   Future<List> getBondedDevices() async {
     final List list = await _channel.invokeMethod('getBondedDevices');
     return list.map((map) => BluetoothDevice.fromMap(map)).toList();
   }
 
-  Future<dynamic> connect(BluetoothDevice device) =>
-      _channel.invokeMethod('connect', device.toMap());
+  Future<dynamic> connect(BluetoothDevice device) => _channel.invokeMethod('connect', device.toMap());
 
   Future<dynamic> disconnect() => _channel.invokeMethod('disconnect');
 
-  Future<dynamic> write(String message) =>
-      _channel.invokeMethod('write', {'message': message});
+  Future<dynamic> write(String message) => _channel.invokeMethod('write', {'message': message});
 }
 
 class BluetoothDevice {
@@ -79,6 +73,6 @@ class BluetoothDevice {
         'name': this.name,
         'address': this.address,
         'type': this.type,
-        'connected': this.connected
+        'connected': this.connected,
       };
 }

@@ -1,6 +1,6 @@
-import 'package:flutter/material.dart';
 import 'dart:async';
 
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 
@@ -82,8 +82,7 @@ class _MyAppState extends State<MyApp> {
           child: ListView(
             children: <Widget>[
               Padding(
-                padding:
-                    const EdgeInsets.only(left: 10.0, top: 10.0, right: 10.0),
+                padding: const EdgeInsets.only(left: 10.0, top: 10.0, right: 10.0),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: <Widget>[
@@ -99,16 +98,14 @@ class _MyAppState extends State<MyApp> {
                       value: _device,
                     ),
                     RaisedButton(
-                      onPressed:
-                          _pressed ? null : _connected ? _disconnect : _connect,
+                      onPressed: _pressed ? null : _connected ? _disconnect : _connect,
                       child: Text(_connected ? 'Disconnect' : 'Connect'),
                     ),
                   ],
                 ),
               ),
               Padding(
-                padding:
-                    const EdgeInsets.only(left: 10.0, top: 6.0, right: 10.0),
+                padding: const EdgeInsets.only(left: 10.0, top: 6.0, right: 10.0),
                 child: Row(
                   children: <Widget>[
                     Expanded(
@@ -169,10 +166,14 @@ class _MyAppState extends State<MyApp> {
     if (_device == null) {
       show('No device selected.');
     } else {
-      bluetooth.connect(_device).catchError((error) {
-        setState(() => _pressed = false);
+      bluetooth.isConnected.then((isConnected) {
+        if (!isConnected) {
+          bluetooth.connect(_device).catchError((error) {
+            setState(() => _pressed = false);
+          });
+          setState(() => _pressed = true);
+        }
       });
-      setState(() => _pressed = true);
     }
   }
 
@@ -182,22 +183,25 @@ class _MyAppState extends State<MyApp> {
   }
 
   void _writeTest() {
-    bluetooth.write(_message.text);
+    bluetooth.isConnected.then((isConnected) {
+      if (isConnected) {
+        bluetooth.write(_message.text);
+      }
+    });
   }
 
-  Future show(String message,
-      {Duration duration: const Duration(seconds: 3)}) async {
+  Future show(String message, {Duration duration: const Duration(seconds: 3)}) async {
     await new Future.delayed(new Duration(milliseconds: 100));
     Scaffold.of(context).showSnackBar(
-          new SnackBar(
-            content: new Text(
-              message,
-              style: new TextStyle(
-                color: Colors.white,
-              ),
-            ),
-            duration: duration,
+      new SnackBar(
+        content: new Text(
+          message,
+          style: new TextStyle(
+            color: Colors.white,
           ),
-        );
+        ),
+        duration: duration,
+      ),
+    );
   }
 }
