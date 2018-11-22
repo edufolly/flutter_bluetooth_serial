@@ -23,14 +23,21 @@ apply plugin: 'com.android.library'
 
 android {
     compileSdkVersion 27
-
+    
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    
     defaultConfig {
         minSdkVersion 18
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
+    
     lintOptions {
         disable 'InvalidPackage'
     }
+    
     dependencies {
         implementation 'com.android.support:support-compat:27.1.1'
     }
