@@ -37,7 +37,8 @@ import io.flutter.plugin.common.PluginRegistry.Registrar;
 import io.flutter.plugin.common.PluginRegistry.RequestPermissionsResultListener;
 
 
-public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestPermissionsResultListener {
+public class FlutterBluetoothSerialPlugin implements MethodCallHandler,
+        RequestPermissionsResultListener {
 
     private static final String TAG = "FlutterBluePlugin";
     private static final String NAMESPACE = "flutter_bluetooth_serial";
@@ -45,13 +46,12 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
     private static final UUID MY_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
     private static ConnectedThread THREAD = null;
     private final Registrar registrar;
-    private final MethodChannel channel;
-    private final EventChannel stateChannel;
-    private final EventChannel readChannel;
-    private final BluetoothManager mBluetoothManager;
     private BluetoothAdapter mBluetoothAdapter;
 
     private Result pendingResult;
+
+    private EventSink readSink;
+    private EventSink statusSink;
 
     public static void registerWith(Registrar registrar) {
         final FlutterBluetoothSerialPlugin instance = new FlutterBluetoothSerialPlugin(registrar);
@@ -60,10 +60,10 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
 
     FlutterBluetoothSerialPlugin(Registrar registrar) {
         this.registrar = registrar;
-        this.channel = new MethodChannel(registrar.messenger(), NAMESPACE + "/methods");
-        this.stateChannel = new EventChannel(registrar.messenger(), NAMESPACE + "/state");
-        this.readChannel = new EventChannel(registrar.messenger(), NAMESPACE + "/read");
-        this.mBluetoothManager = (BluetoothManager) registrar.activity()
+        MethodChannel channel = new MethodChannel(registrar.messenger(), NAMESPACE + "/methods");
+        EventChannel stateChannel = new EventChannel(registrar.messenger(), NAMESPACE + "/state");
+        EventChannel readChannel = new EventChannel(registrar.messenger(), NAMESPACE + "/read");
+        BluetoothManager mBluetoothManager = (BluetoothManager) registrar.activity()
                 .getSystemService(Context.BLUETOOTH_SERVICE);
         assert mBluetoothManager != null;
         this.mBluetoothAdapter = mBluetoothManager.getAdapter();
@@ -99,7 +99,7 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
             case "isConnected":
                 result.success(THREAD != null);
                 break;
-                
+
             case "openSettings":
                 ContextCompat.startActivity(registrar.activity(),
                         new Intent(android.provider.Settings.ACTION_BLUETOOTH_SETTINGS),
@@ -111,7 +111,8 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
                 try {
 
                     if (ContextCompat.checkSelfPermission(registrar.activity(),
-                            Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                            Manifest.permission.ACCESS_COARSE_LOCATION)
+                            != PackageManager.PERMISSION_GRANTED) {
 
                         ActivityCompat.requestPermissions(registrar.activity(),
                                 new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},
@@ -198,7 +199,7 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
         result.success(list);
     }
 
-    private String exceptionToString(Exception ex){
+    private String exceptionToString(Exception ex) {
         StringWriter sw = new StringWriter();
         PrintWriter pw = new PrintWriter(sw);
         ex.printStackTrace(pw);
@@ -349,7 +350,6 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
     /**
      *
      */
-    private EventSink statusSink;
     private final StreamHandler stateStreamHandler = new StreamHandler() {
 
         private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
@@ -394,7 +394,6 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
     /**
      *
      */
-    private EventSink readSink;
     private final StreamHandler readResultsHandler = new StreamHandler() {
         @Override
         public void onListen(Object o, EventSink eventSink) {

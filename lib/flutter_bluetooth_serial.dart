@@ -56,7 +56,7 @@ class FlutterBluetoothSerial {
 
   Future<bool> get isConnected async =>
       await _channel.invokeMethod('isConnected');
-  
+
   Future<bool> get openSettings async =>
       await _channel.invokeMethod('openSettings');
 
