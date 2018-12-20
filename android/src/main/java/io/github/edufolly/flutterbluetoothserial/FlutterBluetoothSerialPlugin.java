@@ -99,6 +99,13 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
             case "isConnected":
                 result.success(THREAD != null);
                 break;
+                
+            case "openSettings":
+                ContextCompat.startActivity(registrar.activity(),
+                        new Intent(android.provider.Settings.ACTION_BLUETOOTH_SETTINGS),
+                        null);
+                result.success(true);
+                break;
 
             case "getBondedDevices":
                 try {
