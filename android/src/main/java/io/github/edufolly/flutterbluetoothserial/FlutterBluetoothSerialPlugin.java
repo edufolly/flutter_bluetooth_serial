@@ -150,6 +150,15 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
                     result.error("invalid_argument", "argument 'message' not found", null);
                 }
                 break;
+                
+            case "writeBytes":
+                if (arguments.containsKey("message")) {
+                    byte[] message = (byte[]) arguments.get("message");
+                    writeBytes(result, message);
+                } else {
+                    result.error("invalid_argument", "argument 'message' not found", null);
+                }
+                break;
 
             default:
                 result.notImplemented();
@@ -283,6 +292,22 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
             result.error("write_error", ex.getMessage(), exceptionToString(ex));
         }
     }
+    
+    private void writeBytes(Result result, byte[] message) {
+        if (THREAD == null) {
+            result.error("write_error", "not connected", null);
+            return;
+        }
+
+        try {
+            THREAD.write(message);
+            result.success(true);
+        } catch (Exception ex) {
+            Log.e(TAG, ex.getMessage(), ex);
+            result.error("write_error", ex.getMessage(), exceptionToString(ex));
+        }
+    }
+       
 
     /**
      *
