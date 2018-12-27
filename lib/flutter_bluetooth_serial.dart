@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:flutter/services.dart';
 
@@ -72,6 +73,9 @@ class FlutterBluetoothSerial {
 
   Future<dynamic> write(String message) =>
       _channel.invokeMethod('write', {'message': message});
+  
+  Future<dynamic> writeBytes(Uint8List message) =>
+      _channel.invokeMethod('writeBytes', {'message': message});
 }
 
 ///
