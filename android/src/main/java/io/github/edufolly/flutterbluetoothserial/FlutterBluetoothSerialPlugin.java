@@ -231,8 +231,16 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler,
                     result.error("connect_error", "socket connection not established", null);
                     return;
                 }
+                
+                // Cancel bt discovery, even though we didn't start it
+                mBluetoothAdapter.cancelDiscovery();
 
-                socket.connect();
+                try {
+                    socket.connect();
+                } catch(Exception ex) {
+                    Log.e(TAG, ex.getMessage(), ex);
+                    return;
+                }
 
                 THREAD = new ConnectedThread(socket);
                 THREAD.start();
