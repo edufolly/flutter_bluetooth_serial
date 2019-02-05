@@ -60,7 +60,7 @@ class FlutterBluetoothSerial {
   Future<bool> get openSettings async =>
       await _channel.invokeMethod('openSettings');
 
-  Future<List> getBondedDevices() async {
+  Future<List<BluetoothDevice>> getBondedDevices() async {
     final List list = await _channel.invokeMethod('getBondedDevices');
     return list.map((map) => BluetoothDevice.fromMap(map)).toList();
   }
@@ -94,4 +94,11 @@ class BluetoothDevice {
         'type': this.type,
         'connected': this.connected,
       };
+
+  operator ==(Object other) {
+    return other is BluetoothDevice && other.address == this.address;
+  }
+
+  @override
+  int get hashCode => address.hashCode;
 }
