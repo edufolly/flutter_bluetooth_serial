@@ -1,3 +1,10 @@
+## [0.0.5] - 2019-03-18
+
+* Upgrade for AndroidX support (thanks @akilinomendez)
+* New default constructor (thanks @MohiuddinM)
+* Added method write passing byte[] (thanks @rafaelterada)
+* Upgrade to Android Studio 3.3.2
+
 ## [0.0.4] - 2018-12-20
 
 * Unsupported value error correction (thanks @rafaelterada)

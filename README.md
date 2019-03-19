@@ -17,3 +17,5 @@ Click on the :star: above to support the project!
 ## Getting Started
 
 Only for Android.
+
+If you have any problem with _invoke-customs_, verify this issue #14.
