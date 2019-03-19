@@ -18,4 +18,4 @@ Click on the :star: above to support the project!
 
 Only for Android.
 
-If you have any problem with _invoke-customs_, verify this issue #14.
+If you have any problem with _invoke-customs_, verify issue [#14](https://github.com/edufolly/flutter_bluetooth_serial/issues/14).
