@@ -6,3 +6,5 @@
 pubspec.lock
 .idea/
 build/
+
+\.vs/

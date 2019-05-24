@@ -250,11 +250,9 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler,
                     THREAD.start();
                     result.success(true);
                 } catch(Exception ex) {
-                    Log.e(TAG, ex.getMessage(), ex);
                     result.error("connect_error", ex.getMessage(), exceptionToString(ex));
                 }
             } catch (Exception ex) {
-                Log.e(TAG, ex.getMessage(), ex);
                 result.error("connect_error", ex.getMessage(), exceptionToString(ex));
             }
         });
@@ -275,7 +273,6 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler,
                 THREAD = null;
                 result.success(true);
             } catch (Exception ex) {
-                Log.e(TAG, ex.getMessage(), ex);
                 result.error("disconnection_error", ex.getMessage(), exceptionToString(ex));
             }
         });
@@ -295,7 +292,6 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler,
             THREAD.write(message.getBytes());
             result.success(true);
         } catch (Exception ex) {
-            Log.e(TAG, ex.getMessage(), ex);
             result.error("write_error", ex.getMessage(), exceptionToString(ex));
         }
     }
@@ -310,7 +306,6 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler,
             THREAD.write(message);
             result.success(true);
         } catch (Exception ex) {
-            Log.e(TAG, ex.getMessage(), ex);
             result.error("write_error", ex.getMessage(), exceptionToString(ex));
         }
     }
