@@ -97,6 +97,7 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
                 break;
 
             case "isOn":
+            case "isEnabled":
                 result.success(bluetoothAdapter.isEnabled());
                 break;
 
