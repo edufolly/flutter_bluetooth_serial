@@ -101,10 +101,8 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler,
                 break;
 
             case "openSettings":
-                ContextCompat.startActivity(registrar.activity(),
-                        new Intent(android.provider.Settings.ACTION_BLUETOOTH_SETTINGS),
-                        null);
-                result.success(true);
+                ContextCompat.startActivity(registrar.activity(), new Intent(android.provider.Settings.ACTION_BLUETOOTH_SETTINGS), null);
+                result.success(null);
                 break;
 
             case "getBondedDevices":
@@ -271,7 +269,7 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler,
             try {
                 THREAD.cancel();
                 THREAD = null;
-                result.success(true);
+                result.success(null);
             } catch (Exception ex) {
                 result.error("disconnection_error", ex.getMessage(), exceptionToString(ex));
             }

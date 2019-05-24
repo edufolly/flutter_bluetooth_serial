@@ -58,7 +58,7 @@ class FlutterBluetoothSerial {
   Future<bool> get isConnected async =>
       await _channel.invokeMethod('isConnected');
 
-  Future<bool> get openSettings async =>
+  Future<void> get openSettings async =>
       await _channel.invokeMethod('openSettings');
 
   Future<List<BluetoothDevice>> getBondedDevices() async {
@@ -69,7 +69,7 @@ class FlutterBluetoothSerial {
   Future<dynamic> connect(BluetoothDevice device) =>
       _channel.invokeMethod('connect', device.toMap());
 
-  Future<dynamic> disconnect() => _channel.invokeMethod('disconnect');
+  Future<void> disconnect() => _channel.invokeMethod('disconnect');
 
   Future<dynamic> write(String message) =>
       _channel.invokeMethod('write', {'message': message});
