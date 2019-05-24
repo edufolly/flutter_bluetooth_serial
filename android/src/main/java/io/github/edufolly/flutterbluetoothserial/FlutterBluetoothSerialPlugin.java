@@ -37,21 +37,25 @@ import io.flutter.plugin.common.PluginRegistry.Registrar;
 import io.flutter.plugin.common.PluginRegistry.RequestPermissionsResultListener;
 
 
-public class FlutterBluetoothSerialPlugin implements MethodCallHandler,
-        RequestPermissionsResultListener {
-
+public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestPermissionsResultListener {
     private static final String TAG = "FlutterBluePlugin";
-    private static final String NAMESPACE = "flutter_bluetooth_serial";
-    private static final int REQUEST_COARSE_LOCATION_PERMISSIONS = 1451;
-    private static final UUID MY_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
-    private static ConnectedThread THREAD = null;
-    private final Registrar registrar;
-    private BluetoothAdapter mBluetoothAdapter;
-
+    
+    // Dart plugin 
+    private static final String PLUGIN_NAMESPACE = "flutter_bluetooth_serial";
     private Result pendingResult;
-
     private EventSink readSink;
     private EventSink statusSink;
+
+    // Permissions
+    private static final int REQUEST_COARSE_LOCATION_PERMISSIONS = 1451;
+
+    // 
+    private static final UUID MY_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
+    private static ConnectionThread connectionThread = null;
+    private final Registrar registrar;
+    private BluetoothAdapter bluetoothAdapter;
+
+
 
     public static void registerWith(Registrar registrar) {
         final FlutterBluetoothSerialPlugin instance = new FlutterBluetoothSerialPlugin(registrar);
@@ -60,21 +64,20 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler,
 
     FlutterBluetoothSerialPlugin(Registrar registrar) {
         this.registrar = registrar;
-        MethodChannel channel = new MethodChannel(registrar.messenger(), NAMESPACE + "/methods");
-        EventChannel stateChannel = new EventChannel(registrar.messenger(), NAMESPACE + "/state");
-        EventChannel readChannel = new EventChannel(registrar.messenger(), NAMESPACE + "/read");
-        BluetoothManager mBluetoothManager = (BluetoothManager) registrar.activity()
-                .getSystemService(Context.BLUETOOTH_SERVICE);
-        assert mBluetoothManager != null;
-        this.mBluetoothAdapter = mBluetoothManager.getAdapter();
-        channel.setMethodCallHandler(this);
+        MethodChannel methodChannel = new MethodChannel(registrar.messenger(), PLUGIN_NAMESPACE + "/methods");
+        EventChannel stateChannel = new EventChannel(registrar.messenger(), PLUGIN_NAMESPACE + "/state");
+        EventChannel readChannel = new EventChannel(registrar.messenger(), PLUGIN_NAMESPACE + "/read");
+        BluetoothManager bluetoothManager = (BluetoothManager) registrar.activity().getSystemService(Context.BLUETOOTH_SERVICE);
+        assert bluetoothManager != null;
+        this.bluetoothAdapter = bluetoothManager.getAdapter();
+        methodChannel.setMethodCallHandler(this);
         stateChannel.setStreamHandler(stateStreamHandler);
         readChannel.setStreamHandler(readResultsHandler);
     }
 
     @Override
     public void onMethodCall(MethodCall call, Result result) {
-        if (mBluetoothAdapter == null && !"isAvailable".equals(call.method)) {
+        if (bluetoothAdapter == null && !"isAvailable".equals(call.method)) {
             result.error("bluetooth_unavailable", "the device does not have bluetooth", null);
             return;
         }
@@ -84,20 +87,20 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler,
         switch (call.method) {
 
             case "isAvailable":
-                result.success(mBluetoothAdapter != null);
+                result.success(bluetoothAdapter != null);
                 break;
 
             case "isOn":
                 try {
-                    assert mBluetoothAdapter != null;
-                    result.success(mBluetoothAdapter.isEnabled());
+                    assert bluetoothAdapter != null;
+                    result.success(bluetoothAdapter.isEnabled());
                 } catch (Exception ex) {
                     result.error("Error", ex.getMessage(), exceptionToString(ex));
                 }
                 break;
 
             case "isConnected":
-                result.success(THREAD != null);
+                result.success(connectionThread != null);
                 break;
 
             case "openSettings":
@@ -119,13 +122,10 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler,
                         pendingResult = result;
                         break;
                     }
-
                     getBondedDevices(result);
-
                 } catch (Exception ex) {
                     result.error("Error", ex.getMessage(), exceptionToString(ex));
                 }
-
                 break;
 
             case "connect":
@@ -165,22 +165,14 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler,
         }
     }
 
-    /**
-     * @param requestCode  requestCode
-     * @param permissions  permissions
-     * @param grantResults grantResults
-     * @return boolean
-     */
     @Override
-    public boolean onRequestPermissionsResult(int requestCode, String[] permissions,
-                                              int[] grantResults) {
+    public boolean onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
 
         if (requestCode == REQUEST_COARSE_LOCATION_PERMISSIONS) {
             if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 getBondedDevices(pendingResult);
             } else {
-                pendingResult.error("no_permissions",
-                        "this plugin requires location permissions for scanning", null);
+                pendingResult.error("no_permissions", "this plugin requires location permissions for scanning", null);
                 pendingResult = null;
             }
             return true;
@@ -188,14 +180,12 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler,
         return false;
     }
 
-    /**
-     * @param result result
-     */
-    private void getBondedDevices(Result result) {
 
+
+    private void getBondedDevices(Result result) {
         List<Map<String, Object>> list = new ArrayList<>();
 
-        for (BluetoothDevice device : mBluetoothAdapter.getBondedDevices()) {
+        for (BluetoothDevice device : bluetoothAdapter.getBondedDevices()) {
             Map<String, Object> ret = new HashMap<>();
             ret.put("address", device.getAddress());
             ret.put("name", device.getName());
@@ -213,19 +203,15 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler,
         return sw.toString();
     }
 
-    /**
-     * @param result  result
-     * @param address address
-     */
     private void connect(Result result, String address) {
-
-        if (THREAD != null) {
+        if (connectionThread != null) {
             result.error("connect_error", "already connected", null);
             return;
         }
+        
         AsyncTask.execute(() -> {
             try {
-                BluetoothDevice device = mBluetoothAdapter.getRemoteDevice(address);
+                BluetoothDevice device = bluetoothAdapter.getRemoteDevice(address);
 
                 if (device == null) {
                     result.error("connect_error", "device not found", null);
@@ -240,12 +226,12 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler,
                 }
                 
                 // Cancel bt discovery, even though we didn't start it
-                mBluetoothAdapter.cancelDiscovery();
+                bluetoothAdapter.cancelDiscovery();
 
                 try {
                     socket.connect();
-                    THREAD = new ConnectedThread(socket);
-                    THREAD.start();
+                    connectionThread = new ConnectedThread(socket);
+                    connectionThread.start();
                     result.success(true);
                 } catch(Exception ex) {
                     result.error("connect_error", ex.getMessage(), exceptionToString(ex));
@@ -256,19 +242,16 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler,
         });
     }
 
-    /**
-     * @param result result
-     */
     private void disconnect(Result result) {
 
-        if (THREAD == null) {
+        if (connectionThread == null) {
             result.error("disconnection_error", "not connected", null);
             return;
         }
         AsyncTask.execute(() -> {
             try {
-                THREAD.cancel();
-                THREAD = null;
+                connectionThread.cancel();
+                connectionThread = null;
                 result.success(null);
             } catch (Exception ex) {
                 result.error("disconnection_error", ex.getMessage(), exceptionToString(ex));
@@ -277,29 +260,25 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler,
     }
 
     private void write(Result result, byte[] message) {
-        if (THREAD == null) {
+        if (connectionThread == null) {
             result.error("write_error", "not connected", null);
             return;
         }
 
         try {
-            THREAD.write(message);
+            connectionThread.write(message);
             result.success(true);
         } catch (Exception ex) {
             result.error("write_error", ex.getMessage(), exceptionToString(ex));
         }
     }
-       
 
-    /**
-     *
-     */
-    private class ConnectedThread extends Thread {
+    private class ConnectionThread extends Thread {
         private final BluetoothSocket mmSocket;
         private final InputStream mmInStream;
         private final OutputStream mmOutStream;
 
-        ConnectedThread(BluetoothSocket socket) {
+        ConnectionThread(BluetoothSocket socket) {
             mmSocket = socket;
             InputStream tmpIn = null;
             OutputStream tmpOut = null;
@@ -366,12 +345,12 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler,
                 Log.d(TAG, action);
 
                 if (BluetoothAdapter.ACTION_STATE_CHANGED.equals(action)) {
-                    THREAD = null;
+                    connectionThread = null;
                     statusSink.success(intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, -1));
                 } else if (BluetoothDevice.ACTION_ACL_CONNECTED.equals(action)) {
                     statusSink.success(1);
                 } else if (BluetoothDevice.ACTION_ACL_DISCONNECTED.equals(action)) {
-                    THREAD = null;
+                    connectionThread = null;
                     statusSink.success(0);
                 }
             }
