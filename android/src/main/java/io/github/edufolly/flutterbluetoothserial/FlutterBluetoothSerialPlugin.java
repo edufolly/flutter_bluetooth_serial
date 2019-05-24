@@ -77,9 +77,15 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
 
     @Override
     public void onMethodCall(MethodCall call, Result result) {
-        if (bluetoothAdapter == null && !"isAvailable".equals(call.method)) {
-            result.error("bluetooth_unavailable", "the device does not have bluetooth", null);
-            return;
+        if (bluetoothAdapter == null) {
+            if ("isAvailable".equals(call.method)) {
+                result.success(false);
+                return;
+            }
+            else {
+                result.error("bluetooth_unavailable", "bluetooth is not available", null);
+                return;
+            }
         }
 
         final Map<String, Object> arguments = call.arguments();
@@ -87,16 +93,11 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
         switch (call.method) {
 
             case "isAvailable":
-                result.success(bluetoothAdapter != null);
+                result.success(true);
                 break;
 
             case "isOn":
-                try {
-                    assert bluetoothAdapter != null;
-                    result.success(bluetoothAdapter.isEnabled());
-                } catch (Exception ex) {
-                    result.error("Error", ex.getMessage(), exceptionToString(ex));
-                }
+                result.success(bluetoothAdapter.isEnabled());
                 break;
 
             case "isConnected":
