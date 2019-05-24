@@ -232,7 +232,7 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
                     socket.connect();
                     connectionThread = new ConnectedThread(socket);
                     connectionThread.start();
-                    result.success(true);
+                    result.success(null);
                 } catch(Exception ex) {
                     result.error("connect_error", ex.getMessage(), exceptionToString(ex));
                 }

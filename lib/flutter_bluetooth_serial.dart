@@ -66,8 +66,7 @@ class FlutterBluetoothSerial {
     return list.map((map) => BluetoothDevice.fromMap(map)).toList();
   }
 
-  Future<dynamic> connect(BluetoothDevice device) =>
-      _channel.invokeMethod('connect', device.toMap());
+  Future<void> connect(BluetoothDevice device) => _channel.invokeMethod('connect', device.toMap());
 
   Future<void> disconnect() => _channel.invokeMethod('disconnect');
 
