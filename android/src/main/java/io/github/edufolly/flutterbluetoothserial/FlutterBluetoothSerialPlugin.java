@@ -228,14 +228,11 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
                 // Cancel bt discovery, even though we didn't start it
                 bluetoothAdapter.cancelDiscovery();
 
-                try {
-                    socket.connect();
-                    connectionThread = new ConnectedThread(socket);
-                    connectionThread.start();
-                    result.success(null);
-                } catch(Exception ex) {
-                    result.error("connect_error", ex.getMessage(), exceptionToString(ex));
-                }
+                socket.connect();
+                connectionThread = new ConnectionThread(socket);
+                connectionThread.start();
+
+                result.success(null);
             } catch (Exception ex) {
                 result.error("connect_error", ex.getMessage(), exceptionToString(ex));
             }
