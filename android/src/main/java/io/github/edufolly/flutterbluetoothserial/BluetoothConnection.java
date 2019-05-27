@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.UUID;
+import java.util.Arrays;
 
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -16,7 +17,7 @@ public class BluetoothConnection
     protected BluetoothAdapter bluetoothAdapter;
 
     public interface Receiver {
-        void onRead(String data);
+        void onRead(byte[] buffer);
     }
     protected Receiver reader;
 
@@ -46,7 +47,7 @@ public class BluetoothConnection
             throw new IOException("device not found");
         }
 
-        BluetoothSocket socket = device.createRfcommSocketToServiceRecord(uuid);
+        BluetoothSocket socket = device.createRfcommSocketToServiceRecord(uuid); // @TODO . introduce ConnectionMethod
         if (socket == null) {
             throw new IOException("socket connection not established");
         }
@@ -112,7 +113,7 @@ public class BluetoothConnection
                 try {
                     bytes = input.read(buffer);
                     
-                    reader.onRead(new String(buffer, 0, bytes));
+                    reader.onRead(Arrays.copyOf(buffer, bytes));
                 } catch (NullPointerException e) {
                     break;
                 } catch (IOException e) {
