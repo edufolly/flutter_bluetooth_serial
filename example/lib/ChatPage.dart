@@ -24,11 +24,14 @@ class _ChatPage extends State<ChatPage> {
   static final maxMessageLength = 4096 - 3;
 
   StreamSubscription<Uint8List> _streamSubscription;
+
   List<_Message> messages = List<_Message>();
   String _messageBuffer = '';
 
   final TextEditingController textEditingController = new TextEditingController();
   final ScrollController listScrollController = new ScrollController();
+
+  bool get isConnected => _streamSubscription != null;
 
   @override
   void initState() {
@@ -71,14 +74,14 @@ class _ChatPage extends State<ChatPage> {
     
     return Scaffold(
       appBar: AppBar(
-        title: Text('Flutter Bluetooth Serial'),
+        title: isConnected ? Text('Chat with ' + widget.server.name) : const Text('Connecting chat...'),
       ),
       body: SafeArea(
         child: Column(
           children: <Widget>[
             Flexible(
               child: ListView(
-                padding: EdgeInsets.all(12.0),
+                padding: const EdgeInsets.all(12.0),
                 controller: listScrollController,
                 children: list
               )
@@ -87,21 +90,21 @@ class _ChatPage extends State<ChatPage> {
               children: <Widget>[
                 Flexible(
                   child: Container(
-                    margin: EdgeInsets.only(left: 16.0),
+                    margin: const EdgeInsets.only(left: 16.0),
                     child: TextField(
-                      style: TextStyle(fontSize: 15.0),
+                      style: const TextStyle(fontSize: 15.0),
                       controller: textEditingController,
                       decoration: InputDecoration.collapsed(
                         hintText: 'Type your message...',
-                        hintStyle: TextStyle(color: Colors.grey),
+                        hintStyle: const TextStyle(color: Colors.grey),
                       ),
                     )
                   )
                 ),
                 Container(
-                  margin: EdgeInsets.all(8.0),
+                  margin: const EdgeInsets.all(8.0),
                   child: IconButton(
-                    icon: Icon(Icons.send),
+                    icon: const Icon(Icons.send),
                     onPressed: () => _sendMessage(textEditingController.text),
                   ),
                 ),

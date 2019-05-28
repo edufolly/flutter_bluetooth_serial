@@ -11,7 +11,7 @@ class MainPage extends StatefulWidget {
 }
 
 class _MainPage extends State<MainPage> {
-  BluetoothStatus _bluetoothStatus = BluetoothStatus.UNKNOWN;
+  BluetoothState _bluetoothState = BluetoothState.UNKNOWN;
 
   @override
   void initState() {
@@ -19,12 +19,12 @@ class _MainPage extends State<MainPage> {
     
     // Get current state
     FlutterBluetoothSerial.instance.state.then((state) {
-      setState(() { _bluetoothStatus = state; });
+      setState(() { _bluetoothState = state; });
     });
 
     // Listen for futher state changes
-    FlutterBluetoothSerial.instance.onStateChanged().listen((BluetoothStatus state) {
-      setState(() { _bluetoothStatus = state; });
+    FlutterBluetoothSerial.instance.onStateChanged().listen((BluetoothState state) {
+      setState(() { _bluetoothState = state; });
     });
   }
 
@@ -39,7 +39,7 @@ class _MainPage extends State<MainPage> {
           children: <Widget>[
             SwitchListTile(
               title: Text('Enable Bluetooth'),
-              value: _bluetoothStatus.isEnabled,
+              value: _bluetoothState.isEnabled,
               onChanged: (bool value) {
                 // Do the request and update with the true value then
                 future() async { // async lambda seems to not working
@@ -55,7 +55,7 @@ class _MainPage extends State<MainPage> {
             ),
             ListTile(
               title: Text('Bluetooth status'),
-              subtitle: Text(_bluetoothStatus.toString()),
+              subtitle: Text(_bluetoothState.toString()),
               trailing: RaisedButton(
                 child: Text('Settings'),
                 onPressed: () { 

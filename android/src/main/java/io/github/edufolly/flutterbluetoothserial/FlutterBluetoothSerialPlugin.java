@@ -50,9 +50,9 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
     private BluetoothAdapter bluetoothAdapter;
     private BluetoothManager bluetoothManager;
     
-    // Status
-    private final BroadcastReceiver statusReceiver;
-    private EventSink statusSink;
+    // State
+    private final BroadcastReceiver stateReceiver;
+    private EventSink stateSink;
 
     // Discovery
     private EventChannel discoveryChannel;
@@ -90,12 +90,12 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
             this.bluetoothAdapter = bluetoothManager.getAdapter();
         }
 
-        // Status
+        // State
         {
-            statusReceiver = new BroadcastReceiver() {
+            stateReceiver = new BroadcastReceiver() {
                 @Override
                 public void onReceive(Context context, Intent intent) {
-                    if (statusSink == null) {
+                    if (stateSink == null) {
                         return;
                     }
                     
@@ -103,14 +103,7 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
                     switch (action) {
                         case BluetoothAdapter.ACTION_STATE_CHANGED:
                             bluetoothConnection.disconnect();
-                            statusSink.success(intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, -1));
-                            break;
-                        case BluetoothDevice.ACTION_ACL_CONNECTED:
-                            statusSink.success(1);
-                            break;
-                        case BluetoothDevice.ACTION_ACL_DISCONNECTED:
-                            bluetoothConnection.disconnect();
-                            statusSink.success(0);
+                            stateSink.success(intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, -1));
                             break;
                     }
                 }
@@ -121,19 +114,15 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
             stateChannel.setStreamHandler(new StreamHandler() {
                 @Override
                 public void onListen(Object o, EventSink eventSink) {
-                    statusSink = eventSink;
-                    
-                    IntentFilter filter = new IntentFilter();
-                    filter.addAction(BluetoothAdapter.ACTION_STATE_CHANGED);
-                    filter.addAction(BluetoothDevice.ACTION_ACL_CONNECTED);
-                    filter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED);
-                    registrar.activeContext().registerReceiver(statusReceiver, filter);
+                    stateSink = eventSink;
+
+                    registrar.activeContext().registerReceiver(stateReceiver, new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED));
                 }
                 @Override
                 public void onCancel(Object o) {
-                    statusSink = null;
+                    stateSink = null;
                     try {
-                        registrar.activeContext().unregisterReceiver(statusReceiver);
+                        registrar.activeContext().unregisterReceiver(stateReceiver);
                     }
                     catch (IllegalArgumentException ex) {
                         // Ignore `Receiver not registered` exception

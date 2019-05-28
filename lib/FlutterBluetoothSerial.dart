@@ -20,14 +20,20 @@ class FlutterBluetoothSerial {
   /// Checks is the Bluetooth interface avaliable on host device.
   Future<bool> get isAvailable async => await _methodChannel.invokeMethod('isAvailable');
 
-  Future<bool> get isOn async => await _methodChannel.invokeMethod('isOn');
+  /// Describes is the Bluetooth interface enabled on host device.
   Future<bool> get isEnabled async => await _methodChannel.invokeMethod('isEnabled');
+  
+  /// Checks is the Bluetooth interface enabled on host device.
+  @Deprecated('Use `isEnabled` instead')
+  Future<bool> get isOn async => await _methodChannel.invokeMethod('isOn');
 
-  static const EventChannel _stateChannel = const EventChannel('$namespace/state');
-  Stream<BluetoothStatus> onStateChanged() => _stateChannel.receiveBroadcastStream().map((data) => BluetoothStatus.fromUnderlyingValue(data));
+  static final EventChannel _stateChannel = const EventChannel('$namespace/state');
 
-  Future<BluetoothStatus> get state async => BluetoothStatus.fromUnderlyingValue(await _methodChannel.invokeMethod('getState'));
+  /// Allows monitoring the Bluetooth adapter state changes.
+  Stream<BluetoothState> onStateChanged() => _stateChannel.receiveBroadcastStream().map((data) => BluetoothState.fromUnderlyingValue(data));
 
+  /// State of the Bluetooth adapter.
+  Future<BluetoothState> get state async => BluetoothState.fromUnderlyingValue(await _methodChannel.invokeMethod('getState'));
 
 
 

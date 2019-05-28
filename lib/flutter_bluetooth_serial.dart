@@ -6,7 +6,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/services.dart';
 
-part './BluetoothStatus.dart';
+part './BluetoothState.dart';
 part './BluetoothDeviceType.dart';
 part './BluetoothDevice.dart';
 part './BluetoothDiscoveryResult.dart';
