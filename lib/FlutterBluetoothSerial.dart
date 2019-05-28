@@ -4,7 +4,7 @@ class FlutterBluetoothSerial {
   // Plugin
   static const String namespace = 'flutter_bluetooth_serial';
 
-  static const MethodChannel _methodChannel = const MethodChannel('$namespace/methods');
+  static final MethodChannel _methodChannel = const MethodChannel('$namespace/methods');
   final StreamController<MethodCall> _methodStreamController = new StreamController.broadcast();
   Stream<MethodCall> get _methodStream => _methodStreamController.stream;
   FlutterBluetoothSerial._() {
@@ -16,7 +16,8 @@ class FlutterBluetoothSerial {
 
 
 
-  // Status
+  /* Status */
+  /// Checks is the Bluetooth interface avaliable on host device.
   Future<bool> get isAvailable async => await _methodChannel.invokeMethod('isAvailable');
 
   Future<bool> get isOn async => await _methodChannel.invokeMethod('isOn');
@@ -29,24 +30,36 @@ class FlutterBluetoothSerial {
 
 
 
-  // Settings
+
+  /* Settings */
+  /// Tries to enable Bluetooth interface (if disabled). 
+  /// Probably results in asking user for confirmation.
   Future<bool> requestEnable() async => await _methodChannel.invokeMethod('requestEnable');
+
+  /// Tries to disable Bluetooth interface (if enabled).
   Future<bool> requestDisable() async => await _methodChannel.invokeMethod('requestDisable');
 
+  /// Opens the Bluetooth platform system settings.
   Future<void> openSettings() async => await _methodChannel.invokeMethod('openSettings');
 
+  // @TODO . add `discoverableName` (get/set)
+  // @TODO . add `requestDiscoverable`
+
+
+
+  /* Discovering devices */
+  /// Returns list of bonded devices.
   Future<List<BluetoothDevice>> getBondedDevices() async {
     final List list = await _methodChannel.invokeMethod('getBondedDevices');
     return list.map((map) => BluetoothDevice.fromMap(map)).toList();
   }
 
+  static final EventChannel _discoveryChannel = const EventChannel('$namespace/discovery');
 
-
-  // Discovery
-  static const EventChannel _discoveryChannel = const EventChannel('$namespace/discovery');
-
+  /// Describes is the dicovery process of Bluetooth devices running.
   Future<bool> get isDiscovering async => await _methodChannel.invokeMethod('isDiscovering');
 
+  /// Starts discovery and provides stream of `BluetoothDiscoveryResult`s.
   Stream<BluetoothDiscoveryResult> startDiscovery() async* {
     StreamSubscription subscription;
     StreamController controller;
@@ -70,8 +83,8 @@ class FlutterBluetoothSerial {
     yield* controller.stream.map((map) => BluetoothDiscoveryResult.fromMap(map));
   }
 
-  Future<bool> cancelDiscovery() async => await _methodChannel.invokeMethod('cancelDiscovery');
-
+  /// Cancels the discovery
+  Future<void> cancelDiscovery() async => await _methodChannel.invokeMethod('cancelDiscovery');
 
 
   // Connection
