@@ -78,7 +78,8 @@ class FlutterBluetoothSerial {
   Future<bool> get isConnected async =>
     await _methodChannel.invokeMethod('isConnected');
 
-  Future<void> connect(BluetoothDevice device) => _methodChannel.invokeMethod('connect', device.toMap());
+  Future<void> connect(BluetoothDevice device) => _methodChannel.invokeMethod('connect', {"address": device.address});
+  Future<void> connectToAddress(String address) => _methodChannel.invokeMethod('connect', {"address": address});
 
   Future<void> disconnect() => _methodChannel.invokeMethod('disconnect');
 

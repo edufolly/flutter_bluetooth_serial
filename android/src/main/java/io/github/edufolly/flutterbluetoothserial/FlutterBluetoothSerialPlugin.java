@@ -392,6 +392,7 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
             case "connect":
                 if (call.hasArgument("address")) {
                     String address = call.argument("address");
+                    Log.d(TAG, "Connecting to " + address);
                     AsyncTask.execute(() -> {
                         try {
                             bluetoothConnection.connect(address);
