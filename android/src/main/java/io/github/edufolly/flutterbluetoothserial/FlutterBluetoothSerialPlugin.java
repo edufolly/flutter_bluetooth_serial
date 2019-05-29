@@ -157,12 +157,19 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler,
                 break;
 
             case "connect":
-                if (arguments.containsKey("address")) {
-                    String address = (String) arguments.get("address");
-                    connect(result, address);
-                } else {
-                    result.error("invalid_argument", "argument 'address' not found", null);
+                try {
+                    if (arguments.containsKey("address")) {
+                        String address = (String) arguments.get("address");
+                        connect(result, address);
+                    } else {
+                        result.error("invalid_argument", "argument 'address' not found", null);
+                    }
+                    break;                    
                 }
+                catch (Exception ex) {
+                    result.error("Error", ex.getMessage(), exceptionToString(ex));
+                }
+
                 break;
 
             case "disconnect":
