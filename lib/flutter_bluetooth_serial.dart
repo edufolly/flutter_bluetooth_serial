@@ -26,6 +26,9 @@ class FlutterBluetoothSerial {
   static const EventChannel _readChannel =
       const EventChannel('$namespace/read');
 
+  static const EventChannel _readByteChannel =
+  const EventChannel('$namespace/readByte');
+
   static const EventChannel _stateChannel =
       const EventChannel('$namespace/state');
 
@@ -49,6 +52,9 @@ class FlutterBluetoothSerial {
 
   Stream<String> onRead() =>
       _readChannel.receiveBroadcastStream().map((buffer) => buffer.toString());
+
+  Stream<Uint8List> onReadByte() =>
+      _readByteChannel.receiveBroadcastStream().map((buffer) => buffer);
 
   Future<bool> get isAvailable async =>
       await _channel.invokeMethod('isAvailable');
