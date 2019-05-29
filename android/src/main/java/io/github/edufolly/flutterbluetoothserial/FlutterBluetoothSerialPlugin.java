@@ -23,6 +23,7 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -53,6 +54,7 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler,
     private Result pendingResult;
 
     private EventSink readSink;
+    private EventSink readSinkByte;
     private EventSink statusSink;
     private String currentMethodCall = "";
 
@@ -66,6 +68,7 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler,
         MethodChannel channel = new MethodChannel(registrar.messenger(), NAMESPACE + "/methods");
         EventChannel stateChannel = new EventChannel(registrar.messenger(), NAMESPACE + "/state");
         EventChannel readChannel = new EventChannel(registrar.messenger(), NAMESPACE + "/read");
+        EventChannel readByteChannel = new EventChannel(registrar.messenger(), NAMESPACE + "/readByte");
         BluetoothManager mBluetoothManager = (BluetoothManager) registrar.activity()
                 .getSystemService(Context.BLUETOOTH_SERVICE);
         assert mBluetoothManager != null;
@@ -73,6 +76,7 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler,
         channel.setMethodCallHandler(this);
         stateChannel.setStreamHandler(stateStreamHandler);
         readChannel.setStreamHandler(readResultsHandler);
+        readByteChannel.setStreamHandler(readResultsByteHandler);
     }
 
     @Override
@@ -414,7 +418,8 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler,
             while (true) {
                 try {
                     bytes = mmInStream.read(buffer);
-                    readSink.success(new String(buffer, 0, bytes));
+                    if(readSink != null) readSink.success(new String(buffer, 0, bytes));
+                    if(readSinkByte != null) readSinkByte.success(Arrays.copyOf(buffer, bytes));
                 } catch (NullPointerException e) {
                     break;
                 } catch (IOException e) {
@@ -459,12 +464,12 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler,
 
                 if (BluetoothAdapter.ACTION_STATE_CHANGED.equals(action)) {
                     THREAD = null;
-                    statusSink.success(intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, -1));
+                    if(statusSink != null) statusSink.success(intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, -1));
                 } else if (BluetoothDevice.ACTION_ACL_CONNECTED.equals(action)) {
-                    statusSink.success(1);
+                    if(statusSink != null) statusSink.success(1);
                 } else if (BluetoothDevice.ACTION_ACL_DISCONNECTED.equals(action)) {
                     THREAD = null;
-                    statusSink.success(0);
+                    if(statusSink != null) statusSink.success(0);
                 }
             }
         };
@@ -501,6 +506,18 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler,
         @Override
         public void onCancel(Object o) {
             readSink = null;
+        }
+    };
+
+    private final StreamHandler readResultsByteHandler = new StreamHandler() {
+        @Override
+        public void onListen(Object o, EventSink eventSink) {
+            readSinkByte = eventSink;
+        }
+
+        @Override
+        public void onCancel(Object o) {
+            readSinkByte = null;
         }
     };
 }

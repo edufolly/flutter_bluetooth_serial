@@ -77,6 +77,10 @@ class _MyAppState extends State<MyApp> {
       });
     });
 
+    bluetooth.onReadByte().listen((dataArray){
+      print(dataArray.toString());
+    });
+
     if (!mounted) return;
     setState(() {
       _devices = devices;
