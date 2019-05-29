@@ -351,8 +351,8 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler,
             while (true) {
                 try {
                     bytes = mmInStream.read(buffer);
-                    readSink.success(new String(buffer, 0, bytes));
-                    readSinkByte.success(Arrays.copyOf(buffer, bytes));
+                    if(readSink != null) readSink.success(new String(buffer, 0, bytes));
+                    if(readSinkByte != null) readSinkByte.success(Arrays.copyOf(buffer, bytes));
                 } catch (NullPointerException e) {
                     break;
                 } catch (IOException e) {
@@ -397,12 +397,12 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler,
 
                 if (BluetoothAdapter.ACTION_STATE_CHANGED.equals(action)) {
                     THREAD = null;
-                    statusSink.success(intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, -1));
+                    if(statusSink != null) statusSink.success(intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, -1));
                 } else if (BluetoothDevice.ACTION_ACL_CONNECTED.equals(action)) {
-                    statusSink.success(1);
+                    if(statusSink != null) statusSink.success(1);
                 } else if (BluetoothDevice.ACTION_ACL_DISCONNECTED.equals(action)) {
                     THREAD = null;
-                    statusSink.success(0);
+                    if(statusSink != null) statusSink.success(0);
                 }
             }
         };
