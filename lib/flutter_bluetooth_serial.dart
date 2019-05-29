@@ -65,6 +65,10 @@ class FlutterBluetoothSerial {
     final List list = await _channel.invokeMethod('getBondedDevices');
     return list.map((map) => BluetoothDevice.fromMap(map)).toList();
   }
+   Future<List<BluetoothDevice>> scanDevices() async {
+    final List list = await _channel.invokeMethod('scanDevices');
+    return list.map((map) => BluetoothDevice.fromMap(map)).toList();
+  }
 
   Future<dynamic> connect(BluetoothDevice device) =>
       _channel.invokeMethod('connect', device.toMap());
