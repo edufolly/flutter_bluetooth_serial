@@ -49,13 +49,20 @@ class FlutterBluetoothSerial {
 
   Stream<String> onRead() =>
       _readChannel.receiveBroadcastStream().map((buffer) => buffer.toString());
+  
+  BluetoothDevice _device;
+  
+  BluetoothDevice getDeviceConnected() {
+    return _device;
+  }  
 
   Future<bool> get isAvailable async =>
       await _channel.invokeMethod('isAvailable');
 
   Future<bool> get isOn async => await _channel.invokeMethod('isOn');
 
-  Future<bool> get isConnected async =>
+  Future<bool> get is
+    ted async =>
       await _channel.invokeMethod('isConnected');
 
   Future<bool> get openSettings async =>
@@ -66,8 +73,10 @@ class FlutterBluetoothSerial {
     return list.map((map) => BluetoothDevice.fromMap(map)).toList();
   }
 
-  Future<dynamic> connect(BluetoothDevice device) =>
-      _channel.invokeMethod('connect', device.toMap());
+  Future<dynamic> connect(BluetoothDevice device) {
+    _device = device;
+    _channel.invokeMethod('connect', device.toMap());
+  }
 
   Future<dynamic> disconnect() => _channel.invokeMethod('disconnect');
 
