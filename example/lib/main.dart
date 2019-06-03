@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -19,12 +20,14 @@ class MyApp extends StatefulWidget {
 ///
 class _MyAppState extends State<MyApp> {
   static final TextEditingController _message = new TextEditingController();
+   static final TextEditingController _pin = new TextEditingController();
   static final TextEditingController _text = new TextEditingController();
 
   FlutterBluetoothSerial bluetooth = FlutterBluetoothSerial.instance;
 
   List<BluetoothDevice> _devices = [];
   BluetoothDevice _device;
+  bool _isBonded;
   bool _connected = false;
   bool _pressed = false;
 
@@ -35,6 +38,7 @@ class _MyAppState extends State<MyApp> {
   void initState() {
     super.initState();
     initPlatformState();
+    _pin.text = "0000";
   }
 
   ///
@@ -113,13 +117,48 @@ class _MyAppState extends State<MyApp> {
                     ),
                     DropdownButton(
                       items: _getDeviceItems(),
-                      onChanged: (value) => setState(() => _device = value),
+                      onChanged: (value) {
+                          _getIsBonded(value).then((bonded){
+                            _isBonded = bonded;
+                          });
+
+                          setState((){
+                            _device = value;
+                          });
+                      },
                       value: _device,
                     ),
+                    Text("isBonded:" + _isBonded.toString()),
                     RaisedButton(
                       onPressed:
                           _pressed ? null : _connected ? _disconnect : _connect,
                       child: Text(_connected ? 'Disconnect' : 'Connect'),
+                    ),
+                    RaisedButton(
+                      onPressed: _scanDevices,
+                      child: Text("Scan"),
+                      )
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(10.0, 6.0, 10.0, 0.0),
+                child: Row(
+                  children: <Widget>[
+                    Expanded(
+                      child: new TextField(
+                        controller: _pin,
+                        autocorrect: false,
+                        keyboardType: TextInputType.number,
+                        decoration: new InputDecoration(
+                          border: InputBorder.none,
+                          labelText: 'PIN:',
+                        ),
+                      ),
+                    ),
+                    RaisedButton(
+                      onPressed: _bondDevice,
+                      child: Text('Bond'),
                     ),
                   ],
                 ),
@@ -201,6 +240,26 @@ class _MyAppState extends State<MyApp> {
         }
       });
     }
+  }
+
+  void _scanDevices() {
+    _devices.clear();
+    bluetooth.scanDevices().then((items){
+        for(var item in items) {
+          _devices.add(item);
+        }
+        setState(() {
+         //trigger repaint 
+        });
+    });
+  }
+
+  _bondDevice() {
+        bluetooth.bondDevice(_device, pin: _pin.text);
+  }
+
+  Future<bool> _getIsBonded(BluetoothDevice device) {
+    return bluetooth.isBonded(device);
   }
 
   ///
