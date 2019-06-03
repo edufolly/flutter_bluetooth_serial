@@ -39,6 +39,10 @@ import io.flutter.plugin.common.MethodChannel.Result;
 import io.flutter.plugin.common.PluginRegistry.Registrar;
 import io.flutter.plugin.common.PluginRegistry.RequestPermissionsResultListener;
 
+import static android.bluetooth.BluetoothDevice.BOND_BONDED;
+import static android.bluetooth.BluetoothDevice.BOND_BONDING;
+import static android.bluetooth.BluetoothDevice.BOND_NONE;
+
 
 public class FlutterBluetoothSerialPlugin implements MethodCallHandler,
         RequestPermissionsResultListener {
@@ -104,6 +108,13 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler,
                 }
                 break;
 
+            case "isBonded":
+                if (!arguments.containsKey("address")) {
+                    result.error("invalid_argument", "argument 'device' not found", null);
+                }
+                result.success(isBonded(mBluetoothAdapter.getRemoteDevice((String) arguments.get("address"))));
+                break;
+
             case "isConnected":
                 result.success(THREAD != null);
                 break;
@@ -137,6 +148,25 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler,
                 }
 
                 break;
+            case "bondDevice":
+                try {
+                    if (arguments.containsKey("address")) {
+                        byte[] pin = null;
+                        if(arguments.containsKey("pin")) {
+                            pin = ((String) arguments.get("pin")).getBytes();
+                        }
+
+                        bondDevice(result, mBluetoothAdapter.getRemoteDevice((String) arguments.get("address")), pin);
+                    } else {
+                        result.error("invalid_argument", "argument 'device' not found", null);
+                    }
+                    break;
+                }
+                catch (Exception ex) {
+                    result.error("Error", ex.getMessage(), exceptionToString(ex));
+                }
+
+                break;
             case "scanDevices":
                 try {
 
@@ -160,7 +190,7 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler,
 
                 break;
 
-            case "connect":
+           case "connect":
                 try {
                     if (arguments.containsKey("address")) {
                         String address = (String) arguments.get("address");
@@ -269,6 +299,8 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler,
                     list.add(ret);
                 } else if (BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(action)) {
                     result.success(list);
+                    registrar.activeContext().unregisterReceiver(this);
+
                 }
             }
         };
@@ -284,6 +316,58 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler,
         PrintWriter pw = new PrintWriter(sw);
         ex.printStackTrace(pw);
         return sw.toString();
+    }
+
+    /**
+     *
+     * @param result result
+     * @param device device to bond
+     * @param pin pin code to bond
+     */
+    private void bondDevice(Result result, BluetoothDevice device, byte[] pin) {
+        switch(device.getBondState()) {
+            case BOND_BONDING:
+                result.error("bond error", "already bonding", null);
+                return;
+            case BOND_BONDED:
+                result.error("bond error", "already bonded", null);
+                return;
+        }
+
+        //bond state is BOND_NONE
+
+        if(pin != null) {
+            final BroadcastReceiver mReceiver = new BroadcastReceiver() {
+                @Override
+                public void onReceive(Context context, Intent intent) {
+                    if (BluetoothDevice.ACTION_PAIRING_REQUEST.equals(intent.getAction())) {
+                        BluetoothDevice bluetoothDevice = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                        bluetoothDevice.setPin(pin);
+                        abortBroadcast();
+                        Log.e(TAG,"Auto-entering pin: " + new String(pin));
+                        bluetoothDevice.createBond();
+                        Log.e(TAG,"pin entered and request sent...");
+                        registrar.activeContext().unregisterReceiver(this);
+                    }
+                }
+            };
+            final IntentFilter pairingRequestFilter = new IntentFilter(BluetoothDevice.ACTION_PAIRING_REQUEST);
+            pairingRequestFilter.setPriority(IntentFilter.SYSTEM_HIGH_PRIORITY - 1);
+
+            registrar.activeContext().registerReceiver(mReceiver, pairingRequestFilter);
+        }
+
+
+
+       if(device.createBond()) {
+           result.success(true);
+       } else {
+           result.error("bond_error", "error starting bond", null);
+       }
+    }
+
+    private boolean isBonded(BluetoothDevice device) {
+        return device.getBondState() == BOND_BONDED;
     }
 
     /**

@@ -67,6 +67,12 @@ class FlutterBluetoothSerial {
 
   Future<bool> get isOn async => await _channel.invokeMethod('isOn');
 
+  Future<bool> isBonded(BluetoothDevice device) async{
+    if(device == null) return Future.value(false);
+    
+    return await _channel.invokeMethod('isBonded', device.toMap());
+  }
+
   Future<bool> get isConnected async =>
       await _channel.invokeMethod('isConnected');
 
@@ -82,9 +88,17 @@ class FlutterBluetoothSerial {
     return list.map((map) => BluetoothDevice.fromMap(map)).toList();
   }
 
+  Future<dynamic> bondDevice(BluetoothDevice device, {String pin}) {
+    if(device == null) return null;
+    return _channel.invokeMethod("bondDevice", <String, dynamic>{
+        'address': device.address,
+        'pin': pin,
+      });
+  }
+
   Future<dynamic> connect(BluetoothDevice device) {
     _device = device;
-    _channel.invokeMethod('connect', device.toMap());
+    return _channel.invokeMethod('connect', device.toMap());
   }
 
   Future<dynamic> disconnect() => _channel.invokeMethod('disconnect');
