@@ -44,7 +44,7 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
     
     // Permissions
     private static final int REQUEST_COARSE_LOCATION_PERMISSIONS = 1451;
-    private static final int REQUEST_ENABLE_BLUETOOH = 2137;
+    private static final int REQUEST_ENABLE_BLUETOOTH = 2137;
     
     // General Bluetooth
     private BluetoothAdapter bluetoothAdapter;
@@ -126,6 +126,7 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
                 public void onListen(Object o, EventSink eventSink) {
                     stateSink = eventSink;
 
+                    // @TODO . leak :C
                     registrar.activeContext().registerReceiver(stateReceiver, new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED));
                 }
                 @Override
@@ -252,7 +253,7 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
             case "requestEnable":
                 if (!bluetoothAdapter.isEnabled()) {
                     Intent intent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-                    ActivityCompat.startActivityForResult(registrar.activity(), intent, REQUEST_ENABLE_BLUETOOH, null);
+                    ActivityCompat.startActivityForResult(registrar.activity(), intent, REQUEST_ENABLE_BLUETOOTH, null);
                 }
                 else {
                     result.success(true);
@@ -298,7 +299,7 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
                             entry.put("name", device.getName());
                             entry.put("type", device.getType());
                             // @TODO ? maybe "connected" - look for each of connection instances etc
-                            entry.put("bonded", device.getBondState() == BluetoothDevice.BOND_BONDED);
+                            entry.put("bonded", true);
                             list.add(entry);
                         }
 
@@ -512,9 +513,10 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
         return false;
     }
 
+    // @TODO ? Registrar addActivityResultListener(ActivityResultListener listener);
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         switch (requestCode) {
-            case REQUEST_ENABLE_BLUETOOH:
+            case REQUEST_ENABLE_BLUETOOTH:
                 if (resultCode == 0) { // @TODO - use underlying value of `Activity.RESULT_CANCELED` since we tend to use `androidx` in where I could find the value.
                     pendingResultForActivityResult.success(false);
                 }
