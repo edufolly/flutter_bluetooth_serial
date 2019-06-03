@@ -10,16 +10,12 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 
-public class BluetoothConnection
+/// Universal Bluetooth serial connection class (for Java)
+public abstract class BluetoothConnection
 {
     protected static final UUID DEFAULT_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
 
     protected BluetoothAdapter bluetoothAdapter;
-
-    public interface Receiver {
-        void onRead(byte[] buffer);
-    }
-    protected Receiver reader;
 
     protected ConnectionThread connectionThread = null;
 
@@ -29,13 +25,16 @@ public class BluetoothConnection
 
 
 
-    public BluetoothConnection(BluetoothAdapter bluetoothAdapter, Receiver reader) {
+    public BluetoothConnection(BluetoothAdapter bluetoothAdapter) {
         this.bluetoothAdapter = bluetoothAdapter;
-        this.reader = reader;
     }
 
 
 
+    // @TODO . `connect` could be done perfored on the other thread
+    // @TODO . `connect` parameter: timeout
+    // @TODO . `connect` other methods than `createRfcommSocketToServiceRecord`, including hidden one raw `createRfcommSocket` (on channel).
+    // @TODO ? how about turning it into factoried?
     /// Connects to given device by hardware address
     public void connect(String address, UUID uuid) throws IOException {
         if (isConnected()) {
@@ -74,19 +73,26 @@ public class BluetoothConnection
     }
 
     /// Writes to connected remote device 
-    public void write(byte[] message) throws IOException {
+    public void write(byte[] data) throws IOException {
         if (!isConnected()) {
             throw new IOException("not connected");
         }
 
-        connectionThread.write(message);
+        connectionThread.write(data);
     }
 
+    /// Callback for reading data.
+    protected abstract void onRead(byte[] data);
+
+    /// Callback for disconnection.
+    protected abstract void onDisconnected(boolean byRemote);
+
     /// Thread to handle connection I/O
-    private class ConnectionThread extends Thread {
+    private class ConnectionThread extends Thread  {
         private final BluetoothSocket socket;
         private final InputStream input;
         private final OutputStream output;
+        private boolean requestedClosing = false;
         
         ConnectionThread(BluetoothSocket socket) {
             this.socket = socket;
@@ -109,17 +115,39 @@ public class BluetoothConnection
             byte[] buffer = new byte[1024];
             int bytes;
 
-            while (true) {
+            while (!requestedClosing) {
                 try {
                     bytes = input.read(buffer);
-                    
-                    reader.onRead(Arrays.copyOf(buffer, bytes));
-                } catch (NullPointerException e) {
-                    break;
+
+                    onRead(Arrays.copyOf(buffer, bytes));
                 } catch (IOException e) {
+                    // `input.read` throws when closed by remote device
                     break;
                 }
             }
+
+            // Make sure output stream is closed
+            if (output != null) {
+                try {
+                    output.close();
+                }
+                catch (Exception e) {}
+            }
+
+            // Make sure input stream is closed
+            if (input != null) {
+                try {
+                    input.close();
+                }
+                catch (Exception e) {}
+            }
+
+            // Callback on disconnected, with information which side is closing
+            onDisconnected(!requestedClosing);
+
+            // Just prevent unnecessary `cancel`ing
+            requestedClosing = true;
+            connectionThread = null;
         }
 
         /// Writes to output stream
@@ -131,17 +159,28 @@ public class BluetoothConnection
             }
         }
 
-        /// Cancels the thread, disconnects
+        /// Stops the thread, disconnects
         public void cancel() {
+            if (requestedClosing) {
+                return;
+            }
+            requestedClosing = true;
+
+            // Flush output buffers befoce closing
             try {
                 output.flush();
-                output.close();
+            }
+            catch (Exception e) {}
 
-                input.close();
+            // Close the connection socket
+            if (socket != null) {
+                try {
+                    // Might be useful (see https://stackoverflow.com/a/22769260/4880243)
+                    Thread.sleep(111);
 
-                socket.close();
-            } catch (IOException e) {
-                e.printStackTrace();
+                    socket.close();
+                }
+                catch (Exception e) {}
             }
         }
     }

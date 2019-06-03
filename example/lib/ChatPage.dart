@@ -31,6 +31,7 @@ class _ChatPage extends State<ChatPage> {
   final TextEditingController textEditingController = new TextEditingController();
   final ScrollController listScrollController = new ScrollController();
 
+  bool isConnecting = true;
   bool get isConnected => _streamSubscription != null;
 
   @override
@@ -38,17 +39,28 @@ class _ChatPage extends State<ChatPage> {
     super.initState();
 
     FlutterBluetoothSerial.instance.connect(widget.server).then((_) { // @TODO ? shouldn't be done via `.listen()`?
-      // Subscribe for `onRead` after connecting
-      _streamSubscription = FlutterBluetoothSerial.instance.onRead().listen(_onDataReceived);
-    });
+      isConnecting = false;
 
-    // @TODO . no onDone for now; coming soon :F
+      // Subscribe for incoming data after connecting
+      _streamSubscription = FlutterBluetoothSerial.instance.onRead().listen(_onDataReceived);
+      setState(() {/* Update for `isConnecting`, since depends on `_streamSubscription` */});
+
+      // Subscribe for remote disconnection
+      _streamSubscription.onDone(() {
+        print('we got disconnected by remote!');
+        _streamSubscription = null;
+        setState(() {/* Update for `isConnected`, since is depends on `_streamSubscription` */});
+      });
+    });
   }
 
   @override
   void dispose() {
     // Avoid memory leak (`setState` after dispose) and disconnect
-    _streamSubscription?.cancel();
+    if (isConnected) {
+      _streamSubscription.cancel();
+      print('we are disconnecting locally!');
+    }
 
     super.dispose();
   }
@@ -74,7 +86,11 @@ class _ChatPage extends State<ChatPage> {
     
     return Scaffold(
       appBar: AppBar(
-        title: isConnected ? Text('Chat with ' + widget.server.name) : const Text('Connecting chat...'),
+        title: (
+          isConnecting ? Text('Connecting chat to ' + widget.server.name + '...') :
+          isConnected ? Text('Live chat with ' + widget.server.name) :
+          Text('Chat log with ' + widget.server.name)
+        )
       ),
       body: SafeArea(
         child: Column(
@@ -95,9 +111,14 @@ class _ChatPage extends State<ChatPage> {
                       style: const TextStyle(fontSize: 15.0),
                       controller: textEditingController,
                       decoration: InputDecoration.collapsed(
-                        hintText: 'Type your message...',
+                        hintText: (
+                          isConnecting ? 'Wait until connected...' : 
+                          isConnected ? 'Type your message...' : 
+                          'Chat got disconnected'
+                        ),
                         hintStyle: const TextStyle(color: Colors.grey),
                       ),
+                      enabled: isConnected,
                     )
                   )
                 ),
@@ -105,7 +126,7 @@ class _ChatPage extends State<ChatPage> {
                   margin: const EdgeInsets.all(8.0),
                   child: IconButton(
                     icon: const Icon(Icons.send),
-                    onPressed: () => _sendMessage(textEditingController.text),
+                    onPressed: isConnected ? () => _sendMessage(textEditingController.text) : null
                   ),
                 ),
               ]

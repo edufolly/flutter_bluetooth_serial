@@ -14,7 +14,7 @@ Example application demonstrates key features of the `flutter_bluetooth_serial` 
 
 + Sending and recieving data.
 
-The plugin uses Serial Port profile for moving data over RFCOMM, so make sure target device runs Service Discovery Protocol that points SP/RFCOMM.
+The plugin (for now) uses Serial Port profile for moving data over RFCOMM, so make sure there is running Service Discovery Protocol that points to SP/RFCOMM channel of the device.
 
 
 
@@ -44,22 +44,13 @@ SDP tool tends to use good (and free) channels, so you don't have to keep track 
 3. Start RFCOMM listening
 ```
 $ sudo killall rfcomm
-$ sudo rfcomm watch /dev/rfcomm0 N picocom -c /dev/rfcomm0 --omap crcrlf   # `N` should be channel number on which SDP is pointing the SP.
+$ sudo rfcomm listen /dev/rfcomm0 N picocom -c /dev/rfcomm0 --omap crcrlf   # `N` should be channel number on which SDP is pointing the SP.
 ```
-Use `Ctrl+A` and `Ctrl+Q` to exit from `picocon` utility if you want to end stream from server side (and `Ctrl+C` for exit watch-mode of `rfcomm` utility).
 
-You can use the descriptor (`/dev/rfcomm0`) in other way, not necessarily to `screen` on it. can be use in various ways, providing more automation and/or abstraction.
+4. Now you can connect and chat to the server with example application using the console. Every character is send to your device and buffered. Only full messages, between new line characters (`\n`) are displayed. You can use `Ctrl+A` and `Ctrl+Q` to exit from `picocom` utility if you want to end stream from server side (and `Ctrl+C` for exit watch-mode of `rfcomm` utility). 
 
+If you xperiencing problems with your terminal (some `term_exitfunc` of `picocom` errors), you should try saving good terminal settings (`stty --save > someFile`) and loading them after picocom exits (adding ``; stty `cat someFile` `` to the second command of 3. should do the thing).
 
-
-### To-do list
-
-+ Clean up mess with `BluetoothStatus`,
-+ Multiple connections to multiple devices,
-+ Allow connection method/protocol/UUID specification,
-+ Listening/server mode,
-+ Example using Arduino with HC-05 module,
-+ Recognizing and displaying `BluetoothClass` of device,
-+ Maybe integration with `flutter_blue` one day ;)
+You can also use the descriptor (`/dev/rfcomm0`) in other way, not necessarily to run interactive terminal on it, in order to chat. It can be used in various ways, providing more automation and/or abstraction.
 
 

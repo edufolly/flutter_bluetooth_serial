@@ -93,18 +93,36 @@ class FlutterBluetoothSerial {
   Future<void> cancelDiscovery() async => await _methodChannel.invokeMethod('cancelDiscovery');
 
 
-  // Connection
-  Future<bool> get isConnected async => await _methodChannel.invokeMethod('isConnected');
+  // Default connection methods
+  BluetoothConnection _defaultConnection;
 
+  @Deprecated('Use `BluetoothConnection.isEnabled` instead')
+  Future<bool> get isConnected async => 
+    Future.value(_defaultConnection == null ? false : _defaultConnection.isConnected);
+
+  @Deprecated('Use `BluetoothConnection.toAddress(device.address)` instead')
   Future<void> connect(BluetoothDevice device) => connectToAddress(device.address);
-  Future<void> connectToAddress(String address) => _methodChannel.invokeMethod('connect', {"address": address});
 
-  Future<void> disconnect() => _methodChannel.invokeMethod('disconnect');
+  @Deprecated('Use `BluetoothConnection.toAddress(address)` instead')
+  Future<void> connectToAddress(String address) => Future(() async {
+    _defaultConnection = await BluetoothConnection.toAddress(address);
+  });
 
-  static const EventChannel _readChannel = const EventChannel('$namespace/read');
-  Stream<Uint8List> onRead() => _readChannel.receiveBroadcastStream().map((list) => list as Uint8List);
+  @Deprecated('Use `BluetoothConnection.finish` or `BluetoothConnection.close` instead')
+  Future<void> disconnect() => _defaultConnection.finish();
 
-  Future<void> write(String message) => _methodChannel.invokeMethod('write', {'message': message});
+  @Deprecated('Use `BluetoothConnection.input` instead')
+  Stream<Uint8List> onRead() => _defaultConnection.input;
 
-  Future<void> writeBytes(Uint8List message) => _methodChannel.invokeMethod('writeBytes', {'message': message});
+  @Deprecated('Use `BluetoothConnection.output` with some decoding (such as `ascii.decode` for strings) instead')
+  Future<void> write(String message) {
+    _defaultConnection.output.add(utf8.encode(message));
+    return _defaultConnection.output.allSent;
+  }
+
+  @Deprecated('Use `BluetoothConnection.output` instead')
+  Future<void> writeBytes(Uint8List message) {
+    _defaultConnection.output.add(message);
+    return _defaultConnection.output.allSent;
+  }
 }

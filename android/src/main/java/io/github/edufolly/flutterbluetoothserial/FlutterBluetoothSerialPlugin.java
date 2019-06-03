@@ -13,11 +13,11 @@ import android.content.pm.PackageManager;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import android.util.Log;
+import android.util.SparseArray;
 import android.os.AsyncTask;
 
+import java.lang.ClassCastException;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayList;
@@ -60,9 +60,12 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
     private StreamHandler discoveryStreamHandler;
     private BroadcastReceiver discoveryReceiver;
 
-    // Connection
-    private BluetoothConnection bluetoothConnection;
-    private EventSink readSink;
+    // Connections
+    /// Contains all active connections. Maps ID of the connection with plugin data channels. 
+    private SparseArray<BluetoothConnectionWrapper> connections = new SparseArray<>(2);
+
+    /// Last ID given to any connection, used to avoid duplicate IDs 
+    private int lastConnectionId = 0;
 
 
 
@@ -102,7 +105,14 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
                     final String action = intent.getAction();
                     switch (action) {
                         case BluetoothAdapter.ACTION_STATE_CHANGED:
-                            bluetoothConnection.disconnect();
+                            // Disconnect all connections
+                            int size = connections.size();
+                            for (int i = 0; i < size; i++) {
+                                BluetoothConnection connection = connections.valueAt(i);
+                                connection.disconnect();
+                            }
+                            connections.clear();
+                            
                             stateSink.success(intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, -1));
                             break;
                     }
@@ -207,38 +217,6 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
             };
             discoveryChannel.setStreamHandler(discoveryStreamHandler);
         }
-
-        // Connection
-        {
-            this.bluetoothConnection = new BluetoothConnection(this.bluetoothAdapter, new BluetoothConnection.Receiver() {
-                @Override
-                public void onRead(byte[] buffer) {
-                    registrar.activity().runOnUiThread(new Runnable() {
-                        @Override 
-                        public void run() {
-                            if (readSink != null) {
-                                readSink.success(buffer);
-                            }
-                        }
-                    });
-                }
-            });
-
-            EventChannel readChannel = new EventChannel(registrar.messenger(), PLUGIN_NAMESPACE + "/read");
-
-            readChannel.setStreamHandler(new StreamHandler() {
-                @Override
-                public void onListen(Object o, EventSink eventSink) {
-                    readSink = eventSink;
-                }
-                @Override
-                public void onCancel(Object o) {
-                    readSink = null;
-
-                    bluetoothConnection.disconnect();
-                }
-            });
-        }
     }
 
     /// Provides access to the plugin methods
@@ -264,10 +242,6 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
             case "isOn":
             case "isEnabled":
                 result.success(bluetoothAdapter.isEnabled());
-                break;
-
-            case "isConnected":
-                result.success(bluetoothConnection.isConnected());
                 break;
 
             case "openSettings":
@@ -378,42 +352,38 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
                 result.success(null);
                 break;
 
-            case "connect":
-                if (call.hasArgument("address")) {
-                    String address = call.argument("address");
-                    Log.d(TAG, "Connecting to " + address);
-                    AsyncTask.execute(() -> {
-                        try {
-                            bluetoothConnection.connect(address);
-                            registrar.activity().runOnUiThread(new Runnable() {
-                                @Override 
-                                public void run() {
-                                    result.success(null);
-                                }
-                            });
-                        }
-                        catch (Exception ex) {
-                            registrar.activity().runOnUiThread(new Runnable() {
-                                @Override 
-                                public void run() {
-                                    result.error("connect_error", ex.getMessage(), exceptionToString(ex));
-                                }
-                            });
-                        }
-                    });
-                } else {
+            /* Connection */
+            case "connect": {
+                if (!call.hasArgument("address")) {
                     result.error("invalid_argument", "argument 'address' not found", null);
+                    break;
                 }
-                break;
 
-            case "disconnect":
+                String address;
+                try {
+                    address = call.argument("address");
+                    if (!BluetoothAdapter.checkBluetoothAddress(address)) {
+                        throw new ClassCastException();
+                    }
+                }
+                catch (ClassCastException ex) {
+                    result.error("invalid_argument", "'address' argument is required to be string containing remote MAC address", null);
+                    break;
+                }
+
+                int id = ++lastConnectionId;
+                BluetoothConnectionWrapper connection = new BluetoothConnectionWrapper(id, bluetoothAdapter);
+                connections.put(id, connection);
+
+                Log.d(TAG, "Connecting to " + address + " (id: " + id + ")");
+
                 AsyncTask.execute(() -> {
                     try {
-                        bluetoothConnection.disconnect();
+                        connection.connect(address);
                         registrar.activity().runOnUiThread(new Runnable() {
                             @Override 
                             public void run() {
-                                result.success(null);
+                                result.success(id);
                             }
                         });
                     }
@@ -421,46 +391,40 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
                         registrar.activity().runOnUiThread(new Runnable() {
                             @Override 
                             public void run() {
-                                result.error("disconnection_error", ex.getMessage(), exceptionToString(ex));
+                                result.error("connect_error", ex.getMessage(), exceptionToString(ex));
                             }
                         });
                     }
                 });
                 break;
+            }
 
-            case "write":
-                if (call.hasArgument("message")) {
-                    String message = call.argument("message");
-                    AsyncTask.execute(() -> {
-                        try {
-                            bluetoothConnection.write(message.getBytes());
-                            registrar.activity().runOnUiThread(new Runnable() {
-                                @Override 
-                                public void run() {
-                                    result.success(null);
-                                }
-                            });
-                        }
-                        catch (Exception ex) {
-                            registrar.activity().runOnUiThread(new Runnable() {
-                                @Override 
-                                public void run() {
-                                    result.error("write_error", ex.getMessage(), exceptionToString(ex));
-                                }
-                            });
-                        }
-                    });
-                } else {
-                    result.error("invalid_argument", "argument 'message' not found", null);
+            case "write": {
+                if (!call.hasArgument("id")) {
+                    result.error("invalid_argument", "argument 'id' not found", null);
+                    break;
                 }
-                break;
+
+                int id;
+                try {
+                    id = call.argument("id");
+                }
+                catch (ClassCastException ex) {
+                    result.error("invalid_argument", "'id' argument is required to be integer id of connection", null);
+                    break;
+                }
+
+                BluetoothConnection connection = connections.get(id);
+                if (connection == null) {
+                    result.error("invalid_argument", "there is no connection with provided id", null);
+                    break;
+                }
                 
-            case "writeBytes":
-                if (call.hasArgument("message")) {
-                    byte[] message = call.argument("message");
+                if (call.hasArgument("string")) {
+                    String string = call.argument("string");
                     AsyncTask.execute(() -> {
                         try {
-                            bluetoothConnection.write(message);
+                            connection.write(string.getBytes());
                             registrar.activity().runOnUiThread(new Runnable() {
                                 @Override 
                                 public void run() {
@@ -477,10 +441,34 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
                             });
                         }
                     });
-                } else {
-                    result.error("invalid_argument", "argument 'message' not found", null);
+                }
+                else if (call.hasArgument("bytes")) {
+                    byte[] bytes = call.argument("bytes");
+                    AsyncTask.execute(() -> {
+                        try {
+                            connection.write(bytes);
+                            registrar.activity().runOnUiThread(new Runnable() {
+                                @Override 
+                                public void run() {
+                                    result.success(null);
+                                }
+                            });
+                        }
+                        catch (Exception ex) {
+                            registrar.activity().runOnUiThread(new Runnable() {
+                                @Override 
+                                public void run() {
+                                    result.error("write_error", ex.getMessage(), exceptionToString(ex));
+                                }
+                            });
+                        }
+                    });
+                }
+                else {
+                    result.error("invalid_argument", "there must be 'string' or 'bytes' argument", null);
                 }
                 break;
+            }
 
             default:
                 result.notImplemented();
@@ -545,5 +533,77 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
         PrintWriter pw = new PrintWriter(sw);
         ex.printStackTrace(pw);
         return sw.toString();
+    }
+
+
+
+    /// Helper wrapper class for `BluetoothConnection`
+    private class BluetoothConnectionWrapper extends BluetoothConnection {
+        private final int id;
+        
+        protected EventSink readSink;
+
+        protected EventChannel readChannel;
+
+        private final BluetoothConnectionWrapper self = this;
+        private final StreamHandler readStreamHandler = new StreamHandler() {
+            @Override
+            public void onListen(Object o, EventSink eventSink) {
+                readSink = eventSink;
+            }
+            @Override
+            public void onCancel(Object o) {
+                // If canceled by local, disconnects - in other case, by remote, does nothing
+                self.disconnect();
+                
+                // True dispose 
+                AsyncTask.execute(() -> {
+                    readChannel.setStreamHandler(null);
+                    connections.remove(id);
+
+                    Log.d(TAG, "Disconnected (id: " + id + ")");
+                });
+            }
+        };
+
+        public BluetoothConnectionWrapper(int id, BluetoothAdapter adapter)
+        {
+            super(adapter);
+            this.id = id;
+
+            readChannel = new EventChannel(registrar.messenger(), PLUGIN_NAMESPACE + "/read/" + id);
+            readChannel.setStreamHandler(readStreamHandler);
+        }
+
+        @Override
+        protected void onRead(byte[] buffer) {
+            registrar.activity().runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    if (readSink != null) {
+                        readSink.success(buffer);
+                    }
+                }
+            });
+        }
+
+        @Override
+        protected void onDisconnected(boolean byRemote) {
+            registrar.activity().runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    if (byRemote) {
+                        Log.d(TAG, "Connection onDisconnected by remote");
+                        if (readSink != null) {
+                            readSink.endOfStream();
+                            readSink = null;
+                        }
+                    }
+                    else {
+                        Log.d(TAG, "Connection onDisconnected by local");
+                    }
+                }
+            });
+        }
     }
 }
