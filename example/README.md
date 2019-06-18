@@ -10,9 +10,9 @@ Example application demonstrates key features of the `flutter_bluetooth_serial` 
 
 + Discovering devices,
 
-+ Connecting to devices,
++ Connecting to multiple devices at the same time,
 
-+ Sending and recieving data.
++ Sending and recieving data (multiple connections).
 
 The plugin (for now) uses Serial Port profile for moving data over RFCOMM, so make sure there is running Service Discovery Protocol that points to SP/RFCOMM channel of the device.
 
@@ -52,5 +52,15 @@ $ sudo rfcomm listen /dev/rfcomm0 N picocom -c /dev/rfcomm0 --omap crcrlf   # `N
 If you xperiencing problems with your terminal (some `term_exitfunc` of `picocom` errors), you should try saving good terminal settings (`stty --save > someFile`) and loading them after picocom exits (adding ``; stty `cat someFile` `` to the second command of 3. should do the thing).
 
 You can also use the descriptor (`/dev/rfcomm0`) in other way, not necessarily to run interactive terminal on it, in order to chat. It can be used in various ways, providing more automation and/or abstraction.
+
+
+
+### Background monitor example
+
+For testing multiple connections there were created background data collector, which connects to Arduino controller equiped with `HC-05` Bluetooth interface, 2 `DS18B20` termometers and water pH level meter. There are very nice graphs to displaying the recieved data. 
+
+The example uses Celsius degree, which was chosen because it utilizes standard conditions of water freezing and ice melting points instead of just rolling a dice over periodic table of elements like a Fahrenheit do...
+
+Project of the Arduino side could be found in `/arduino` folder, but there is a note: **the code is prepared for testing in certain environment** and will not work without its hardware side (termometers, pH meter). If you can alter the real termometer code for example for random data generator or your own inputs. 
 
 
