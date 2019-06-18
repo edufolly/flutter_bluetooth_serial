@@ -127,7 +127,7 @@ class LineChart extends StatelessWidget {
       // Default paint for points
       return List<Paint>.unmodifiable(<Paint>[
         PaintStyle(strokeWidth: 1.7, color: Colors.blue).toPaint(),
-        PaintStyle(strokeWidth: 1.7, color: Colors.red).toPaint(), // @TODO !!! 
+        PaintStyle(strokeWidth: 1.7, color: Colors.red).toPaint(),
         PaintStyle(strokeWidth: 1.7, color: Colors.yellow).toPaint(),
         PaintStyle(strokeWidth: 1.7, color: Colors.green).toPaint(),
 
@@ -539,7 +539,7 @@ class _LineChartPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_LineChartPainter old) { var s = (
+  bool shouldRepaint(_LineChartPainter old) => (
       this.arguments                  != old.arguments                  ||
       this.values                     != old.values                     ||
       this.argumentsLabels            != old.argumentsLabels            ||
@@ -549,7 +549,7 @@ class _LineChartPainter extends CustomPainter {
       this.horizontalLabelsTextStyle  != old.horizontalLabelsTextStyle  ||
       this.verticalLabelsTextStyle    != old.verticalLabelsTextStyle    ||
       this.padding                    != old.padding                    //
-  ); print(s); return s; }
+  );
 
   // ..., 0.01, 0.02, 0.05, 0.1, [0.125], 0.2, [0.25], 0.5, 1, 2, 5, 10, 20, 50, 100, 200, 500, ...
   double _calculateOptimalStepValue(double valueRange, double height) {

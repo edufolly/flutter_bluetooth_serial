@@ -128,8 +128,6 @@ class _MainPage extends State<MainPage> {
                   if (_collectingTask != null && _collectingTask.inProgress) {
                     await _collectingTask.cancel();
                     setState(() {/* Update for `_collectingTask.inProgress` */});
-                    
-                    // @TODO ! view the data on some chart
                   }
                   else {
                     final BluetoothDevice selectedDevice = await Navigator.of(context).push(
@@ -137,8 +135,7 @@ class _MainPage extends State<MainPage> {
                     );
 
                     if (selectedDevice != null) {
-                      _collectingTask = await BackgroundCollectingTask.connect(selectedDevice);
-                      await _collectingTask.start();
+                      await _startBackgroundTask(context, selectedDevice);
                       setState(() {/* Update for `_collectingTask.inProgress` */});
                     }
                   }
@@ -168,5 +165,34 @@ class _MainPage extends State<MainPage> {
 
   void _startChat(BuildContext context, BluetoothDevice server) {
     Navigator.of(context).push(MaterialPageRoute(builder: (context) { return ChatPage(server: server); }));
+  }
+
+  Future<void> _startBackgroundTask(BuildContext context, BluetoothDevice server) async {
+    try {
+      _collectingTask = await BackgroundCollectingTask.connect(server);
+      await _collectingTask.start();
+    }
+    catch (ex) {
+      if (_collectingTask != null) {
+        _collectingTask.cancel();
+      }
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text('Error occured while connecting'),
+            content: Text("${ex.toString()}"),
+            actions: <Widget>[
+              new FlatButton(
+                child: new Text("Close"),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+              ),
+            ],
+          );
+        },
+      );
+    }
   }
 }

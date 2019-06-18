@@ -42,7 +42,6 @@ If you have any problem with _invoke-customs_, verify issue [#14](https://github
 
 ## To-do list
 
-+ Example using Arduino with HC-05 module (coming soon),
 + Add some utils to easier manage `BluetoothConnection` (as request/response),
 + Allow connection method/protocol/UUID specification,
 + Listening/server mode,

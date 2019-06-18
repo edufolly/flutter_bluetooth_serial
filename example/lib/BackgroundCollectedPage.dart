@@ -86,13 +86,20 @@ class BackgroundCollectedPage extends StatelessWidget {
       ),
       body: ListView(
         children: <Widget>[
+          Divider(),
+          ListTile(
+            leading: const Icon(Icons.brightness_7),
+            title: const Text('Temperatures'),
+            subtitle: const Text('In Celsius'),
+          ),
           LineChart(
-            constraints: const BoxConstraints.expand(height: 667),
+            constraints: const BoxConstraints.expand(height: 350),
 
             arguments: arguments,
             argumentsLabels: argumentsLabels,
             values: [
-               lastSamples.map((sample) => sample.temperature1)
+               lastSamples.map((sample) => sample.temperature1),
+               lastSamples.map((sample) => sample.temperature2),
             ],
 
             verticalLinesStyle: const PaintStyle(color: Colors.grey),
@@ -101,12 +108,40 @@ class BackgroundCollectedPage extends StatelessWidget {
 
             seriesPointsStyles: [
               null,
+              null,
               //const PaintStyle(style: PaintingStyle.stroke, strokeWidth: 1.7*3, color: Colors.indigo, strokeCap: StrokeCap.round),
             ],
             seriesLinesStyles: [
               const PaintStyle(style: PaintingStyle.stroke, strokeWidth: 1.7, color: Colors.indigoAccent),
+              const PaintStyle(style: PaintingStyle.stroke, strokeWidth: 1.7, color: Colors.redAccent),
             ],
-          )
+          ),
+
+          Divider(),
+          ListTile(
+            leading: const Icon(Icons.filter_vintage),
+            title: const Text('Water pH level'),
+          ),
+          LineChart(
+            constraints: const BoxConstraints.expand(height: 200),
+
+            arguments: arguments,
+            argumentsLabels: argumentsLabels,
+            values: [
+               lastSamples.map((sample) => sample.waterpHlevel),
+            ],
+
+            verticalLinesStyle: const PaintStyle(color: Colors.grey),
+            additionalMinimalHorizontalLabelsInterval: 0,
+            additionalMinimalVerticalLablesInterval: 0,
+
+            seriesPointsStyles: [
+              null,
+            ],
+            seriesLinesStyles: [
+              const PaintStyle(style: PaintingStyle.stroke, strokeWidth: 1.7, color: Colors.greenAccent),
+            ],
+          ),
         ],
       )
     );
