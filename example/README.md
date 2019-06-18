@@ -20,14 +20,14 @@ The plugin (for now) uses Serial Port profile for moving data over RFCOMM, so ma
 
 Main screen and options |  Discovery and connecting  |  Simple chat with server  |  Background connection  |
 :---:|:---:|:---:|:---:|
-![](./docs/ExampleApplicationMain.png)  |  ![](./docs/ExampleApplicationConnecting.png)  |  ![](./docs/ExampleApplicationChat.png)  |  ![](./docs/ExampleApplicationGraphs.png)
+![](https://i.imgur.com/qeeMsVe.png)  |  ![](https://i.imgur.com/zruuelZ.png)  |  ![](https://i.imgur.com/y5mTUey.png)  |  ![](https://i.imgur.com/3wvwDVo.png)
 
 
 #### Tests 
 
 There is a recording of the tests (click for higher quality, WEBM version):
 
-[![Test with multiple connections](./docs/TestWithMultipleConnections.gif)](https://webm.red/qpGg.webm)
+[![Test with multiple connections](https://i.imgur.com/MfJZo70.gif)](https://webm.red/qpGg.webm)
 
 
 
