@@ -4,7 +4,6 @@ import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
-import android.bluetooth.BluetoothSocket;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -16,8 +15,6 @@ import android.util.Log;
 import android.util.SparseArray;
 import android.os.AsyncTask;
 
-import java.lang.ClassCastException;
-import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayList;
@@ -179,13 +176,17 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
                             catch (IllegalArgumentException ex) {
                                 // Ignore `Receiver not registered` exception
                             }
-                            
+
                             bluetoothAdapter.cancelDiscovery();
 
                             if (discoverySink != null) {
                                 discoverySink.endOfStream();
                                 discoverySink = null;
                             }
+                            break;
+
+                        default:
+                            // Ignore.
                             break;
                     }
                 }
@@ -523,6 +524,10 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
                 else {
                     pendingResultForActivityResult.success(true);
                 }
+                break;
+
+            default:
+                // Ignore.
                 break;
         }
     }
