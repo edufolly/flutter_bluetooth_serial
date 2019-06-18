@@ -1,12 +1,9 @@
 
 # `flutter_bluetooth_serial`
 
-[![Codacy Badge](https://api.codacy.com/project/badge/Grade/e715d21e77394cfaacf9abd20b7d97cc)](https://app.codacy.com/app/edufolly/flutter_bluetooth_serial?utm_source=github.com&utm_medium=referral&utm_content=edufolly/flutter_bluetooth_serial&utm_campaign=Badge_Grade_Dashboard)
 [![pub package](https://img.shields.io/pub/v/flutter_bluetooth_serial.svg)](https://pub.dartlang.org/packages/flutter_bluetooth_serial)
 
-Flutter basic implementation for Classical Bluetooth.
-
-Based on [flutter_blue](https://github.com/pauldemarco/flutter_blue).
+Flutter basic implementation for Classical Bluetooth (only RFCOMM for now).
 
 
 
@@ -28,15 +25,67 @@ The first goal of this project, started by `Edufolly` was making an interface fo
 
 The plugin (for now) uses Serial Port profile for moving data over RFCOMM, so make sure there is running Service Discovery Protocol that points to SP/RFCOMM channel of the device. There could be [max up to 7 Bluetooth connections](https://stackoverflow.com/a/32149519/4880243).
 
+For now there is only Android support.
+
 
 
 ## Getting Started
 
-Check out [example application](example/README.md).
+#### Depending 
+```yaml
+# Add dependency to `pubspec.yaml` of your project.
+dependencies:
+    # ...
+    flutter_bluetooth_serial: ^0.0.5
 
-Only for Android.
+```
 
-If you have any problem with _invoke-customs_, verify issue [#14](https://github.com/edufolly/flutter_bluetooth_serial/issues/14).
+#### Installing
+
+```bash
+# With pub manager
+pub get
+# or with Flutter
+flutter pub get
+```
+
+#### Importing
+```dart
+import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
+```
+
+#### Usage
+
+You should look to the Dart code of the library (mostly documented functions) or to the examples code. 
+```dart
+// Some simplest connection :F
+try {
+    BluetoothConnection connection = await BluetoothConnection.toAddress(address);
+    print('Connected to the device');
+
+    connection.input.listen((Uint8List data) {
+        print('Data incoming: ${ascii.decode(data)}');
+        connection.output.add(data); // Sending data
+
+        if (ascii.decode(data).contains('!')) {
+            connection.finish(); // Closing connection
+            print('Disconnecting by local host');
+        }
+    }).onDone(() {
+        print('Disconnected by remote request');
+    });
+}
+catch (exception) {
+    print('Cannot connect, exception occured');
+}
+```
+
+#### Examples
+
+Check out [example application](example/README.md) with connections with both Arduino HC-05 and Raspberry Pi (RFCOMM) Bluetooth interfaces.
+
+[![Test with multiple connections](./example/docs/TestWithMultipleConnections.gif)](https://webm.red/qpGg.webm)
+
 
 
 

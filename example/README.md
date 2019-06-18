@@ -16,13 +16,22 @@ Example application demonstrates key features of the `flutter_bluetooth_serial` 
 
 The plugin (for now) uses Serial Port profile for moving data over RFCOMM, so make sure there is running Service Discovery Protocol that points to SP/RFCOMM channel of the device.
 
-There is a recording of the tests:
+#### Screens 
+
+Main screen and options |  Discovery and connecting  |  Simple chat with server  |  Background connection  |
+:---:|:---:|:---:|:---:|
+![](./docs/ExampleApplicationMain.png)  |  ![](./docs/ExampleApplicationConnecting.png)  |  ![](./docs/ExampleApplicationChat.png)  |  ![](./docs/ExampleApplicationGraphs.png)
+
+
+#### Tests 
+
+There is a recording of the tests (click for higher quality, WEBM version):
 
 [![Test with multiple connections](./docs/TestWithMultipleConnections.gif)](https://webm.red/qpGg.webm)
 
 
 
-### Chat example
+## Chat example
 
 There is implemented simple chat. Client (the Flutter host) connects to selected from bonded devices server in order to exchange data - asynchronously.
 
@@ -53,13 +62,13 @@ $ sudo rfcomm listen /dev/rfcomm0 N picocom -c /dev/rfcomm0 --omap crcrlf   # `N
 
 4. Now you can connect and chat to the server with example application using the console. Every character is send to your device and buffered. Only full messages, between new line characters (`\n`) are displayed. You can use `Ctrl+A` and `Ctrl+Q` to exit from `picocom` utility if you want to end stream from server side (and `Ctrl+C` for exit watch-mode of `rfcomm` utility). 
 
-If you xperiencing problems with your terminal (some `term_exitfunc` of `picocom` errors), you should try saving good terminal settings (`stty --save > someFile`) and loading them after picocom exits (adding ``; stty `cat someFile` `` to the second command of 3. should do the thing).
+If you experiencing problems with your terminal (some `term_exitfunc` of `picocom` errors), you should try saving good terminal settings (`stty --save > someFile`) and loading them after picocom exits (adding ``; stty `cat someFile` `` to the second command of 3. should do the thing).
 
 You can also use the descriptor (`/dev/rfcomm0`) in other way, not necessarily to run interactive terminal on it, in order to chat. It can be used in various ways, providing more automation and/or abstraction.
 
 
 
-### Background monitor example
+## Background monitor example
 
 For testing multiple connections there were created background data collector, which connects to Arduino controller equiped with `HC-05` Bluetooth interface, 2 `DS18B20` termometers and water pH level meter. There are very nice graphs to displaying the recieved data. 
 
