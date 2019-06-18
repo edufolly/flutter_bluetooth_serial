@@ -16,6 +16,10 @@ Example application demonstrates key features of the `flutter_bluetooth_serial` 
 
 The plugin (for now) uses Serial Port profile for moving data over RFCOMM, so make sure there is running Service Discovery Protocol that points to SP/RFCOMM channel of the device.
 
+There is a recording of the tests:
+
+[![Test with multiple connections](./docs/TestWithMultipleConnections.gif)](https://webm.red/qpGg.webm)
+
 
 
 ### Chat example
