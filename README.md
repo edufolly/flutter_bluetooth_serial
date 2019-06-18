@@ -22,7 +22,7 @@ The first goal of this project, started by `Edufolly` was making an interface fo
 
 + Discovering devices,
 
-+ Connecting to multiple devices in the same time,
++ Connecting to multiple devices at the same time,
 
 + Sending and recieving data (multiple connections).
 

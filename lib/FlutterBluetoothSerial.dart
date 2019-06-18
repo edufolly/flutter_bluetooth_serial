@@ -69,10 +69,9 @@ class FlutterBluetoothSerial {
   Stream<BluetoothDiscoveryResult> startDiscovery() async* {
     StreamSubscription subscription;
     StreamController controller;
-    
+
     controller = new StreamController(
-      onListen: () {},
-      onCancel: () async {
+      onCancel: () {
         // `cancelDiscovery` happens automaticly by platform code when closing event sink
         subscription.cancel();
       },

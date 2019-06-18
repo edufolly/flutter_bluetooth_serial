@@ -45,13 +45,17 @@ class _MainPage extends State<MainPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Flutter Bluetooth Serial'),
+        title: const Text('Flutter Bluetooth Serial'),
       ),
       body: Container(
         child: ListView(
           children: <Widget>[
+            Divider(),
+            ListTile(
+              title: const Text('General')
+            ),
             SwitchListTile(
-              title: Text('Enable Bluetooth'),
+              title: const Text('Enable Bluetooth'),
               value: _bluetoothState.isEnabled,
               onChanged: (bool value) {
                 // Do the request and update with the true value then
@@ -67,19 +71,23 @@ class _MainPage extends State<MainPage> {
               },
             ),
             ListTile(
-              title: Text('Bluetooth status'),
+              title: const Text('Bluetooth status'),
               subtitle: Text(_bluetoothState.toString()),
               trailing: RaisedButton(
-                child: Text('Settings'),
+                child: const Text('Settings'),
                 onPressed: () { 
                   FlutterBluetoothSerial.instance.openSettings();
                 },
               ),
             ),
+
             Divider(),
             ListTile(
+              title: const Text('Devices discovery and connection')
+            ),
+            ListTile(
               title: RaisedButton(
-                child: Text('Explore discovered devices'),
+                child: const Text('Explore discovered devices'),
                 onPressed: () async {
                   final BluetoothDevice selectedDevice = await Navigator.of(context).push(
                     MaterialPageRoute(builder: (context) { return DiscoveryPage(); })
@@ -96,7 +104,7 @@ class _MainPage extends State<MainPage> {
             ),
             ListTile(
               title: RaisedButton(
-                child: Text('Connect to paired device to chat'),
+                child: const Text('Connect to paired device to chat'),
                 onPressed: () async {
                   final BluetoothDevice selectedDevice = await Navigator.of(context).push(
                     MaterialPageRoute(builder: (context) { return SelectBondedDevicePage(checkAvailability: false); })
