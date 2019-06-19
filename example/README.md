@@ -25,9 +25,9 @@ Main screen and options |  Discovery and connecting  |  Simple chat with server 
 
 #### Tests 
 
-There is a recording of the tests (click for higher quality, WEBM version):
+There is a recording of the tests (click for open video as WEBM version):
 
-[![Test with multiple connections](https://i.imgur.com/MfJZo70.gif)](https://webm.red/qpGg.webm)
+[![Test with multiple connections](https://i.imgur.com/rDFrYcS.png)](https://webm.red/qpGg.webm)
 
 
 

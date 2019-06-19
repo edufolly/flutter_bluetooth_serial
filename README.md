@@ -84,8 +84,9 @@ catch (exception) {
 
 Check out [example application](example/README.md) with connections with both Arduino HC-05 and Raspberry Pi (RFCOMM) Bluetooth interfaces.
 
-[![Test with multiple connections](./example/docs/TestWithMultipleConnections.gif)](https://webm.red/qpGg.webm)
-
+Main screen and options |  Discovery and connecting  |  Simple chat with server  |  Background connection  |
+:---:|:---:|:---:|:---:|
+![](https://i.imgur.com/qeeMsVe.png)  |  ![](https://i.imgur.com/zruuelZ.png)  |  ![](https://i.imgur.com/y5mTUey.png)  |  ![](https://i.imgur.com/3wvwDVo.png)
 
 
 
