@@ -1,3 +1,13 @@
+## [0.1.0] - 2019-06-19 
+
+Pull request #35 by @PsychoXIVI changes a lot:
+* Discovering other devices,
+* Multiple connections,
+* Interesting example application,
+* Enabling/Disabling Bluetooth,
+* Byte streams,
+* Overall improvements and fixes.
+
 ## [0.0.5] - 2019-03-18
 
 * Upgrade for AndroidX support (thanks @akilinomendez)
