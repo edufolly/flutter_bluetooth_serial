@@ -8,6 +8,7 @@ import 'dart:convert';
 import 'package:flutter/services.dart';
 
 part './BluetoothState.dart';
+part './BluetoothBondState.dart';
 part './BluetoothDeviceType.dart';
 part './BluetoothDevice.dart';
 part './BluetoothDiscoveryResult.dart';

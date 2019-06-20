@@ -161,8 +161,7 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
                             discoveryResult.put("type", device.getType());
                             //discoveryResult.put("class", deviceClass); // @TODO . it isn't my priority for now !BluetoothClass!
                             // @TODO ? maybe "connected" - look for each of connection instances etc; There is `BluetoothManage.getConnectedDevice` 
-                            discoveryResult.put("bonded", device.getBondState() == BluetoothDevice.BOND_BONDED);
-                            //discoveryResult.put("extraName", extraName); // @TODO ? !EXTRA_NAME! Is there a reason for `EXTRA_NAME`? https://stackoverflow.com/q/56315991/4880243
+                            discoveryResult.put("bond", device.getBondState());
                             discoveryResult.put("rssi", deviceRSSI);
 
                             Log.d(TAG, "Discovered " + device.getAddress());
@@ -303,7 +302,7 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
                             entry.put("name", device.getName());
                             entry.put("type", device.getType());
                             // @TODO ? maybe "connected" - look for each of connection instances etc
-                            entry.put("bonded", true);
+                            entry.put("bond", BluetoothDevice.BOND_BONDED);
                             list.add(entry);
                         }
 

@@ -6,23 +6,25 @@ class BluetoothDevice {
   final BluetoothDeviceType type;
   //final BluetoothClass bluetoothClass // @TODO . !BluetoothClass! 
   final bool connected;
-  final bool bonded; // @TODO ? Maybe use enum of something like BOND_NONE, BOND_BONDING, BOND_BONDED
+  final BluetoothBondState bondState;
   
+  bool get bonded => bondState.isBonded;
+
   const BluetoothDevice({
     this.name, 
     this.address, 
     this.type       = BluetoothDeviceType.unknown, 
     this.connected  = false, 
-    this.bonded     = false,
+    this.bondState  = BluetoothBondState.unknown,
   });
 
   factory BluetoothDevice.fromMap(Map map) {
     return BluetoothDevice(
       name:       map['name'],
       address:    map['address'],
-      type:       BluetoothDeviceType.fromUnderlyingValue(map['type']) ?? BluetoothDeviceType.unknown,
+      type:       map['type'] != null ? BluetoothDeviceType.fromUnderlyingValue(map['type']) : BluetoothDeviceType.unknown,
       connected:  map['connected'] ?? false,
-      bonded:     map['bonded'] ?? false,
+      bondState:  map['bond'] != null ? BluetoothBondState.fromUnderlyingValue(map['bond']) : BluetoothBondState.unknown,
     );
   }
 
@@ -31,7 +33,7 @@ class BluetoothDevice {
     'address':    this.address,
     'type':       this.type.toUnderlyingValue(),
     'connected':  this.connected,
-    'bonded':     this.bonded,
+    'bond':       this.bondState.toUnderlyingValue(),
   };
 
   operator ==(Object other) {
