@@ -14,13 +14,6 @@ class BluetoothDevice {
   /// Class of the device.
   //final BluetoothClass bluetoothClass // @TODO . !BluetoothClass! 
 
-  /// Tells whether the device is connected (ready to send data).
-  /// 
-  /// Only devices connected by current application could be seen as connected!
-  /// If there are devices connected before or by other application, there will
-  /// be no information about it.
-  final bool connected;
-
   /// Bonding state of the device.
   final BluetoothBondState bondState;
 
@@ -32,7 +25,6 @@ class BluetoothDevice {
     this.name, 
     this.address, 
     this.type       = BluetoothDeviceType.unknown, 
-    this.connected  = false,
     this.bondState  = BluetoothBondState.unknown,
   });
 
@@ -43,7 +35,6 @@ class BluetoothDevice {
       name:       map['name'],
       address:    map['address'],
       type:       map['type']      != null ? BluetoothDeviceType.fromUnderlyingValue(map['type']) : BluetoothDeviceType.unknown,
-      connected:  map['connected'] ?? false,
       bondState:  map['bondState'] != null ? BluetoothBondState.fromUnderlyingValue(map['bondState']) : BluetoothBondState.unknown,
     );
   }
@@ -53,7 +44,6 @@ class BluetoothDevice {
     'name':       this.name,
     'address':    this.address,
     'type':       this.type.toUnderlyingValue(),
-    'connected':  this.connected,
     'bondState':  this.bondState.toUnderlyingValue(),
   };
 
