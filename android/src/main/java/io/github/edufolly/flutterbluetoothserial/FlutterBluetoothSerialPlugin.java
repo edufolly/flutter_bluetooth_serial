@@ -398,6 +398,7 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
                                 result.error("connect_error", ex.getMessage(), exceptionToString(ex));
                             }
                         });
+                        connections.remove(id);
                     }
                 });
                 break;
@@ -537,7 +538,7 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
 
 
     /// Helper function to get string out of exception
-    private String exceptionToString(Exception ex) {
+    static private String exceptionToString(Exception ex) {
         StringWriter sw = new StringWriter();
         PrintWriter pw = new PrintWriter(sw);
         ex.printStackTrace(pw);
@@ -564,7 +565,7 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
             public void onCancel(Object o) {
                 // If canceled by local, disconnects - in other case, by remote, does nothing
                 self.disconnect();
-                
+
                 // True dispose 
                 AsyncTask.execute(() -> {
                     readChannel.setStreamHandler(null);
