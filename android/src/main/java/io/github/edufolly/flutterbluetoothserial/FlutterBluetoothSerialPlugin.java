@@ -161,7 +161,7 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
                             discoveryResult.put("type", device.getType());
                             //discoveryResult.put("class", deviceClass); // @TODO . it isn't my priority for now !BluetoothClass!
                             // @TODO ? maybe "connected" - look for each of connection instances etc; There is `BluetoothManage.getConnectedDevice` 
-                            discoveryResult.put("bond", device.getBondState());
+                            discoveryResult.put("bondState", device.getBondState());
                             discoveryResult.put("rssi", deviceRSSI);
 
                             Log.d(TAG, "Discovered " + device.getAddress());
@@ -302,7 +302,7 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
                             entry.put("name", device.getName());
                             entry.put("type", device.getType());
                             // @TODO ? maybe "connected" - look for each of connection instances etc
-                            entry.put("bond", BluetoothDevice.BOND_BONDED);
+                            entry.put("bondState", BluetoothDevice.BOND_BONDED);
                             list.add(entry);
                         }
 
