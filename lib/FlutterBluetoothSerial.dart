@@ -37,7 +37,7 @@ class FlutterBluetoothSerial {
 
 
 
-  /* Settings */
+  /* Adapter settings and general */
   /// Tries to enable Bluetooth interface (if disabled). 
   /// Probably results in asking user for confirmation.
   Future<bool> requestEnable() async => await _methodChannel.invokeMethod('requestEnable');
@@ -53,7 +53,7 @@ class FlutterBluetoothSerial {
 
 
 
-  /* Discovering devices */
+  /* Discovering and bonding devices */
   /// Returns list of bonded devices.
   Future<List<BluetoothDevice>> getBondedDevices() async {
     final List list = await _methodChannel.invokeMethod('getBondedDevices');
@@ -92,6 +92,7 @@ class FlutterBluetoothSerial {
   Future<void> cancelDiscovery() async => await _methodChannel.invokeMethod('cancelDiscovery');
 
 
+  /* Connecting and connection */
   // Default connection methods
   BluetoothConnection _defaultConnection;
 

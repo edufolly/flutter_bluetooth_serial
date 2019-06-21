@@ -113,7 +113,7 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
                             }
                             connections.clear();
                             
-                            stateSink.success(intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, -1));
+                            stateSink.success(intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothDevice.ERROR));
                             break;
                     }
                 }
@@ -236,8 +236,9 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
             }
         }
 
-        switch (call.method) {
-
+        methodCallDispatching: switch (call.method) {
+            ////////////////////////////////////////
+            /* Adapter settings and general */
             case "isAvailable":
                 result.success(true);
                 break;
@@ -354,7 +355,8 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
                 result.success(null);
                 break;
 
-            /* Connection */
+            ////////////////////////////////////////////////////////////////////////////////
+            /* Connecting and connection */
             case "connect": {
                 if (!call.hasArgument("address")) {
                     result.error("invalid_argument", "argument 'address' not found", null);
