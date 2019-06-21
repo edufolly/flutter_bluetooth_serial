@@ -68,6 +68,43 @@ class _DiscoveryPage extends State<DiscoveryPage> {
       onTap: () {
         Navigator.of(context).pop(result.device);
       },
+      onLongPress: () async {
+        try {
+          print('Bonding with ${result.device.address}...');
+          bool bonded = await FlutterBluetoothSerial.instance.bondDeviceAtAddress(result.device.address, pin: "1234");
+          print('Bonding ${bonded ? 'succed' : 'failed'} with ${result.device.address}.');
+          setState(() {
+            results[results.indexOf(result)] = BluetoothDiscoveryResult(
+              device: BluetoothDevice(
+                name: result.device.name,
+                address: result.device.address,
+                type: result.device.type,
+                bondState: bonded ? BluetoothBondState.bonded : BluetoothBondState.none,
+              ), 
+              rssi: result.rssi
+            );
+          });
+        }
+        catch (ex) {
+          showDialog(
+            context: context,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                title: const Text('Error occured while bonding'),
+                content: Text("${ex.toString()}"),
+                actions: <Widget>[
+                  new FlatButton(
+                    child: new Text("Close"),
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                  ),
+                ],
+              );
+            },
+          );
+        }
+      },
     )).toList();
     return Scaffold(
       appBar: AppBar(

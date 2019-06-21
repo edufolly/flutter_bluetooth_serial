@@ -286,6 +286,183 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
                 result.success(bluetoothAdapter.getState());
                 break;
 
+            ////////////////////////////////////////////////////////////////////////////////
+            /* Discovering and bonding devices */
+            case "getDeviceBondState": {
+                if (!call.hasArgument("address")) {
+                    result.error("invalid_argument", "argument 'address' not found", null);
+                    break;
+                }
+
+                String address;
+                try {
+                    address = call.argument("address");
+                    if (!BluetoothAdapter.checkBluetoothAddress(address)) {
+                        throw new ClassCastException();
+                    }
+                }
+                catch (ClassCastException ex) {
+                    result.error("invalid_argument", "'address' argument is required to be string containing remote MAC address", null);
+                    break;
+                }
+
+                BluetoothDevice device = bluetoothAdapter.getRemoteDevice(address);
+                result.success(device.getBondState());
+                break;
+            }
+
+            case "bondDevice": {
+                if (!call.hasArgument("address")) {
+                    result.error("invalid_argument", "argument 'address' not found", null);
+                    break;
+                }
+
+                String address;
+                try {
+                    address = call.argument("address");
+                    if (!BluetoothAdapter.checkBluetoothAddress(address)) {
+                        throw new ClassCastException();
+                    }
+                }
+                catch (ClassCastException ex) {
+                    result.error("invalid_argument", "'address' argument is required to be string containing remote MAC address", null);
+                    break;
+                }
+
+                BluetoothDevice device = bluetoothAdapter.getRemoteDevice(address);
+                switch (device.getBondState()) {
+                    case BluetoothDevice.BOND_BONDING:
+                        result.error("bond_error", "device already bonding", null);
+                        break methodCallDispatching;
+                    case BluetoothDevice.BOND_BONDED:
+                        result.error("bond_error", "device already bonded", null);
+                        break methodCallDispatching;
+                    default: 
+                        // Proceed.
+                        break;
+                }
+
+                final String pinString = call.hasArgument("pin") ? call.argument("pin") : null;
+                final byte[] pin = pinString == null ? null : pinString.getBytes();
+                final boolean passkeyConfirm = call.hasArgument("passkeyConfirm") ? call.argument("passkeyConfirm") : false;
+
+                final BroadcastReceiver pinRequestBroadcastReceiver = new BroadcastReceiver() {
+                    @Override
+                    public void onReceive(Context context, Intent intent) {
+                        switch (intent.getAction()) {
+                            case BluetoothDevice.ACTION_PAIRING_REQUEST:
+                                final BluetoothDevice someDevice = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                                if (!someDevice.equals(device)) {
+                                    break;
+                                }
+
+                                final int pairingVariant = intent.getIntExtra(BluetoothDevice.EXTRA_PAIRING_VARIANT, BluetoothDevice.ERROR);
+                                switch (pairingVariant) {
+                                    case BluetoothDevice.PAIRING_VARIANT_PASSKEY_CONFIRMATION:
+                                        // @TODO . there is `PAIRING_VARIANT_PASSKEY_CONFIRMATION`, but it requires 
+                                        // `BLUETOOTH_PRIVILEGED` permission, which might be unavaliable for third
+                                        // party application like this. If implemented, there should be callback or
+                                        // something to common code to decide is `EXTRA_PAIRING_KEY` is good.
+                                        final int pairingKey = intent.getIntExtra(BluetoothDevice.EXTRA_PAIRING_KEY, BluetoothDevice.ERROR);
+                                        if (passkeyConfirm) {
+                                            try {
+                                                Log.d(TAG, "Trying to set pairing confirmation (pairing key: " + pairingKey + ")");
+                                                device.setPairingConfirmation(true); 
+                                                abortBroadcast();
+                                            }
+                                            catch (Exception ex) {
+                                                Log.e(TAG, ex.getMessage());
+                                                ex.printStackTrace();
+                                                result.error("bond_error", "Auto-confirming pass key failed", exceptionToString(ex));
+                                            }
+                                        }
+                                        else {
+                                            Log.d(TAG, "Manual passkye confirmation pairing in progress (pairing key: " + pairingKey + ")");
+                                        }
+                                        break;
+
+                                    case BluetoothDevice.PAIRING_VARIANT_PIN:
+                                    //case BluetoothDevice.PAIRING_VARIANT_PASSKEY:
+                                        if (pin == null) {
+                                            Log.d(TAG, "Manual pin pairing in progress");
+                                        }
+                                        else {
+                                            try {
+                                                Log.d(TAG, "Trying to set pin for pairing");
+                                                device.setPin(pin);
+                                                abortBroadcast();
+                                            }
+                                            catch (Exception ex) {
+                                                Log.e(TAG, ex.getMessage());
+                                                ex.printStackTrace();
+                                                result.error("bond_error", "Setting pin for pairing failed", exceptionToString(ex));
+                                            }
+                                        }
+                                        break;
+                                }
+                                registrar.activeContext().unregisterReceiver(this);
+                                break;
+
+                            default:
+                                // Ignore.
+                                break;
+                        }
+                    }
+                };
+
+                if (pin != null || passkeyConfirm) {
+                    final IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_PAIRING_REQUEST);
+                    //filter.setPriority(IntentFilter.SYSTEM_HIGH_PRIORITY - 1);
+                    registrar.activeContext().registerReceiver(pinRequestBroadcastReceiver, filter);
+                    // @TODO ? might be leaking if disabling bluetooth while bonding
+                }
+
+                final BroadcastReceiver bondStateBroadcastReceiver = new BroadcastReceiver() {
+                    @Override 
+                    public void onReceive(Context context, Intent intent) {
+                        switch (intent.getAction()) {
+                            case BluetoothDevice.ACTION_BOND_STATE_CHANGED:
+                                final BluetoothDevice someDevice = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                                if (!someDevice.equals(device)) {
+                                    break;
+                                }
+
+                                final int newBondState = intent.getIntExtra(BluetoothDevice.EXTRA_BOND_STATE, BluetoothDevice.ERROR);
+                                switch (newBondState) {
+                                    case BluetoothDevice.BOND_BONDING:
+                                        // Wait for true bond result :F
+                                        break;
+                                    case BluetoothDevice.BOND_BONDED:
+                                        result.success(true);
+                                        registrar.activeContext().unregisterReceiver(this);
+                                        break;
+                                    case BluetoothDevice.BOND_NONE:
+                                        result.success(false);
+                                        registrar.activeContext().unregisterReceiver(this);
+                                        break;
+                                    default:
+                                        result.error("bond_error", "invalid bond state while bonding", null);
+                                        registrar.activeContext().unregisterReceiver(this);
+                                        break;
+                                }
+                                break;
+
+                            default:
+                                // Ignore.
+                                break;
+                        }
+                    }
+                };
+
+                registrar.activeContext().registerReceiver(bondStateBroadcastReceiver, new IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED));
+                // @TODO ? might be leaking if disabling bluetooth while bonding
+
+                if (!device.createBond()) {
+                    result.error("bond_error", "error starting bonding process", null);
+                }
+                break;
+            }
+
             case "getBondedDevices":
                 ensurePermissions(new EnsurePermissionsCallback() {
                     @Override

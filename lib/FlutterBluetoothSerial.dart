@@ -54,6 +54,21 @@ class FlutterBluetoothSerial {
 
 
   /* Discovering and bonding devices */
+  /// Checks bond state for given address (might be from system cache).
+  Future<BluetoothBondState> getBondStateForAddress(String address) async {
+    return BluetoothBondState.fromUnderlyingValue(await _methodChannel.invokeMethod('getDeviceBondState', {"address": address}));
+  }
+
+  /// Starts bonding with device with given address. 
+  /// Returns true if bonded, false if canceled.
+  /// 
+  /// `pin` or `passkeyConfirm` could be used to automate the bonding process.
+  /// Note: `passkeyConfirm` will probably not work, since 3rd party apps cannot
+  /// get `BLUETOOTH_PRIVILEGED` permission (at least on newest Androids).
+  Future<bool> bondDeviceAtAddress(String address, {String pin, bool passkeyConfirm = false}) async {
+    return await _methodChannel.invokeMethod('bondDevice', {"address": address, "pin": pin, "passkeyConfirm": passkeyConfirm});
+  }
+
   /// Returns list of bonded devices.
   Future<List<BluetoothDevice>> getBondedDevices() async {
     final List list = await _methodChannel.invokeMethod('getBondedDevices');
