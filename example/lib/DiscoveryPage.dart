@@ -71,7 +71,7 @@ class _DiscoveryPage extends State<DiscoveryPage> {
       onLongPress: () async {
         try {
           print('Bonding with ${result.device.address}...');
-          bool bonded = await FlutterBluetoothSerial.instance.bondDeviceAtAddress(result.device.address, pin: "1234");
+          bool bonded = await FlutterBluetoothSerial.instance.bondDeviceAtAddress(result.device.address);
           print('Bonding ${bonded ? 'succed' : 'failed'} with ${result.device.address}.');
           setState(() {
             results[results.indexOf(result)] = BluetoothDiscoveryResult(

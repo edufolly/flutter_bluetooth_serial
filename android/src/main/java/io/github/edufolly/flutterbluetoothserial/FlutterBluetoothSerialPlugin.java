@@ -40,6 +40,7 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
     private static final String TAG = "FlutterBluePlugin";
     private static final String PLUGIN_NAMESPACE = "flutter_bluetooth_serial";
     private final Registrar registrar;
+    private final MethodChannel methodChannel;
     private Result pendingResultForActivityResult = null;
     
     // Permissions
@@ -53,6 +54,11 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
     // State
     private final BroadcastReceiver stateReceiver;
     private EventSink stateSink;
+
+    // Pairing requests
+    private final int pairingRequestReceiverPriority = 123;
+    private final BroadcastReceiver pairingRequestReceiver;
+    private boolean isPairingRequestHandlerSet = false;
 
     // Discovery
     private EventChannel discoveryChannel;
@@ -81,8 +87,8 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
         {
             this.registrar = registrar;
             
-            MethodChannel methodChannel = new MethodChannel(registrar.messenger(), PLUGIN_NAMESPACE + "/methods");
-            methodChannel.setMethodCallHandler(this);
+            this.methodChannel = new MethodChannel(registrar.messenger(), PLUGIN_NAMESPACE + "/methods");
+            this.methodChannel.setMethodCallHandler(this);
         }
         
         // General Bluetooth
@@ -140,6 +146,164 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
                     }
                 }
             });
+        }
+
+        // Pairing requests
+        {
+            pairingRequestReceiver = new BroadcastReceiver() {
+                @Override
+                public void onReceive(Context context, Intent intent) {
+                    switch (intent.getAction()) {
+                        case BluetoothDevice.ACTION_PAIRING_REQUEST:
+                            final BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                            final int pairingVariant = intent.getIntExtra(BluetoothDevice.EXTRA_PAIRING_VARIANT, BluetoothDevice.ERROR);
+                            Log.d(TAG, "Pairing request (variant " + pairingVariant + ") incoming from " + device.getAddress());
+                            switch (pairingVariant) {
+                                case BluetoothDevice.PAIRING_VARIANT_PIN: 
+                                    // Simplest method - 4 digit number
+                                {
+                                    final BroadcastReceiver.PendingResult broadcastResult = this.goAsync();
+
+                                    Map<String, Object> arguments = new HashMap<String, Object>();
+                                    arguments.put("address", device.getAddress());
+                                    arguments.put("variant", pairingVariant);
+
+                                    methodChannel.invokeMethod("handlePairingRequest", arguments, new MethodChannel.Result() {
+                                        @Override
+                                        public void success(Object handlerResult) {
+                                            Log.d(TAG, handlerResult.toString());
+                                            if (handlerResult instanceof String) {
+                                                try {
+                                                    final String passkeyString = (String) handlerResult;
+                                                    final byte[] passkey = passkeyString.getBytes();
+                                                    Log.d(TAG, "Trying to set passkey for pairing to " + passkeyString);
+                                                    device.setPin(passkey); 
+                                                    broadcastResult.abortBroadcast();
+                                                }
+                                                catch (Exception ex) {
+                                                    Log.e(TAG, ex.getMessage());
+                                                    ex.printStackTrace();
+                                                    // @TODO , passing the error
+                                                    //result.error("bond_error", "Setting passkey for pairing failed", exceptionToString(ex));
+                                                }
+                                            }
+                                            else {
+                                                Log.d(TAG, "Manual pin pairing in progress");
+                                                //Intent intent = new Intent(BluetoothAdapter.ACTION_PAIRING_REQUEST);
+                                                //intent.putExtra(BluetoothDevice.EXTRA_DEVICE, device);
+                                                //intent.putExtra(BluetoothDevice.EXTRA_PAIRING_VARIANT, pairingVariant)
+                                                ActivityCompat.startActivity(registrar.activity(), intent, null);
+                                            }
+                                            broadcastResult.finish();
+                                        }
+
+                                        @Override
+                                        public void notImplemented() {
+                                            throw new UnsupportedOperationException();
+                                        }
+
+                                        @Override
+                                        public void error(String code, String message, Object details) {
+                                            throw new UnsupportedOperationException();
+                                        }
+                                    });
+                                    break;
+                                }
+
+                                // Note: `BluetoothDevice.PAIRING_VARIANT_PASSKEY` seems to be unsupported anyway... Probably is abandoned.
+                                // See https://android.googlesource.com/platform/frameworks/base/+/master/core/java/android/bluetooth/BluetoothDevice.java#1528
+
+                                case BluetoothDevice.PAIRING_VARIANT_PASSKEY_CONFIRMATION: 
+                                    // Displayed passkey on the other device should be the same as received here.
+                                case 3: //case BluetoothDevice.PAIRING_VARIANT_CONSENT: // @TODO , Symbol not found?
+                                    // The simplest, but much less secure method - just yes or no, without any auth.
+                                    // Consent type can use same code as passkey confirmation since passed passkey,
+                                    // which is 0 or error at the moment, should not be used anyway by common code.
+                                {
+                                    final int pairingKey = intent.getIntExtra(BluetoothDevice.EXTRA_PAIRING_KEY, BluetoothDevice.ERROR);
+
+                                    Map<String, Object> arguments = new HashMap<String, Object>();
+                                    arguments.put("address", device.getAddress());
+                                    arguments.put("variant", pairingVariant);
+                                    arguments.put("pairingKey", pairingKey);
+
+                                    final BroadcastReceiver.PendingResult broadcastResult = this.goAsync();
+                                    methodChannel.invokeMethod("handlePairingRequest", arguments, new MethodChannel.Result() {
+                                        @Override
+                                        public void success(Object handlerResult) {
+                                            if (handlerResult instanceof Boolean) {
+                                                try {
+                                                    final boolean confirm = (Boolean) handlerResult;
+                                                    Log.d(TAG, "Trying to set pairing confirmation to " + confirm + " (key: " + pairingKey + ")");
+                                                    // @WARN `BLUETOOTH_PRIVILEGED` permission required, but might be 
+                                                    // unavailable for thrid party apps on newer versions of Androids.
+                                                    device.setPairingConfirmation(confirm);
+                                                    broadcastResult.abortBroadcast();
+                                                }
+                                                catch (Exception ex) {
+                                                    Log.e(TAG, ex.getMessage());
+                                                    ex.printStackTrace();
+                                                    // @TODO , passing the error
+                                                    //result.error("bond_error", "Auto-confirming pass key failed", exceptionToString(ex));
+                                                }
+                                            }
+                                            else {
+                                                Log.d(TAG, "Manual passkey confirmation pairing in progress (key: " + pairingKey + ")");
+                                                ActivityCompat.startActivity(registrar.activity(), intent, null);
+                                            }
+                                            broadcastResult.finish();
+                                        }
+
+                                        @Override
+                                        public void notImplemented() {
+                                            throw new UnsupportedOperationException();
+                                        }
+
+                                        @Override
+                                        public void error(String code, String message, Object details) {
+                                            Log.e(TAG, code + " " + message);
+                                            throw new UnsupportedOperationException();
+                                        }
+                                    });
+                                    break;
+                                }
+                                
+                                case 4: //case BluetoothDevice.PAIRING_VARIANT_DISPLAY_PASSKEY: // @TODO , Symbol not found?
+                                    // This pairing method requires to enter the generated and displayed pairing key
+                                    // on the remote device. It looks like basic asymmetric cryptography was used.
+                                case 5: //case BluetoothDevice.PAIRING_VARIANT_DISPLAY_PIN: // @TODO , Symbol not found?
+                                    // Same as previous, but for 4 digit pin.
+                                {
+                                    final int pairingKey = intent.getIntExtra(BluetoothDevice.EXTRA_PAIRING_KEY, BluetoothDevice.ERROR);
+
+                                    Map<String, Object> arguments = new HashMap<String, Object>();
+                                    arguments.put("address", device.getAddress());
+                                    arguments.put("variant", pairingVariant);
+                                    arguments.put("pairingKey", pairingKey);
+
+                                    methodChannel.invokeMethod("handlePairingRequest", arguments);
+                                    break;
+                                }
+
+                                // Note: `BluetoothDevice.PAIRING_VARIANT_OOB_CONSENT` seems to be unsupported for now, at least at master branch of Android.
+                                // See https://android.googlesource.com/platform/frameworks/base/+/master/core/java/android/bluetooth/BluetoothDevice.java#1559
+
+                                // Note: `BluetoothDevice.PAIRING_VARIANT_PIN_16_DIGITS ` seems to be unsupported for now, at least at master branch of Android.
+                                // See https://android.googlesource.com/platform/frameworks/base/+/master/core/java/android/bluetooth/BluetoothDevice.java#1559
+
+                                default:
+                                    // Only log other pairing variants
+                                    Log.w(TAG, "Unknown pairing variant: " + pairingVariant);
+                                    break;
+                            }
+                            break;
+
+                            default:
+                                // Ignore other actions
+                                break;
+                    }
+                }
+            };
         }
 
         // Discovery
@@ -342,85 +506,11 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
                         break;
                 }
 
-                final String pinString = call.hasArgument("pin") ? call.argument("pin") : null;
-                final byte[] pin = pinString == null ? null : pinString.getBytes();
-                final boolean passkeyConfirm = call.hasArgument("passkeyConfirm") ? call.argument("passkeyConfirm") : false;
-
-                final BroadcastReceiver pinRequestBroadcastReceiver = new BroadcastReceiver() {
-                    @Override
-                    public void onReceive(Context context, Intent intent) {
-                        switch (intent.getAction()) {
-                            case BluetoothDevice.ACTION_PAIRING_REQUEST:
-                                final BluetoothDevice someDevice = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-                                if (!someDevice.equals(device)) {
-                                    break;
-                                }
-
-                                final int pairingVariant = intent.getIntExtra(BluetoothDevice.EXTRA_PAIRING_VARIANT, BluetoothDevice.ERROR);
-                                switch (pairingVariant) {
-                                    case BluetoothDevice.PAIRING_VARIANT_PASSKEY_CONFIRMATION:
-                                        // @TODO . there is `PAIRING_VARIANT_PASSKEY_CONFIRMATION`, but it requires 
-                                        // `BLUETOOTH_PRIVILEGED` permission, which might be unavaliable for third
-                                        // party application like this. If implemented, there should be callback or
-                                        // something to common code to decide is `EXTRA_PAIRING_KEY` is good.
-                                        final int pairingKey = intent.getIntExtra(BluetoothDevice.EXTRA_PAIRING_KEY, BluetoothDevice.ERROR);
-                                        if (passkeyConfirm) {
-                                            try {
-                                                Log.d(TAG, "Trying to set pairing confirmation (pairing key: " + pairingKey + ")");
-                                                device.setPairingConfirmation(true); 
-                                                abortBroadcast();
-                                            }
-                                            catch (Exception ex) {
-                                                Log.e(TAG, ex.getMessage());
-                                                ex.printStackTrace();
-                                                result.error("bond_error", "Auto-confirming pass key failed", exceptionToString(ex));
-                                            }
-                                        }
-                                        else {
-                                            Log.d(TAG, "Manual passkye confirmation pairing in progress (pairing key: " + pairingKey + ")");
-                                        }
-                                        break;
-
-                                    case BluetoothDevice.PAIRING_VARIANT_PIN:
-                                    //case BluetoothDevice.PAIRING_VARIANT_PASSKEY:
-                                        if (pin == null) {
-                                            Log.d(TAG, "Manual pin pairing in progress");
-                                        }
-                                        else {
-                                            try {
-                                                Log.d(TAG, "Trying to set pin for pairing");
-                                                device.setPin(pin);
-                                                abortBroadcast();
-                                            }
-                                            catch (Exception ex) {
-                                                Log.e(TAG, ex.getMessage());
-                                                ex.printStackTrace();
-                                                result.error("bond_error", "Setting pin for pairing failed", exceptionToString(ex));
-                                            }
-                                        }
-                                        break;
-                                }
-                                registrar.activeContext().unregisterReceiver(this);
-                                break;
-
-                            default:
-                                // Ignore.
-                                break;
-                        }
-                    }
-                };
-
-                if (pin != null || passkeyConfirm) {
-                    final IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_PAIRING_REQUEST);
-                    //filter.setPriority(IntentFilter.SYSTEM_HIGH_PRIORITY - 1);
-                    registrar.activeContext().registerReceiver(pinRequestBroadcastReceiver, filter);
-                    // @TODO ? might be leaking if disabling bluetooth while bonding
-                }
-
                 final BroadcastReceiver bondStateBroadcastReceiver = new BroadcastReceiver() {
                     @Override 
                     public void onReceive(Context context, Intent intent) {
                         switch (intent.getAction()) {
+                            // @TODO . BluetoothDevice.ACTION_PAIRING_CANCEL
                             case BluetoothDevice.ACTION_BOND_STATE_CHANGED:
                                 final BluetoothDevice someDevice = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
                                 if (!someDevice.equals(device)) {
@@ -454,7 +544,9 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
                     }
                 };
 
-                registrar.activeContext().registerReceiver(bondStateBroadcastReceiver, new IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED));
+                final IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
+                //filter.setPriority(pairingRequestReceiverPriority + 1);
+                registrar.activeContext().registerReceiver(bondStateBroadcastReceiver, filter);
                 // @TODO ? might be leaking if disabling bluetooth while bonding
 
                 if (!device.createBond()) {
@@ -462,6 +554,30 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
                 }
                 break;
             }
+
+            case "pairingRequestHandlingEnable":
+                if (this.isPairingRequestHandlerSet) {
+                    result.error("logic_error", "pairing request handling is already enabled", null);
+                    break;
+                }
+                Log.d(TAG, "Starting listening for pairing requests to handle");
+
+                this.isPairingRequestHandlerSet = true;
+                final IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_PAIRING_REQUEST);
+                //filter.setPriority(pairingRequestReceiverPriority);
+                registrar.activeContext().registerReceiver(pairingRequestReceiver, filter);
+                break;
+
+            case "pairingRequestHandlingDisable":
+                this.isPairingRequestHandlerSet = false;
+                try {
+                    registrar.activeContext().unregisterReceiver(pairingRequestReceiver);
+                    Log.d(TAG, "Stopped listening for pairing requests to handle");
+                }
+                catch (IllegalArgumentException ex) {
+                    // Ignore `Receiver not registered` exception
+                }
+                break;
 
             case "getBondedDevices":
                 ensurePermissions(new EnsurePermissionsCallback() {
