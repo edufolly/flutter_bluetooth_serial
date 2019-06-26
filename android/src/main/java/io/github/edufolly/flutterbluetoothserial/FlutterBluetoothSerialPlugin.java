@@ -34,22 +34,24 @@ import io.flutter.plugin.common.MethodChannel.MethodCallHandler;
 import io.flutter.plugin.common.MethodChannel.Result;
 import io.flutter.plugin.common.PluginRegistry.Registrar;
 import io.flutter.plugin.common.PluginRegistry.RequestPermissionsResultListener;
+import io.flutter.plugin.common.PluginRegistry.ActivityResultListener;
 
-public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestPermissionsResultListener {
+public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestPermissionsResultListener, ActivityResultListener {
     // Plugin
     private static final String TAG = "FlutterBluePlugin";
     private static final String PLUGIN_NAMESPACE = "flutter_bluetooth_serial";
     private final Registrar registrar;
     private Result pendingResultForActivityResult = null;
-    
-    // Permissions
+
+    // Permissions and request constants
     private static final int REQUEST_COARSE_LOCATION_PERMISSIONS = 1451;
-    private static final int REQUEST_ENABLE_BLUETOOTH = 2137;
-    
+    private static final int REQUEST_ENABLE_BLUETOOTH = 1337;
+    private static final int REQUEST_DISCOVERABLE_BLUETOOTH = 2137;
+
     // General Bluetooth
     private BluetoothAdapter bluetoothAdapter;
     private BluetoothManager bluetoothManager;
-    
+
     // State
     private final BroadcastReceiver stateReceiver;
     private EventSink stateSink;
@@ -73,6 +75,7 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
     public static void registerWith(Registrar registrar) {
         final FlutterBluetoothSerialPlugin instance = new FlutterBluetoothSerialPlugin(registrar);
         registrar.addRequestPermissionsResultListener(instance);
+        registrar.addActivityResultListener(instance);
     }
 
     /// Constructs the plugin instance
@@ -255,6 +258,7 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
 
             case "requestEnable":
                 if (!bluetoothAdapter.isEnabled()) {
+                    pendingResultForActivityResult = result;
                     Intent intent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
                     ActivityCompat.startActivityForResult(registrar.activity(), intent, REQUEST_ENABLE_BLUETOOTH, null);
                 }
@@ -354,6 +358,25 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
                 
                 result.success(null);
                 break;
+
+            case "requestDiscoverable": {
+                Intent intent = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
+
+                if (call.hasArgument("duration")) {
+                    try {
+                        int duration = (int) call.argument("duration");
+                        intent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, duration);
+                    }
+                    catch (ClassCastException ex) {
+                        result.error("invalid_argument", "'duration' argument is required to be integer", null);
+                        break;
+                    }
+                }
+
+                pendingResultForActivityResult = result;
+                ActivityCompat.startActivityForResult(registrar.activity(), intent, REQUEST_DISCOVERABLE_BLUETOOTH, null);
+                break;
+            }
 
             ////////////////////////////////////////////////////////////////////////////////
             /* Connecting and connection */
@@ -517,21 +540,20 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
         return false;
     }
 
-    // @TODO ? Registrar addActivityResultListener(ActivityResultListener listener);
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+    @Override
+    public boolean onActivityResult(int requestCode, int resultCode, Intent data) {
         switch (requestCode) {
             case REQUEST_ENABLE_BLUETOOTH:
-                if (resultCode == 0) { // @TODO - use underlying value of `Activity.RESULT_CANCELED` since we tend to use `androidx` in where I could find the value.
-                    pendingResultForActivityResult.success(false);
-                }
-                else {
-                    pendingResultForActivityResult.success(true);
-                }
-                break;
+                // @TODO - used underlying value of `Activity.RESULT_CANCELED` since we tend to use `androidx` in which I were not able to find the constant.
+                pendingResultForActivityResult.success(resultCode == 0 ? false : true);
+                return true;
+
+            case REQUEST_DISCOVERABLE_BLUETOOTH:
+                pendingResultForActivityResult.success(resultCode == 0 ? -1 : resultCode);
+                return true;
 
             default:
-                // Ignore.
-                break;
+                return false;
         }
     }
 

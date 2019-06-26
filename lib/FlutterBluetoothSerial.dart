@@ -48,9 +48,6 @@ class FlutterBluetoothSerial {
   /// Opens the Bluetooth platform system settings.
   Future<void> openSettings() async => await _methodChannel.invokeMethod('openSettings');
 
-  // @TODO . add `discoverableName` (get/set)
-  // @TODO . add `requestDiscoverable`
-
 
 
   /* Discovering and bonding devices */
@@ -90,6 +87,16 @@ class FlutterBluetoothSerial {
 
   /// Cancels the discovery
   Future<void> cancelDiscovery() async => await _methodChannel.invokeMethod('cancelDiscovery');
+
+  // @TODO . add `discoverableName` (get/set)
+  // @TODO . add `discoverableTimeout` (get)
+
+  /// Asks for discoverable mode (probably always prompt for user interaction in fact).
+  /// Returns number of seconds acquired or zero if canceled or failed gracefully.
+  /// 
+  /// Duration might be capped to 120, 300 or 3600 seconds on some devices.
+  Future<int> requestDiscoverable(int durationInSeconds) async => await _methodChannel.invokeMethod("requestDiscoverable", {"duration": durationInSeconds});
+
 
 
   /* Connecting and connection */

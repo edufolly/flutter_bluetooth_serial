@@ -80,6 +80,32 @@ class _MainPage extends State<MainPage> {
                 },
               ),
             ),
+            ListTile(
+              title: Text("Discoverable"),
+              subtitle: const Text("PsychoX-Luna"),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.edit),
+                    onPressed: null,
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.refresh),
+                    onPressed: () async {
+                      print('Discoverable requested');
+                      final int timeout = await FlutterBluetoothSerial.instance.requestDiscoverable(60);
+                      if (timeout < 0) {
+                        print('Discoverable mode denied');
+                      }
+                      else {
+                        print('Discoverable mode acquired for $timeout seconds');
+                      }
+                    },
+                  )
+                ]
+              )
+            ),
 
             Divider(),
             ListTile(
