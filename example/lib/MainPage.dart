@@ -18,6 +18,9 @@ class MainPage extends StatefulWidget {
 class _MainPage extends State<MainPage> {
   BluetoothState _bluetoothState = BluetoothState.UNKNOWN;
 
+  String _address = "...";
+  String _name = "...";
+
   BackgroundCollectingTask _collectingTask;
 
   @override
@@ -27,6 +30,10 @@ class _MainPage extends State<MainPage> {
     // Get current state
     FlutterBluetoothSerial.instance.state.then((state) {
       setState(() { _bluetoothState = state; });
+    });
+
+    FlutterBluetoothSerial.instance.address.then((address) {
+      setState(() { _address = address; });
     });
 
     // Listen for futher state changes
@@ -79,6 +86,15 @@ class _MainPage extends State<MainPage> {
                   FlutterBluetoothSerial.instance.openSettings();
                 },
               ),
+            ),
+            ListTile(
+              title: const Text('Local adapter address'),
+              subtitle: Text(_address),
+            ),
+            ListTile(
+              title: const Text('Local adapter name'),
+              subtitle: Text(_name),
+              onLongPress: null,
             ),
 
             Divider(),

@@ -287,6 +287,33 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
                 result.success(bluetoothAdapter.getState());
                 break;
 
+            case "getAddress":
+                result.success(bluetoothAdapter.getAddress());
+                break;
+
+            case "getName":
+                result.success(bluetoothAdapter.getName());
+                break;
+
+            case "setName": {
+                if (!call.hasArgument("name")) {
+                    result.error("invalid_argument", "argument 'name' not found", null);
+                    break;
+                }
+
+                String name;
+                try {
+                    name = call.argument("name");
+                }
+                catch (ClassCastException ex) {
+                    result.error("invalid_argument", "'name' argument is required to be string", null);
+                    break;
+                }
+
+                result.success(bluetoothAdapter.setName(name));
+                break;
+            }
+
             case "getBondedDevices":
                 ensurePermissions(new EnsurePermissionsCallback() {
                     @Override
