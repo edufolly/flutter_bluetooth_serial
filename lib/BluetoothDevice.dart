@@ -21,7 +21,11 @@ class BluetoothDevice {
   final BluetoothBondState bondState;
 
   /// Tells whether the device is bonded (ready to secure connect).
+  @Deprecated('Use `isBonded` instead')
   bool get bonded => bondState.isBonded;
+
+  /// Tells whether the device is bonded (ready to secure connect).
+  bool get isBonded => bondState.isBonded;
 
   /// Construct `BluetoothDevice` with given values.
   const BluetoothDevice({
