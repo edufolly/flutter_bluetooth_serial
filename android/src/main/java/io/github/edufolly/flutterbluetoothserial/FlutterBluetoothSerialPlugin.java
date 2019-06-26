@@ -42,21 +42,20 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
     private final Registrar registrar;
     private final MethodChannel methodChannel;
     private Result pendingResultForActivityResult = null;
-    
+
     // Permissions
     private static final int REQUEST_COARSE_LOCATION_PERMISSIONS = 1451;
     private static final int REQUEST_ENABLE_BLUETOOTH = 2137;
-    
+
     // General Bluetooth
     private BluetoothAdapter bluetoothAdapter;
     private BluetoothManager bluetoothManager;
-    
+
     // State
     private final BroadcastReceiver stateReceiver;
     private EventSink stateSink;
 
     // Pairing requests
-    private final int pairingRequestReceiverPriority = 123;
     private final BroadcastReceiver pairingRequestReceiver;
     private boolean isPairingRequestHandlerSet = false;
 
