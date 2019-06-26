@@ -71,7 +71,7 @@ class FlutterBluetoothSerial {
   }
 
   /// Starts outgoing bonding (pairing) with device with given address. 
-  /// Returns true if bonded, false if canceled.
+  /// Returns true if bonded, false if canceled or failed gracefully.
   /// 
   /// `pin` or `passkeyConfirm` could be used to automate the bonding process,
   /// using provided pin or confirmation if necessary. Can be used only if no
@@ -112,6 +112,12 @@ class FlutterBluetoothSerial {
     }
     return await _methodChannel.invokeMethod('bondDevice', {"address": address});
   }
+
+  /// Removes bond with device with specified address.
+  /// Returns true if unbonded, false if canceled or failed gracefully.
+  /// 
+  /// Note: May not work at every Android device!
+  Future<bool> removeDeviceBondWithAddress(String address) async => await _methodChannel.invokeMethod('removeDeviceBond', {'address': address});
 
   // Function used as pairing request handler.
   Function _pairingRequestHandler;

@@ -475,6 +475,49 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
                 break;
             }
 
+            case "removeDeviceBond": {
+                if (!call.hasArgument("address")) {
+                    result.error("invalid_argument", "argument 'address' not found", null);
+                    break;
+                }
+
+                String address;
+                try {
+                    address = call.argument("address");
+                    if (!BluetoothAdapter.checkBluetoothAddress(address)) {
+                        throw new ClassCastException();
+                    }
+                }
+                catch (ClassCastException ex) {
+                    result.error("invalid_argument", "'address' argument is required to be string containing remote MAC address", null);
+                    break;
+                }
+
+                BluetoothDevice device = bluetoothAdapter.getRemoteDevice(address);
+                switch (device.getBondState()) {
+                    case BluetoothDevice.BOND_BONDING:
+                        result.error("bond_error", "device already bonding", null);
+                        break methodCallDispatching;
+                    case BluetoothDevice.BOND_NONE:
+                        result.error("bond_error", "device already unbonded", null);
+                        break methodCallDispatching;
+                    default: 
+                        // Proceed.
+                        break;
+                }
+
+                try {
+                    java.lang.reflect.Method method;
+                    method = device.getClass().getMethod("removeBond");
+                    boolean value = (Boolean) method.invoke(device);
+                    result.success(value);
+                }
+                catch (Exception ex) {
+                    result.error("bond_error", "error while unbonding", exceptionToString(ex));
+                }
+                break;
+            }
+
             case "bondDevice": {
                 if (!call.hasArgument("address")) {
                     result.error("invalid_argument", "argument 'address' not found", null);
