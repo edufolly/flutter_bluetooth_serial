@@ -160,6 +160,7 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
                             discoveryResult.put("name", device.getName());
                             discoveryResult.put("type", device.getType());
                             //discoveryResult.put("class", deviceClass); // @TODO . it isn't my priority for now !BluetoothClass!
+                            discoveryResult.put("isConnected", checkIsDeviceConnected(device));
                             discoveryResult.put("bondState", device.getBondState());
                             discoveryResult.put("rssi", deviceRSSI);
 
@@ -301,6 +302,7 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
                             entry.put("address", device.getAddress());
                             entry.put("name", device.getName());
                             entry.put("type", device.getType());
+                            entry.put("isConnected", checkIsDeviceConnected(device));
                             entry.put("bondState", BluetoothDevice.BOND_BONDED);
                             list.add(entry);
                         }
@@ -543,6 +545,19 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
         PrintWriter pw = new PrintWriter(sw);
         ex.printStackTrace(pw);
         return sw.toString();
+    }
+
+    /// Helper function to check is device connected
+    static private boolean checkIsDeviceConnected(BluetoothDevice device) {
+        try {
+            java.lang.reflect.Method method;
+            method = device.getClass().getMethod("isConnected");
+            boolean value = (Boolean) method.invoke(device);
+            return value;
+        }
+        catch (Exception ex) {
+            return false;
+        }
     }
 
 

@@ -14,6 +14,9 @@ class BluetoothDevice {
   /// Class of the device.
   //final BluetoothClass bluetoothClass // @TODO . !BluetoothClass! 
 
+  /// Describes is device connected.
+  final bool isConnected;
+
   /// Bonding state of the device.
   final BluetoothBondState bondState;
 
@@ -24,27 +27,30 @@ class BluetoothDevice {
   const BluetoothDevice({
     this.name, 
     this.address, 
-    this.type       = BluetoothDeviceType.unknown, 
-    this.bondState  = BluetoothBondState.unknown,
+    this.type         = BluetoothDeviceType.unknown, 
+    this.isConnected  = false,
+    this.bondState    = BluetoothBondState.unknown,
   });
 
   /// Creates `BluetoothDevice` from map.
   /// Internally used to receive the object from platform code.
   factory BluetoothDevice.fromMap(Map map) {
     return BluetoothDevice(
-      name:       map['name'],
-      address:    map['address'],
-      type:       map['type']      != null ? BluetoothDeviceType.fromUnderlyingValue(map['type']) : BluetoothDeviceType.unknown,
-      bondState:  map['bondState'] != null ? BluetoothBondState.fromUnderlyingValue(map['bondState']) : BluetoothBondState.unknown,
+      name:         map["name"],
+      address:      map["address"],
+      type:         map["type"]      != null ? BluetoothDeviceType.fromUnderlyingValue(map["type"]) : BluetoothDeviceType.unknown,
+      isConnected:  map["isConnected"] ?? false,
+      bondState:    map["bondState"] != null ? BluetoothBondState.fromUnderlyingValue(map["bondState"]) : BluetoothBondState.unknown,
     );
   }
 
   /// Creates map from `BluetoothDevice`.
   Map<String, dynamic> toMap() => {
-    'name':       this.name,
-    'address':    this.address,
-    'type':       this.type.toUnderlyingValue(),
-    'bondState':  this.bondState.toUnderlyingValue(),
+    "name":         this.name,
+    "address":      this.address,
+    "type":         this.type.toUnderlyingValue(),
+    "isConnected":  this.isConnected,
+    "bondState":    this.bondState.toUnderlyingValue(),
   };
 
   /// Compares for equality of this and other `BluetoothDevice`.
