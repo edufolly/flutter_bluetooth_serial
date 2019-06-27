@@ -121,7 +121,13 @@ class _MainPage extends State<MainPage> {
                         _discoverableTimeoutSecondsLeft = timeout;
                         _discoverableTimeoutTimer = Timer.periodic(Duration(seconds: 1), (Timer timer) {
                           setState(() {
-                            if (_discoverableTimeoutSecondsLeft <= 0) {
+                            if (_discoverableTimeoutSecondsLeft < 0) {
+                              FlutterBluetoothSerial.instance.isDiscoverable.then((isDiscoverable) {
+                                if (isDiscoverable) {
+                                  print("Discoverable after timeout... might be infinity timeout :F");
+                                  _discoverableTimeoutSecondsLeft += 1;
+                                }
+                              });
                               timer.cancel();
                               _discoverableTimeoutSecondsLeft = 0;
                             }
