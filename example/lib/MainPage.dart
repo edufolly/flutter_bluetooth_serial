@@ -97,6 +97,10 @@ class _MainPage extends State<MainPage> {
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  Checkbox(
+                    value: _discoverableTimeoutSecondsLeft != 0,
+                    onChanged: null,
+                  ),
                   IconButton(
                     icon: const Icon(Icons.edit),
                     onPressed: null,
