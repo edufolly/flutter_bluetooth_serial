@@ -359,18 +359,9 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
                 result.success(null);
                 break;
 
-            case "getDiscoverableTimeout": {
-                try {
-                    java.lang.reflect.Method method;
-                    method = bluetoothAdapter.getClass().getMethod("getDiscoverableTimeout");
-                    int value = (int) method.invoke(bluetoothAdapter);
-                    result.success(value);
-                }
-                catch (Exception ex) {
-                    result.error("bond_error", "error while unbonding", exceptionToString(ex));
-                }
+            case "isDiscoverable":
+                result.success(bluetoothAdapter.getScanMode() == BluetoothAdapter.SCAN_MODE_CONNECTABLE_DISCOVERABLE);
                 break;
-            }
 
             case "requestDiscoverable": {
                 Intent intent = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);

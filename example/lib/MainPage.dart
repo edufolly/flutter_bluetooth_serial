@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 import 'package:scoped_model/scoped_model.dart';
@@ -18,6 +19,9 @@ class MainPage extends StatefulWidget {
 class _MainPage extends State<MainPage> {
   BluetoothState _bluetoothState = BluetoothState.UNKNOWN;
 
+  Timer _discoverableTimeoutTimer;
+  int _discoverableTimeoutSecondsLeft = 0;
+
   BackgroundCollectingTask _collectingTask;
 
   @override
@@ -31,13 +35,20 @@ class _MainPage extends State<MainPage> {
 
     // Listen for futher state changes
     FlutterBluetoothSerial.instance.onStateChanged().listen((BluetoothState state) {
-      setState(() { _bluetoothState = state; });
+      setState(() {
+        _bluetoothState = state;
+
+        // Discoverable mode is disabled when Bluetooth gets disabled
+        _discoverableTimeoutTimer = null;
+        _discoverableTimeoutSecondsLeft = 0;
+      });
     });
   }
 
   @override
   void dispose() {
     _collectingTask?.dispose();
+    _discoverableTimeoutTimer?.cancel();
     super.dispose();
   }
 
@@ -81,7 +92,7 @@ class _MainPage extends State<MainPage> {
               ),
             ),
             ListTile(
-              title: Text("Discoverable"),
+              title: _discoverableTimeoutSecondsLeft == 0 ? const Text("Discoverable") : Text("Discoverable for $_discoverableTimeoutSecondsLeft seconds"),
               subtitle: const Text("PsychoX-Luna"),
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -101,6 +112,21 @@ class _MainPage extends State<MainPage> {
                       else {
                         print('Discoverable mode acquired for $timeout seconds');
                       }
+                      setState(() {
+                        _discoverableTimeoutTimer?.cancel();
+                        _discoverableTimeoutSecondsLeft = timeout;
+                        _discoverableTimeoutTimer = Timer.periodic(Duration(seconds: 1), (Timer timer) {
+                          setState(() {
+                            if (_discoverableTimeoutSecondsLeft <= 0) {
+                              timer.cancel();
+                              _discoverableTimeoutSecondsLeft = 0;
+                            }
+                            else {
+                              _discoverableTimeoutSecondsLeft -= 1;
+                            }
+                          });
+                        });
+                      });
                     },
                   )
                 ]

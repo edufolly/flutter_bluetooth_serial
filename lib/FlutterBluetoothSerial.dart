@@ -90,9 +90,8 @@ class FlutterBluetoothSerial {
 
   // @TODO . add `discoverableName` (get/set)
 
-  /// Timeout in seconds left in discoverable mode. Negative values means 
-  /// out of discoverable mode or error (such as adapter disabled).
-  Future<int> get discoverableTimeout => _methodChannel.invokeMethod("getDiscoverableTimeout");
+  /// Describes is the local device in discoverable mode.
+  Future<bool> get isDiscoverable => _methodChannel.invokeMethod("isDiscoverable");
 
   /// Asks for discoverable mode (probably always prompt for user interaction in fact).
   /// Returns number of seconds acquired or zero if canceled or failed gracefully.
