@@ -36,6 +36,10 @@ class _MainPage extends State<MainPage> {
       setState(() { _address = address; });
     });
 
+    FlutterBluetoothSerial.instance.name.then((name) {
+      setState(() { _name = name; });
+    });
+
     // Listen for futher state changes
     FlutterBluetoothSerial.instance.onStateChanged().listen((BluetoothState state) {
       setState(() { _bluetoothState = state; });
