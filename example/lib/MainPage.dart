@@ -92,7 +92,7 @@ class _MainPage extends State<MainPage> {
               ),
             ),
             ListTile(
-              title: _discoverableTimeoutSecondsLeft == 0 ? const Text("Discoverable") : Text("Discoverable for $_discoverableTimeoutSecondsLeft seconds"),
+              title: _discoverableTimeoutSecondsLeft == 0 ? const Text("Discoverable") : Text("Discoverable for ${_discoverableTimeoutSecondsLeft}s"),
               subtitle: const Text("PsychoX-Luna"),
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
