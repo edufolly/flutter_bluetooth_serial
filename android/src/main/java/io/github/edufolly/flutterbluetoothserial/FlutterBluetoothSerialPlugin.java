@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.net.NetworkInterface;
 
+import io.flutter.view.FlutterNativeView;
 import io.flutter.plugin.common.EventChannel;
 import io.flutter.plugin.common.EventChannel.StreamHandler;
 import io.flutter.plugin.common.EventChannel.EventSink;
@@ -35,9 +36,10 @@ import io.flutter.plugin.common.MethodChannel;
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler;
 import io.flutter.plugin.common.MethodChannel.Result;
 import io.flutter.plugin.common.PluginRegistry.Registrar;
+import io.flutter.plugin.common.PluginRegistry.ViewDestroyListener;
 import io.flutter.plugin.common.PluginRegistry.RequestPermissionsResultListener;
 
-public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestPermissionsResultListener {
+public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestPermissionsResultListener, ViewDestroyListener {
     // Plugin
     private static final String TAG = "FlutterBluePlugin";
     private static final String PLUGIN_NAMESPACE = "flutter_bluetooth_serial";
@@ -74,19 +76,18 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
     /// Registers plugin in Flutter plugin system
     public static void registerWith(Registrar registrar) {
         final FlutterBluetoothSerialPlugin instance = new FlutterBluetoothSerialPlugin(registrar);
+
+        MethodChannel methodChannel = new MethodChannel(registrar.messenger(), PLUGIN_NAMESPACE + "/methods");
+        methodChannel.setMethodCallHandler(instance);
+
         registrar.addRequestPermissionsResultListener(instance);
+        registrar.addViewDestroyListener(instance);
     }
 
     /// Constructs the plugin instance
     FlutterBluetoothSerialPlugin(Registrar registrar) {
-        // Plugin
-        {
-            this.registrar = registrar;
-            
-            MethodChannel methodChannel = new MethodChannel(registrar.messenger(), PLUGIN_NAMESPACE + "/methods");
-            methodChannel.setMethodCallHandler(this);
-        }
-        
+        this.registrar = registrar;
+
         // General Bluetooth
         {
             this.bluetoothManager = (BluetoothManager) registrar.activity().getSystemService(Context.BLUETOOTH_SERVICE);
@@ -128,7 +129,6 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
                 public void onListen(Object o, EventSink eventSink) {
                     stateSink = eventSink;
 
-                    // @TODO . leak :C
                     registrar.activeContext().registerReceiver(stateReceiver, new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED));
                 }
                 @Override
@@ -658,6 +658,19 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
                 // Ignore.
                 break;
         }
+    }
+
+    @Override
+    public boolean onViewDestroy(FlutterNativeView view) {
+        // Unregister all ongoing receivers
+        try {
+            registrar.activeContext().unregisterReceiver(stateReceiver);
+        }
+        catch (IllegalArgumentException ex) {
+            // Ignore `Receiver not registered` exception
+        }
+
+        return false;
     }
 
 
