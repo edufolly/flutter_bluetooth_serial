@@ -62,6 +62,7 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
     // Pairing requests
     private final BroadcastReceiver pairingRequestReceiver;
     private boolean isPairingRequestHandlerSet = false;
+    private BroadcastReceiver bondStateBroadcastReceiver = null;
 
     // Discovery
     private EventChannel discoveryChannel;
@@ -662,6 +663,11 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
                     break;
                 }
 
+                if (bondStateBroadcastReceiver != null) {
+                    result.error("bond_error", "another bonding process is ongoing from local device", null);
+                    break;
+                }
+
                 BluetoothDevice device = bluetoothAdapter.getRemoteDevice(address);
                 switch (device.getBondState()) {
                     case BluetoothDevice.BOND_BONDING:
@@ -675,7 +681,7 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
                         break;
                 }
 
-                final BroadcastReceiver bondStateBroadcastReceiver = new BroadcastReceiver() {
+                bondStateBroadcastReceiver = new BroadcastReceiver() {
                     @Override 
                     public void onReceive(Context context, Intent intent) {
                         switch (intent.getAction()) {
@@ -690,20 +696,19 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
                                 switch (newBondState) {
                                     case BluetoothDevice.BOND_BONDING:
                                         // Wait for true bond result :F
-                                        break;
+                                        return;
                                     case BluetoothDevice.BOND_BONDED:
                                         result.success(true);
-                                        registrar.activeContext().unregisterReceiver(this);
                                         break;
                                     case BluetoothDevice.BOND_NONE:
                                         result.success(false);
-                                        registrar.activeContext().unregisterReceiver(this);
                                         break;
                                     default:
                                         result.error("bond_error", "invalid bond state while bonding", null);
-                                        registrar.activeContext().unregisterReceiver(this);
                                         break;
                                 }
+                                registrar.activeContext().unregisterReceiver(this);
+                                bondStateBroadcastReceiver = null;
                                 break;
 
                             default:
@@ -716,7 +721,6 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
                 final IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
                 //filter.setPriority(pairingRequestReceiverPriority + 1);
                 registrar.activeContext().registerReceiver(bondStateBroadcastReceiver, filter);
-                // @TODO ? might be leaking if disabling bluetooth while bonding
 
                 if (!device.createBond()) {
                     result.error("bond_error", "error starting bonding process", null);
@@ -1003,6 +1007,27 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
         // Unregister all ongoing receivers
         try {
             registrar.activeContext().unregisterReceiver(stateReceiver);
+        }
+        catch (IllegalArgumentException ex) {
+            // Ignore `Receiver not registered` exception
+        }
+        try {
+            registrar.activeContext().unregisterReceiver(discoveryReceiver);
+        }
+        catch (IllegalArgumentException ex) {
+            // Ignore `Receiver not registered` exception
+        }
+        try {
+            registrar.activeContext().unregisterReceiver(pairingRequestReceiver);
+        }
+        catch (IllegalArgumentException ex) {
+            // Ignore `Receiver not registered` exception
+        }
+        try {
+            if (bondStateBroadcastReceiver != null) {
+                registrar.activeContext().unregisterReceiver(bondStateBroadcastReceiver);
+                bondStateBroadcastReceiver = null;
+            }
         }
         catch (IllegalArgumentException ex) {
             // Ignore `Receiver not registered` exception
