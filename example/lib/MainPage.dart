@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 import 'package:scoped_model/scoped_model.dart';
@@ -32,8 +33,18 @@ class _MainPage extends State<MainPage> {
       setState(() { _bluetoothState = state; });
     });
 
-    FlutterBluetoothSerial.instance.address.then((address) {
-      setState(() { _address = address; });
+    Future.doWhile(() async {
+      // Wait if adapter not enabled
+      if (await FlutterBluetoothSerial.instance.isEnabled) {
+        return false;
+      }
+      await Future.delayed(Duration(milliseconds: 0xDD));
+      return true;
+    }).then((_) {
+      // Update the address field
+      FlutterBluetoothSerial.instance.address.then((address) {
+        setState(() { _address = address; });
+      });
     });
 
     FlutterBluetoothSerial.instance.name.then((name) {

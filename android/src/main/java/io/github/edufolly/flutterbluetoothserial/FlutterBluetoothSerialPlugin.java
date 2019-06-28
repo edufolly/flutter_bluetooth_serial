@@ -320,17 +320,21 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
                             mServiceField.setAccessible(true);
 
                             Object bluetoothManagerService = mServiceField.get(bluetoothAdapter);
-                            if (bluetoothManagerService != null) {
-                                java.lang.reflect.Method getAddressMethod;
-                                getAddressMethod = bluetoothManagerService.getClass().getMethod("getAddress");
-                                String value = (String) getAddressMethod.invoke(bluetoothManagerService);
-                                if (value == null) {
-                                    throw new NullPointerException();
+                            if (bluetoothManagerService == null) {
+                                if (!bluetoothAdapter.isEnabled()) {
+                                    Log.d(TAG, "Probably failed just because adapter is disabled!");
                                 }
-                                address = value;
-                                Log.d(TAG, "Probably succed: " + address + " ✨ :F");
-                                break;
+                                throw new NullPointerException();
                             }
+                            java.lang.reflect.Method getAddressMethod;
+                            getAddressMethod = bluetoothManagerService.getClass().getMethod("getAddress");
+                            String value = (String) getAddressMethod.invoke(bluetoothManagerService);
+                            if (value == null) {
+                                throw new NullPointerException();
+                            }
+                            address = value;
+                            Log.d(TAG, "Probably succed: " + address + " ✨ :F");
+                            break;
                         }
                         catch (Exception ex) {
                             // Ignoring failure (since it isn't critical API for most applications)
