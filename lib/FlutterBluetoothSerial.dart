@@ -46,6 +46,29 @@ class FlutterBluetoothSerial {
   /// State of the Bluetooth adapter.
   Future<BluetoothState> get state async => BluetoothState.fromUnderlyingValue(await _methodChannel.invokeMethod('getState'));
 
+  /// Returns the hardware address of the local Bluetooth adapter.
+  /// 
+  /// Does not work for third party applications starting at Android 6.0.
+  Future<String> get address => _methodChannel.invokeMethod("getAddress");
+
+  /// Returns the friendly Bluetooth name of the local Bluetooth adapter.
+  /// 
+  /// This name is visible to remote Bluetooth devices.
+  /// 
+  /// Does not work for third party applications starting at Android 6.0.
+  Future<String> get name => _methodChannel.invokeMethod("getName");
+
+  /// Sets the friendly Bluetooth name of the local Bluetooth adapter.
+  /// 
+  /// This name is visible to remote Bluetooth devices.
+  /// 
+  /// Valid Bluetooth names are a maximum of 248 bytes using UTF-8 encoding, 
+  /// although many remote devices can only display the first 40 characters, 
+  /// and some may be limited to just 20.
+  /// 
+  /// Does not work for third party applications starting at Android 6.0.
+  Future<bool> changeName(String name) => _methodChannel.invokeMethod("setName", {"name": name});
+
 
 
   /* Adapter settings and general */

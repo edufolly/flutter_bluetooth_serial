@@ -19,12 +19,15 @@ import android.os.AsyncTask;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.Enumeration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.net.NetworkInterface;
 
+import io.flutter.view.FlutterNativeView;
 import io.flutter.plugin.common.EventChannel;
 import io.flutter.plugin.common.EventChannel.StreamHandler;
 import io.flutter.plugin.common.EventChannel.EventSink;
@@ -33,9 +36,10 @@ import io.flutter.plugin.common.MethodChannel;
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler;
 import io.flutter.plugin.common.MethodChannel.Result;
 import io.flutter.plugin.common.PluginRegistry.Registrar;
+import io.flutter.plugin.common.PluginRegistry.ViewDestroyListener;
 import io.flutter.plugin.common.PluginRegistry.RequestPermissionsResultListener;
 
-public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestPermissionsResultListener {
+public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestPermissionsResultListener, ViewDestroyListener {
     // Plugin
     private static final String TAG = "FlutterBluePlugin";
     private static final String PLUGIN_NAMESPACE = "flutter_bluetooth_serial";
@@ -77,7 +81,9 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
     /// Registers plugin in Flutter plugin system
     public static void registerWith(Registrar registrar) {
         final FlutterBluetoothSerialPlugin instance = new FlutterBluetoothSerialPlugin(registrar);
+
         registrar.addRequestPermissionsResultListener(instance);
+        registrar.addViewDestroyListener(instance);
     }
 
     /// Constructs the plugin instance
@@ -85,11 +91,11 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
         // Plugin
         {
             this.registrar = registrar;
-            
-            this.methodChannel = new MethodChannel(registrar.messenger(), PLUGIN_NAMESPACE + "/methods");
-            this.methodChannel.setMethodCallHandler(this);
+
+            methodChannel = new MethodChannel(registrar.messenger(), PLUGIN_NAMESPACE + "/methods");
+            methodChannel.setMethodCallHandler(this);
         }
-        
+
         // General Bluetooth
         {
             this.bluetoothManager = (BluetoothManager) registrar.activity().getSystemService(Context.BLUETOOTH_SERVICE);
@@ -131,7 +137,6 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
                 public void onListen(Object o, EventSink eventSink) {
                     stateSink = eventSink;
 
-                    // @TODO . leak :C
                     registrar.activeContext().registerReceiver(stateReceiver, new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED));
                 }
                 @Override
@@ -323,6 +328,7 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
                             discoveryResult.put("name", device.getName());
                             discoveryResult.put("type", device.getType());
                             //discoveryResult.put("class", deviceClass); // @TODO . it isn't my priority for now !BluetoothClass!
+                            discoveryResult.put("isConnected", checkIsDeviceConnected(device));
                             discoveryResult.put("bondState", device.getBondState());
                             discoveryResult.put("rssi", deviceRSSI);
 
@@ -448,6 +454,127 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
             case "getState":
                 result.success(bluetoothAdapter.getState());
                 break;
+
+            case "getAddress": {
+                String address = bluetoothAdapter.getAddress();
+
+                if (address.equals("02:00:00:00:00:00")) {
+                    Log.w(TAG, "Local Bluetooth MAC address is hidden by system, trying other options...");
+
+                    do {
+                        Log.d(TAG, "Trying to obtain address using Settings Secure bank");
+                        try {
+                            // Requires `LOCAL_MAC_ADDRESS` which could be unavailible for third party applications...
+                            String value = android.provider.Settings.Secure.getString(registrar.activeContext().getContentResolver(), "bluetooth_address");
+                            if (value == null) {
+                                throw new NullPointerException("null returned, might be no permissions problem");
+                            }
+                            address = value;
+                            break;
+                        }
+                        catch (Exception ex) {
+                            // Ignoring failure (since it isn't critical API for most applications)
+                            Log.d(TAG, "Obtaining address using Settings Secure bank failed");
+                            //result.error("hidden_address", "obtaining address using Settings Secure bank failed", exceptionToString(ex));
+                        }
+
+                        Log.d(TAG, "Trying to obtain address using reflection against internal Android code");
+                        try {
+                            // This will most likely work, but well, it is unsafe
+                            java.lang.reflect.Field mServiceField;
+                            mServiceField = bluetoothAdapter.getClass().getDeclaredField("mService");
+                            mServiceField.setAccessible(true);
+
+                            Object bluetoothManagerService = mServiceField.get(bluetoothAdapter);
+                            if (bluetoothManagerService == null) {
+                                if (!bluetoothAdapter.isEnabled()) {
+                                    Log.d(TAG, "Probably failed just because adapter is disabled!");
+                                }
+                                throw new NullPointerException();
+                            }
+                            java.lang.reflect.Method getAddressMethod;
+                            getAddressMethod = bluetoothManagerService.getClass().getMethod("getAddress");
+                            String value = (String) getAddressMethod.invoke(bluetoothManagerService);
+                            if (value == null) {
+                                throw new NullPointerException();
+                            }
+                            address = value;
+                            Log.d(TAG, "Probably succed: " + address + " ✨ :F");
+                            break;
+                        }
+                        catch (Exception ex) {
+                            // Ignoring failure (since it isn't critical API for most applications)
+                            Log.d(TAG, "Obtaining address using reflection against internal Android code failed");
+                            //result.error("hidden_address", "obtaining address using reflection agains internal Android code failed", exceptionToString(ex));
+                        }
+
+                        Log.d(TAG, "Trying to look up address by network interfaces - might be invalid on some devices");
+                        try {
+                            // This method might return invalid MAC address (since Bluetooth might use other address than WiFi).
+                            // @TODO . further testing: 1) check is while open connection, 2) check other devices 
+                            Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
+                            String value = null;
+                            while (interfaces.hasMoreElements()) {
+                                NetworkInterface networkInterface = interfaces.nextElement();
+                                String name = networkInterface.getName();
+
+                                if (!name.equalsIgnoreCase("wlan0")) {
+                                    continue;
+                                }
+
+                                byte[] addressBytes = networkInterface.getHardwareAddress();
+                                if (addressBytes != null) {
+                                    StringBuilder addressBuilder = new StringBuilder(18);
+                                    for (byte b : addressBytes) {
+                                        addressBuilder.append(String.format("%02X:", b));
+                                    }
+                                    addressBuilder.setLength(17);
+                                    value = addressBuilder.toString();
+                                //     Log.v(TAG, "-> '" + name + "' : " + value);
+                                // }
+                                // else {
+                                //    Log.v(TAG, "-> '" + name + "' : <no hardware address>");
+                                }
+                            }
+                            if (value == null) {
+                                throw new NullPointerException();
+                            }
+                            address = value;
+                        }
+                        catch (Exception ex) {
+                            // Ignoring failure (since it isn't critical API for most applications)
+                            Log.w(TAG, "Looking for address by network interfaces failed");
+                            //result.error("hidden_address", "looking for address by network interfaces failed", exceptionToString(ex));
+                        }
+                    }
+                    while (false);
+                }
+                result.success(address);
+                break;
+            }
+
+            case "getName":
+                result.success(bluetoothAdapter.getName());
+                break;
+
+            case "setName": {
+                if (!call.hasArgument("name")) {
+                    result.error("invalid_argument", "argument 'name' not found", null);
+                    break;
+                }
+
+                String name;
+                try {
+                    name = call.argument("name");
+                }
+                catch (ClassCastException ex) {
+                    result.error("invalid_argument", "'name' argument is required to be string", null);
+                    break;
+                }
+
+                result.success(bluetoothAdapter.setName(name));
+                break;
+            }
 
             ////////////////////////////////////////////////////////////////////////////////
             /* Discovering and bonding devices */
@@ -636,6 +763,7 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
                             entry.put("address", device.getAddress());
                             entry.put("name", device.getName());
                             entry.put("type", device.getType());
+                            entry.put("isConnected", checkIsDeviceConnected(device));
                             entry.put("bondState", BluetoothDevice.BOND_BONDED);
                             list.add(entry);
                         }
@@ -870,6 +998,19 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
         }
     }
 
+    @Override
+    public boolean onViewDestroy(FlutterNativeView view) {
+        // Unregister all ongoing receivers
+        try {
+            registrar.activeContext().unregisterReceiver(stateReceiver);
+        }
+        catch (IllegalArgumentException ex) {
+            // Ignore `Receiver not registered` exception
+        }
+
+        return false;
+    }
+
 
 
     /// Helper function to get string out of exception
@@ -878,6 +1019,19 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
         PrintWriter pw = new PrintWriter(sw);
         ex.printStackTrace(pw);
         return sw.toString();
+    }
+
+    /// Helper function to check is device connected
+    static private boolean checkIsDeviceConnected(BluetoothDevice device) {
+        try {
+            java.lang.reflect.Method method;
+            method = device.getClass().getMethod("isConnected");
+            boolean value = (Boolean) method.invoke(device);
+            return value;
+        }
+        catch (Exception ex) {
+            return false;
+        }
     }
 
 

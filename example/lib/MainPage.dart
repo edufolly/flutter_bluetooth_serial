@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 import 'package:scoped_model/scoped_model.dart';
@@ -18,6 +19,9 @@ class MainPage extends StatefulWidget {
 class _MainPage extends State<MainPage> {
   BluetoothState _bluetoothState = BluetoothState.UNKNOWN;
 
+  String _address = "...";
+  String _name = "...";
+
   BackgroundCollectingTask _collectingTask;
 
   bool _autoAcceptPairingRequests = false;
@@ -29,6 +33,24 @@ class _MainPage extends State<MainPage> {
     // Get current state
     FlutterBluetoothSerial.instance.state.then((state) {
       setState(() { _bluetoothState = state; });
+    });
+
+    Future.doWhile(() async {
+      // Wait if adapter not enabled
+      if (await FlutterBluetoothSerial.instance.isEnabled) {
+        return false;
+      }
+      await Future.delayed(Duration(milliseconds: 0xDD));
+      return true;
+    }).then((_) {
+      // Update the address field
+      FlutterBluetoothSerial.instance.address.then((address) {
+        setState(() { _address = address; });
+      });
+    });
+
+    FlutterBluetoothSerial.instance.name.then((name) {
+      setState(() { _name = name; });
     });
 
     // Listen for futher state changes
@@ -82,6 +104,15 @@ class _MainPage extends State<MainPage> {
                   FlutterBluetoothSerial.instance.openSettings();
                 },
               ),
+            ),
+            ListTile(
+              title: const Text('Local adapter address'),
+              subtitle: Text(_address),
+            ),
+            ListTile(
+              title: const Text('Local adapter name'),
+              subtitle: Text(_name),
+              onLongPress: null,
             ),
 
             Divider(),
