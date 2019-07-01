@@ -1,3 +1,7 @@
+## [0.1.1] - 2019-07-01
+
+* Patch #43 for "Error when meet unknown devices".
+
 ## [0.1.0] - 2019-06-19 
 
 Pull request #35 by @PsychoXIVI changes a lot:
