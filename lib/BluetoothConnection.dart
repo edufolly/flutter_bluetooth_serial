@@ -8,7 +8,6 @@ class BluetoothConnection {
   final EventChannel _readChannel;
   StreamSubscription<Uint8List> _readStreamSubscription;
   StreamController<Uint8List> _readStreamController;
-  bool isClosingByRemote;
 
   /// Stream sink used to read from the remote Bluetooth device
   /// 
@@ -16,14 +15,14 @@ class BluetoothConnection {
   /// 
   /// You should use some encoding to receive string in your `.listen` callback, for example `ascii.decode(data)` or `utf8.encode(data)`. 
   Stream<Uint8List> input;
-  
+
   /// Stream sink used to write to the remote Bluetooth device
   /// 
   /// You should use some encoding to send string, for example `.add(ascii.encode('Hello!'))` or `.add(utf8.encode('Cześć!))`. 
   _BluetoothStreamSink<Uint8List> output;
 
   /// Describes is stream connected.
-  get isConnected => output.isConnected;
+  bool get isConnected => output.isConnected;
 
 
 
@@ -46,7 +45,7 @@ class BluetoothConnection {
     output = _BluetoothStreamSink<Uint8List>(id);
   }
 
-  /// Returns connection to given address
+  /// Returns connection to given address.
   static Future<BluetoothConnection> toAddress(String address) async {
     // Sorry for pseudo-factory, but `factory` keyword disallows `Future`.
     return BluetoothConnection._consumeConnectionID(
@@ -54,6 +53,7 @@ class BluetoothConnection {
     );
   }
 
+  /// Should be called to make sure the connection is closed and resources are freed (sockets/channels).
   void dispose() {
     finish();
   }

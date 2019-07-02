@@ -37,6 +37,7 @@ class BluetoothDevice {
   });
 
   /// Creates `BluetoothDevice` from map.
+  /// 
   /// Internally used to receive the object from platform code.
   factory BluetoothDevice.fromMap(Map map) {
     return BluetoothDevice(
