@@ -27,6 +27,8 @@ class _MainPage extends State<MainPage> {
 
   BackgroundCollectingTask _collectingTask;
 
+  bool _autoAcceptPairingRequests = false;
+
   @override
   void initState() {
     super.initState();
@@ -68,6 +70,7 @@ class _MainPage extends State<MainPage> {
 
   @override
   void dispose() {
+    FlutterBluetoothSerial.instance.setPairingRequestHandler(null);
     _collectingTask?.dispose();
     _discoverableTimeoutTimer?.cancel();
     super.dispose();
@@ -176,6 +179,27 @@ class _MainPage extends State<MainPage> {
             Divider(),
             ListTile(
               title: const Text('Devices discovery and connection')
+            ),
+            SwitchListTile(
+              title: const Text('Auto-try specific pin when pairing'),
+              subtitle: const Text('Pin 1234'),
+              value: _autoAcceptPairingRequests,
+              onChanged: (bool value) {
+                setState(() {
+                  _autoAcceptPairingRequests = value;
+                });
+                if (value) {
+                  FlutterBluetoothSerial.instance.setPairingRequestHandler((BluetoothPairingRequest request) {
+                    print("Trying to auto-pair with Pin 1234");
+                    if (request.pairingVariant == PairingVariant.Pin) {
+                      return Future.value("1234");
+                    }
+                  });
+                }
+                else {
+                  FlutterBluetoothSerial.instance.setPairingRequestHandler(null);
+                }
+              },
             ),
             ListTile(
               title: RaisedButton(

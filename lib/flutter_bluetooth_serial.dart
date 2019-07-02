@@ -11,6 +11,7 @@ part './BluetoothState.dart';
 part './BluetoothBondState.dart';
 part './BluetoothDeviceType.dart';
 part './BluetoothDevice.dart';
+part './BluetoothPairingRequest.dart';
 part './BluetoothDiscoveryResult.dart';
 part './BluetoothConnection.dart';
 part './FlutterBluetoothSerial.dart';

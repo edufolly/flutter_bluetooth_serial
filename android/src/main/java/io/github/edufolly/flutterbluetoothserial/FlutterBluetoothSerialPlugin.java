@@ -45,6 +45,7 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
     private static final String TAG = "FlutterBluePlugin";
     private static final String PLUGIN_NAMESPACE = "flutter_bluetooth_serial";
     private final Registrar registrar;
+    private final MethodChannel methodChannel;
     private Result pendingResultForActivityResult = null;
 
     // Permissions and request constants
@@ -59,6 +60,11 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
     // State
     private final BroadcastReceiver stateReceiver;
     private EventSink stateSink;
+
+    // Pairing requests
+    private final BroadcastReceiver pairingRequestReceiver;
+    private boolean isPairingRequestHandlerSet = false;
+    private BroadcastReceiver bondStateBroadcastReceiver = null;
 
     // Discovery
     private EventChannel discoveryChannel;
@@ -79,9 +85,6 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
     public static void registerWith(Registrar registrar) {
         final FlutterBluetoothSerialPlugin instance = new FlutterBluetoothSerialPlugin(registrar);
 
-        MethodChannel methodChannel = new MethodChannel(registrar.messenger(), PLUGIN_NAMESPACE + "/methods");
-        methodChannel.setMethodCallHandler(instance);
-
         registrar.addRequestPermissionsResultListener(instance);
         registrar.addActivityResultListener(instance);
         registrar.addViewDestroyListener(instance);
@@ -89,7 +92,13 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
 
     /// Constructs the plugin instance
     FlutterBluetoothSerialPlugin(Registrar registrar) {
-        this.registrar = registrar;
+        // Plugin
+        {
+            this.registrar = registrar;
+
+            methodChannel = new MethodChannel(registrar.messenger(), PLUGIN_NAMESPACE + "/methods");
+            methodChannel.setMethodCallHandler(this);
+        }
 
         // General Bluetooth
         {
@@ -145,6 +154,164 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
                     }
                 }
             });
+        }
+
+        // Pairing requests
+        {
+            pairingRequestReceiver = new BroadcastReceiver() {
+                @Override
+                public void onReceive(Context context, Intent intent) {
+                    switch (intent.getAction()) {
+                        case BluetoothDevice.ACTION_PAIRING_REQUEST:
+                            final BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                            final int pairingVariant = intent.getIntExtra(BluetoothDevice.EXTRA_PAIRING_VARIANT, BluetoothDevice.ERROR);
+                            Log.d(TAG, "Pairing request (variant " + pairingVariant + ") incoming from " + device.getAddress());
+                            switch (pairingVariant) {
+                                case BluetoothDevice.PAIRING_VARIANT_PIN: 
+                                    // Simplest method - 4 digit number
+                                {
+                                    final BroadcastReceiver.PendingResult broadcastResult = this.goAsync();
+
+                                    Map<String, Object> arguments = new HashMap<String, Object>();
+                                    arguments.put("address", device.getAddress());
+                                    arguments.put("variant", pairingVariant);
+
+                                    methodChannel.invokeMethod("handlePairingRequest", arguments, new MethodChannel.Result() {
+                                        @Override
+                                        public void success(Object handlerResult) {
+                                            Log.d(TAG, handlerResult.toString());
+                                            if (handlerResult instanceof String) {
+                                                try {
+                                                    final String passkeyString = (String) handlerResult;
+                                                    final byte[] passkey = passkeyString.getBytes();
+                                                    Log.d(TAG, "Trying to set passkey for pairing to " + passkeyString);
+                                                    device.setPin(passkey); 
+                                                    broadcastResult.abortBroadcast();
+                                                }
+                                                catch (Exception ex) {
+                                                    Log.e(TAG, ex.getMessage());
+                                                    ex.printStackTrace();
+                                                    // @TODO , passing the error
+                                                    //result.error("bond_error", "Setting passkey for pairing failed", exceptionToString(ex));
+                                                }
+                                            }
+                                            else {
+                                                Log.d(TAG, "Manual pin pairing in progress");
+                                                //Intent intent = new Intent(BluetoothAdapter.ACTION_PAIRING_REQUEST);
+                                                //intent.putExtra(BluetoothDevice.EXTRA_DEVICE, device);
+                                                //intent.putExtra(BluetoothDevice.EXTRA_PAIRING_VARIANT, pairingVariant)
+                                                ActivityCompat.startActivity(registrar.activity(), intent, null);
+                                            }
+                                            broadcastResult.finish();
+                                        }
+
+                                        @Override
+                                        public void notImplemented() {
+                                            throw new UnsupportedOperationException();
+                                        }
+
+                                        @Override
+                                        public void error(String code, String message, Object details) {
+                                            throw new UnsupportedOperationException();
+                                        }
+                                    });
+                                    break;
+                                }
+
+                                // Note: `BluetoothDevice.PAIRING_VARIANT_PASSKEY` seems to be unsupported anyway... Probably is abandoned.
+                                // See https://android.googlesource.com/platform/frameworks/base/+/master/core/java/android/bluetooth/BluetoothDevice.java#1528
+
+                                case BluetoothDevice.PAIRING_VARIANT_PASSKEY_CONFIRMATION: 
+                                    // Displayed passkey on the other device should be the same as received here.
+                                case 3: //case BluetoothDevice.PAIRING_VARIANT_CONSENT: // @TODO , Symbol not found?
+                                    // The simplest, but much less secure method - just yes or no, without any auth.
+                                    // Consent type can use same code as passkey confirmation since passed passkey,
+                                    // which is 0 or error at the moment, should not be used anyway by common code.
+                                {
+                                    final int pairingKey = intent.getIntExtra(BluetoothDevice.EXTRA_PAIRING_KEY, BluetoothDevice.ERROR);
+
+                                    Map<String, Object> arguments = new HashMap<String, Object>();
+                                    arguments.put("address", device.getAddress());
+                                    arguments.put("variant", pairingVariant);
+                                    arguments.put("pairingKey", pairingKey);
+
+                                    final BroadcastReceiver.PendingResult broadcastResult = this.goAsync();
+                                    methodChannel.invokeMethod("handlePairingRequest", arguments, new MethodChannel.Result() {
+                                        @Override
+                                        public void success(Object handlerResult) {
+                                            if (handlerResult instanceof Boolean) {
+                                                try {
+                                                    final boolean confirm = (Boolean) handlerResult;
+                                                    Log.d(TAG, "Trying to set pairing confirmation to " + confirm + " (key: " + pairingKey + ")");
+                                                    // @WARN `BLUETOOTH_PRIVILEGED` permission required, but might be 
+                                                    // unavailable for thrid party apps on newer versions of Androids.
+                                                    device.setPairingConfirmation(confirm);
+                                                    broadcastResult.abortBroadcast();
+                                                }
+                                                catch (Exception ex) {
+                                                    Log.e(TAG, ex.getMessage());
+                                                    ex.printStackTrace();
+                                                    // @TODO , passing the error
+                                                    //result.error("bond_error", "Auto-confirming pass key failed", exceptionToString(ex));
+                                                }
+                                            }
+                                            else {
+                                                Log.d(TAG, "Manual passkey confirmation pairing in progress (key: " + pairingKey + ")");
+                                                ActivityCompat.startActivity(registrar.activity(), intent, null);
+                                            }
+                                            broadcastResult.finish();
+                                        }
+
+                                        @Override
+                                        public void notImplemented() {
+                                            throw new UnsupportedOperationException();
+                                        }
+
+                                        @Override
+                                        public void error(String code, String message, Object details) {
+                                            Log.e(TAG, code + " " + message);
+                                            throw new UnsupportedOperationException();
+                                        }
+                                    });
+                                    break;
+                                }
+                                
+                                case 4: //case BluetoothDevice.PAIRING_VARIANT_DISPLAY_PASSKEY: // @TODO , Symbol not found?
+                                    // This pairing method requires to enter the generated and displayed pairing key
+                                    // on the remote device. It looks like basic asymmetric cryptography was used.
+                                case 5: //case BluetoothDevice.PAIRING_VARIANT_DISPLAY_PIN: // @TODO , Symbol not found?
+                                    // Same as previous, but for 4 digit pin.
+                                {
+                                    final int pairingKey = intent.getIntExtra(BluetoothDevice.EXTRA_PAIRING_KEY, BluetoothDevice.ERROR);
+
+                                    Map<String, Object> arguments = new HashMap<String, Object>();
+                                    arguments.put("address", device.getAddress());
+                                    arguments.put("variant", pairingVariant);
+                                    arguments.put("pairingKey", pairingKey);
+
+                                    methodChannel.invokeMethod("handlePairingRequest", arguments);
+                                    break;
+                                }
+
+                                // Note: `BluetoothDevice.PAIRING_VARIANT_OOB_CONSENT` seems to be unsupported for now, at least at master branch of Android.
+                                // See https://android.googlesource.com/platform/frameworks/base/+/master/core/java/android/bluetooth/BluetoothDevice.java#1559
+
+                                // Note: `BluetoothDevice.PAIRING_VARIANT_PIN_16_DIGITS ` seems to be unsupported for now, at least at master branch of Android.
+                                // See https://android.googlesource.com/platform/frameworks/base/+/master/core/java/android/bluetooth/BluetoothDevice.java#1559
+
+                                default:
+                                    // Only log other pairing variants
+                                    Log.w(TAG, "Unknown pairing variant: " + pairingVariant);
+                                    break;
+                            }
+                            break;
+
+                            default:
+                                // Ignore other actions
+                                break;
+                    }
+                }
+            };
         }
 
         // Discovery
@@ -413,6 +580,181 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
                 result.success(bluetoothAdapter.setName(name));
                 break;
             }
+
+            ////////////////////////////////////////////////////////////////////////////////
+            /* Discovering and bonding devices */
+            case "getDeviceBondState": {
+                if (!call.hasArgument("address")) {
+                    result.error("invalid_argument", "argument 'address' not found", null);
+                    break;
+                }
+
+                String address;
+                try {
+                    address = call.argument("address");
+                    if (!BluetoothAdapter.checkBluetoothAddress(address)) {
+                        throw new ClassCastException();
+                    }
+                }
+                catch (ClassCastException ex) {
+                    result.error("invalid_argument", "'address' argument is required to be string containing remote MAC address", null);
+                    break;
+                }
+
+                BluetoothDevice device = bluetoothAdapter.getRemoteDevice(address);
+                result.success(device.getBondState());
+                break;
+            }
+
+            case "removeDeviceBond": {
+                if (!call.hasArgument("address")) {
+                    result.error("invalid_argument", "argument 'address' not found", null);
+                    break;
+                }
+
+                String address;
+                try {
+                    address = call.argument("address");
+                    if (!BluetoothAdapter.checkBluetoothAddress(address)) {
+                        throw new ClassCastException();
+                    }
+                }
+                catch (ClassCastException ex) {
+                    result.error("invalid_argument", "'address' argument is required to be string containing remote MAC address", null);
+                    break;
+                }
+
+                BluetoothDevice device = bluetoothAdapter.getRemoteDevice(address);
+                switch (device.getBondState()) {
+                    case BluetoothDevice.BOND_BONDING:
+                        result.error("bond_error", "device already bonding", null);
+                        break methodCallDispatching;
+                    case BluetoothDevice.BOND_NONE:
+                        result.error("bond_error", "device already unbonded", null);
+                        break methodCallDispatching;
+                    default: 
+                        // Proceed.
+                        break;
+                }
+
+                try {
+                    java.lang.reflect.Method method;
+                    method = device.getClass().getMethod("removeBond");
+                    boolean value = (Boolean) method.invoke(device);
+                    result.success(value);
+                }
+                catch (Exception ex) {
+                    result.error("bond_error", "error while unbonding", exceptionToString(ex));
+                }
+                break;
+            }
+
+            case "bondDevice": {
+                if (!call.hasArgument("address")) {
+                    result.error("invalid_argument", "argument 'address' not found", null);
+                    break;
+                }
+
+                String address;
+                try {
+                    address = call.argument("address");
+                    if (!BluetoothAdapter.checkBluetoothAddress(address)) {
+                        throw new ClassCastException();
+                    }
+                }
+                catch (ClassCastException ex) {
+                    result.error("invalid_argument", "'address' argument is required to be string containing remote MAC address", null);
+                    break;
+                }
+
+                if (bondStateBroadcastReceiver != null) {
+                    result.error("bond_error", "another bonding process is ongoing from local device", null);
+                    break;
+                }
+
+                BluetoothDevice device = bluetoothAdapter.getRemoteDevice(address);
+                switch (device.getBondState()) {
+                    case BluetoothDevice.BOND_BONDING:
+                        result.error("bond_error", "device already bonding", null);
+                        break methodCallDispatching;
+                    case BluetoothDevice.BOND_BONDED:
+                        result.error("bond_error", "device already bonded", null);
+                        break methodCallDispatching;
+                    default: 
+                        // Proceed.
+                        break;
+                }
+
+                bondStateBroadcastReceiver = new BroadcastReceiver() {
+                    @Override 
+                    public void onReceive(Context context, Intent intent) {
+                        switch (intent.getAction()) {
+                            // @TODO . BluetoothDevice.ACTION_PAIRING_CANCEL
+                            case BluetoothDevice.ACTION_BOND_STATE_CHANGED:
+                                final BluetoothDevice someDevice = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                                if (!someDevice.equals(device)) {
+                                    break;
+                                }
+
+                                final int newBondState = intent.getIntExtra(BluetoothDevice.EXTRA_BOND_STATE, BluetoothDevice.ERROR);
+                                switch (newBondState) {
+                                    case BluetoothDevice.BOND_BONDING:
+                                        // Wait for true bond result :F
+                                        return;
+                                    case BluetoothDevice.BOND_BONDED:
+                                        result.success(true);
+                                        break;
+                                    case BluetoothDevice.BOND_NONE:
+                                        result.success(false);
+                                        break;
+                                    default:
+                                        result.error("bond_error", "invalid bond state while bonding", null);
+                                        break;
+                                }
+                                registrar.activeContext().unregisterReceiver(this);
+                                bondStateBroadcastReceiver = null;
+                                break;
+
+                            default:
+                                // Ignore.
+                                break;
+                        }
+                    }
+                };
+
+                final IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
+                //filter.setPriority(pairingRequestReceiverPriority + 1);
+                registrar.activeContext().registerReceiver(bondStateBroadcastReceiver, filter);
+
+                if (!device.createBond()) {
+                    result.error("bond_error", "error starting bonding process", null);
+                }
+                break;
+            }
+
+            case "pairingRequestHandlingEnable":
+                if (this.isPairingRequestHandlerSet) {
+                    result.error("logic_error", "pairing request handling is already enabled", null);
+                    break;
+                }
+                Log.d(TAG, "Starting listening for pairing requests to handle");
+
+                this.isPairingRequestHandlerSet = true;
+                final IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_PAIRING_REQUEST);
+                //filter.setPriority(pairingRequestReceiverPriority);
+                registrar.activeContext().registerReceiver(pairingRequestReceiver, filter);
+                break;
+
+            case "pairingRequestHandlingDisable":
+                this.isPairingRequestHandlerSet = false;
+                try {
+                    registrar.activeContext().unregisterReceiver(pairingRequestReceiver);
+                    Log.d(TAG, "Stopped listening for pairing requests to handle");
+                }
+                catch (IllegalArgumentException ex) {
+                    // Ignore `Receiver not registered` exception
+                }
+                break;
 
             case "getBondedDevices":
                 ensurePermissions(new EnsurePermissionsCallback() {
@@ -691,6 +1033,27 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
         // Unregister all ongoing receivers
         try {
             registrar.activeContext().unregisterReceiver(stateReceiver);
+        }
+        catch (IllegalArgumentException ex) {
+            // Ignore `Receiver not registered` exception
+        }
+        try {
+            registrar.activeContext().unregisterReceiver(discoveryReceiver);
+        }
+        catch (IllegalArgumentException ex) {
+            // Ignore `Receiver not registered` exception
+        }
+        try {
+            registrar.activeContext().unregisterReceiver(pairingRequestReceiver);
+        }
+        catch (IllegalArgumentException ex) {
+            // Ignore `Receiver not registered` exception
+        }
+        try {
+            if (bondStateBroadcastReceiver != null) {
+                registrar.activeContext().unregisterReceiver(bondStateBroadcastReceiver);
+                bondStateBroadcastReceiver = null;
+            }
         }
         catch (IllegalArgumentException ex) {
             // Ignore `Receiver not registered` exception
