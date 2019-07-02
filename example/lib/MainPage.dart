@@ -22,6 +22,9 @@ class _MainPage extends State<MainPage> {
   String _address = "...";
   String _name = "...";
 
+  Timer _discoverableTimeoutTimer;
+  int _discoverableTimeoutSecondsLeft = 0;
+
   BackgroundCollectingTask _collectingTask;
 
   @override
@@ -53,13 +56,20 @@ class _MainPage extends State<MainPage> {
 
     // Listen for futher state changes
     FlutterBluetoothSerial.instance.onStateChanged().listen((BluetoothState state) {
-      setState(() { _bluetoothState = state; });
+      setState(() {
+        _bluetoothState = state;
+
+        // Discoverable mode is disabled when Bluetooth gets disabled
+        _discoverableTimeoutTimer = null;
+        _discoverableTimeoutSecondsLeft = 0;
+      });
     });
   }
 
   @override
   void dispose() {
     _collectingTask?.dispose();
+    _discoverableTimeoutTimer?.cancel();
     super.dispose();
   }
 
@@ -110,6 +120,57 @@ class _MainPage extends State<MainPage> {
               title: const Text('Local adapter name'),
               subtitle: Text(_name),
               onLongPress: null,
+            ),
+            ListTile(
+              title: _discoverableTimeoutSecondsLeft == 0 ? const Text("Discoverable") : Text("Discoverable for ${_discoverableTimeoutSecondsLeft}s"),
+              subtitle: const Text("PsychoX-Luna"),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Checkbox(
+                    value: _discoverableTimeoutSecondsLeft != 0,
+                    onChanged: null,
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.edit),
+                    onPressed: null,
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.refresh),
+                    onPressed: () async {
+                      print('Discoverable requested');
+                      final int timeout = await FlutterBluetoothSerial.instance.requestDiscoverable(60);
+                      if (timeout < 0) {
+                        print('Discoverable mode denied');
+                      }
+                      else {
+                        print('Discoverable mode acquired for $timeout seconds');
+                      }
+                      setState(() {
+                        _discoverableTimeoutTimer?.cancel();
+                        _discoverableTimeoutSecondsLeft = timeout;
+                        _discoverableTimeoutTimer = Timer.periodic(Duration(seconds: 1), (Timer timer) {
+                          setState(() {
+                            if (_discoverableTimeoutSecondsLeft < 0) {
+                              FlutterBluetoothSerial.instance.isDiscoverable.then((isDiscoverable) {
+                                if (isDiscoverable) {
+                                  print("Discoverable after timeout... might be infinity timeout :F");
+                                  _discoverableTimeoutSecondsLeft += 1;
+                                }
+                              });
+                              timer.cancel();
+                              _discoverableTimeoutSecondsLeft = 0;
+                            }
+                            else {
+                              _discoverableTimeoutSecondsLeft -= 1;
+                            }
+                          });
+                        });
+                      });
+                    },
+                  )
+                ]
+              )
             ),
 
             Divider(),
