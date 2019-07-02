@@ -44,4 +44,11 @@ class BluetoothDeviceType {
   static const classic  = BluetoothDeviceType.fromUnderlyingValue(1);
   static const le       = BluetoothDeviceType.fromUnderlyingValue(2);
   static const dual     = BluetoothDeviceType.fromUnderlyingValue(3);
+
+  operator ==(Object other) {
+    return other is BluetoothDeviceType && other.underlyingValue == this.underlyingValue;
+  }
+
+  @override
+  int get hashCode => underlyingValue.hashCode;
 }

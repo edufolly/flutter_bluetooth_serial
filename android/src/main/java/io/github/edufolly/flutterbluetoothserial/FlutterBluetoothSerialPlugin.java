@@ -19,12 +19,15 @@ import android.os.AsyncTask;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.Enumeration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.net.NetworkInterface;
 
+import io.flutter.view.FlutterNativeView;
 import io.flutter.plugin.common.EventChannel;
 import io.flutter.plugin.common.EventChannel.StreamHandler;
 import io.flutter.plugin.common.EventChannel.EventSink;
@@ -33,26 +36,35 @@ import io.flutter.plugin.common.MethodChannel;
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler;
 import io.flutter.plugin.common.MethodChannel.Result;
 import io.flutter.plugin.common.PluginRegistry.Registrar;
+import io.flutter.plugin.common.PluginRegistry.ViewDestroyListener;
 import io.flutter.plugin.common.PluginRegistry.RequestPermissionsResultListener;
+import io.flutter.plugin.common.PluginRegistry.ActivityResultListener;
 
-public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestPermissionsResultListener {
+public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestPermissionsResultListener, ActivityResultListener, ViewDestroyListener {
     // Plugin
     private static final String TAG = "FlutterBluePlugin";
     private static final String PLUGIN_NAMESPACE = "flutter_bluetooth_serial";
     private final Registrar registrar;
+    private final MethodChannel methodChannel;
     private Result pendingResultForActivityResult = null;
-    
-    // Permissions
+
+    // Permissions and request constants
     private static final int REQUEST_COARSE_LOCATION_PERMISSIONS = 1451;
-    private static final int REQUEST_ENABLE_BLUETOOTH = 2137;
-    
+    private static final int REQUEST_ENABLE_BLUETOOTH = 1337;
+    private static final int REQUEST_DISCOVERABLE_BLUETOOTH = 2137;
+
     // General Bluetooth
     private BluetoothAdapter bluetoothAdapter;
     private BluetoothManager bluetoothManager;
-    
+
     // State
     private final BroadcastReceiver stateReceiver;
     private EventSink stateSink;
+
+    // Pairing requests
+    private final BroadcastReceiver pairingRequestReceiver;
+    private boolean isPairingRequestHandlerSet = false;
+    private BroadcastReceiver bondStateBroadcastReceiver = null;
 
     // Discovery
     private EventChannel discoveryChannel;
@@ -72,7 +84,10 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
     /// Registers plugin in Flutter plugin system
     public static void registerWith(Registrar registrar) {
         final FlutterBluetoothSerialPlugin instance = new FlutterBluetoothSerialPlugin(registrar);
+
         registrar.addRequestPermissionsResultListener(instance);
+        registrar.addActivityResultListener(instance);
+        registrar.addViewDestroyListener(instance);
     }
 
     /// Constructs the plugin instance
@@ -80,11 +95,11 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
         // Plugin
         {
             this.registrar = registrar;
-            
-            MethodChannel methodChannel = new MethodChannel(registrar.messenger(), PLUGIN_NAMESPACE + "/methods");
+
+            methodChannel = new MethodChannel(registrar.messenger(), PLUGIN_NAMESPACE + "/methods");
             methodChannel.setMethodCallHandler(this);
         }
-        
+
         // General Bluetooth
         {
             this.bluetoothManager = (BluetoothManager) registrar.activity().getSystemService(Context.BLUETOOTH_SERVICE);
@@ -113,7 +128,7 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
                             }
                             connections.clear();
                             
-                            stateSink.success(intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, -1));
+                            stateSink.success(intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothDevice.ERROR));
                             break;
                     }
                 }
@@ -126,7 +141,6 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
                 public void onListen(Object o, EventSink eventSink) {
                     stateSink = eventSink;
 
-                    // @TODO . leak :C
                     registrar.activeContext().registerReceiver(stateReceiver, new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED));
                 }
                 @Override
@@ -140,6 +154,164 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
                     }
                 }
             });
+        }
+
+        // Pairing requests
+        {
+            pairingRequestReceiver = new BroadcastReceiver() {
+                @Override
+                public void onReceive(Context context, Intent intent) {
+                    switch (intent.getAction()) {
+                        case BluetoothDevice.ACTION_PAIRING_REQUEST:
+                            final BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                            final int pairingVariant = intent.getIntExtra(BluetoothDevice.EXTRA_PAIRING_VARIANT, BluetoothDevice.ERROR);
+                            Log.d(TAG, "Pairing request (variant " + pairingVariant + ") incoming from " + device.getAddress());
+                            switch (pairingVariant) {
+                                case BluetoothDevice.PAIRING_VARIANT_PIN: 
+                                    // Simplest method - 4 digit number
+                                {
+                                    final BroadcastReceiver.PendingResult broadcastResult = this.goAsync();
+
+                                    Map<String, Object> arguments = new HashMap<String, Object>();
+                                    arguments.put("address", device.getAddress());
+                                    arguments.put("variant", pairingVariant);
+
+                                    methodChannel.invokeMethod("handlePairingRequest", arguments, new MethodChannel.Result() {
+                                        @Override
+                                        public void success(Object handlerResult) {
+                                            Log.d(TAG, handlerResult.toString());
+                                            if (handlerResult instanceof String) {
+                                                try {
+                                                    final String passkeyString = (String) handlerResult;
+                                                    final byte[] passkey = passkeyString.getBytes();
+                                                    Log.d(TAG, "Trying to set passkey for pairing to " + passkeyString);
+                                                    device.setPin(passkey); 
+                                                    broadcastResult.abortBroadcast();
+                                                }
+                                                catch (Exception ex) {
+                                                    Log.e(TAG, ex.getMessage());
+                                                    ex.printStackTrace();
+                                                    // @TODO , passing the error
+                                                    //result.error("bond_error", "Setting passkey for pairing failed", exceptionToString(ex));
+                                                }
+                                            }
+                                            else {
+                                                Log.d(TAG, "Manual pin pairing in progress");
+                                                //Intent intent = new Intent(BluetoothAdapter.ACTION_PAIRING_REQUEST);
+                                                //intent.putExtra(BluetoothDevice.EXTRA_DEVICE, device);
+                                                //intent.putExtra(BluetoothDevice.EXTRA_PAIRING_VARIANT, pairingVariant)
+                                                ActivityCompat.startActivity(registrar.activity(), intent, null);
+                                            }
+                                            broadcastResult.finish();
+                                        }
+
+                                        @Override
+                                        public void notImplemented() {
+                                            throw new UnsupportedOperationException();
+                                        }
+
+                                        @Override
+                                        public void error(String code, String message, Object details) {
+                                            throw new UnsupportedOperationException();
+                                        }
+                                    });
+                                    break;
+                                }
+
+                                // Note: `BluetoothDevice.PAIRING_VARIANT_PASSKEY` seems to be unsupported anyway... Probably is abandoned.
+                                // See https://android.googlesource.com/platform/frameworks/base/+/master/core/java/android/bluetooth/BluetoothDevice.java#1528
+
+                                case BluetoothDevice.PAIRING_VARIANT_PASSKEY_CONFIRMATION: 
+                                    // Displayed passkey on the other device should be the same as received here.
+                                case 3: //case BluetoothDevice.PAIRING_VARIANT_CONSENT: // @TODO , Symbol not found?
+                                    // The simplest, but much less secure method - just yes or no, without any auth.
+                                    // Consent type can use same code as passkey confirmation since passed passkey,
+                                    // which is 0 or error at the moment, should not be used anyway by common code.
+                                {
+                                    final int pairingKey = intent.getIntExtra(BluetoothDevice.EXTRA_PAIRING_KEY, BluetoothDevice.ERROR);
+
+                                    Map<String, Object> arguments = new HashMap<String, Object>();
+                                    arguments.put("address", device.getAddress());
+                                    arguments.put("variant", pairingVariant);
+                                    arguments.put("pairingKey", pairingKey);
+
+                                    final BroadcastReceiver.PendingResult broadcastResult = this.goAsync();
+                                    methodChannel.invokeMethod("handlePairingRequest", arguments, new MethodChannel.Result() {
+                                        @Override
+                                        public void success(Object handlerResult) {
+                                            if (handlerResult instanceof Boolean) {
+                                                try {
+                                                    final boolean confirm = (Boolean) handlerResult;
+                                                    Log.d(TAG, "Trying to set pairing confirmation to " + confirm + " (key: " + pairingKey + ")");
+                                                    // @WARN `BLUETOOTH_PRIVILEGED` permission required, but might be 
+                                                    // unavailable for thrid party apps on newer versions of Androids.
+                                                    device.setPairingConfirmation(confirm);
+                                                    broadcastResult.abortBroadcast();
+                                                }
+                                                catch (Exception ex) {
+                                                    Log.e(TAG, ex.getMessage());
+                                                    ex.printStackTrace();
+                                                    // @TODO , passing the error
+                                                    //result.error("bond_error", "Auto-confirming pass key failed", exceptionToString(ex));
+                                                }
+                                            }
+                                            else {
+                                                Log.d(TAG, "Manual passkey confirmation pairing in progress (key: " + pairingKey + ")");
+                                                ActivityCompat.startActivity(registrar.activity(), intent, null);
+                                            }
+                                            broadcastResult.finish();
+                                        }
+
+                                        @Override
+                                        public void notImplemented() {
+                                            throw new UnsupportedOperationException();
+                                        }
+
+                                        @Override
+                                        public void error(String code, String message, Object details) {
+                                            Log.e(TAG, code + " " + message);
+                                            throw new UnsupportedOperationException();
+                                        }
+                                    });
+                                    break;
+                                }
+                                
+                                case 4: //case BluetoothDevice.PAIRING_VARIANT_DISPLAY_PASSKEY: // @TODO , Symbol not found?
+                                    // This pairing method requires to enter the generated and displayed pairing key
+                                    // on the remote device. It looks like basic asymmetric cryptography was used.
+                                case 5: //case BluetoothDevice.PAIRING_VARIANT_DISPLAY_PIN: // @TODO , Symbol not found?
+                                    // Same as previous, but for 4 digit pin.
+                                {
+                                    final int pairingKey = intent.getIntExtra(BluetoothDevice.EXTRA_PAIRING_KEY, BluetoothDevice.ERROR);
+
+                                    Map<String, Object> arguments = new HashMap<String, Object>();
+                                    arguments.put("address", device.getAddress());
+                                    arguments.put("variant", pairingVariant);
+                                    arguments.put("pairingKey", pairingKey);
+
+                                    methodChannel.invokeMethod("handlePairingRequest", arguments);
+                                    break;
+                                }
+
+                                // Note: `BluetoothDevice.PAIRING_VARIANT_OOB_CONSENT` seems to be unsupported for now, at least at master branch of Android.
+                                // See https://android.googlesource.com/platform/frameworks/base/+/master/core/java/android/bluetooth/BluetoothDevice.java#1559
+
+                                // Note: `BluetoothDevice.PAIRING_VARIANT_PIN_16_DIGITS ` seems to be unsupported for now, at least at master branch of Android.
+                                // See https://android.googlesource.com/platform/frameworks/base/+/master/core/java/android/bluetooth/BluetoothDevice.java#1559
+
+                                default:
+                                    // Only log other pairing variants
+                                    Log.w(TAG, "Unknown pairing variant: " + pairingVariant);
+                                    break;
+                            }
+                            break;
+
+                            default:
+                                // Ignore other actions
+                                break;
+                    }
+                }
+            };
         }
 
         // Discovery
@@ -160,9 +332,8 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
                             discoveryResult.put("name", device.getName());
                             discoveryResult.put("type", device.getType());
                             //discoveryResult.put("class", deviceClass); // @TODO . it isn't my priority for now !BluetoothClass!
-                            // @TODO ? maybe "connected" - look for each of connection instances etc; There is `BluetoothManage.getConnectedDevice` 
-                            discoveryResult.put("bonded", device.getBondState() == BluetoothDevice.BOND_BONDED);
-                            //discoveryResult.put("extraName", extraName); // @TODO ? !EXTRA_NAME! Is there a reason for `EXTRA_NAME`? https://stackoverflow.com/q/56315991/4880243
+                            discoveryResult.put("isConnected", checkIsDeviceConnected(device));
+                            discoveryResult.put("bondState", device.getBondState());
                             discoveryResult.put("rssi", deviceRSSI);
 
                             Log.d(TAG, "Discovered " + device.getAddress());
@@ -238,8 +409,9 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
             }
         }
 
-        switch (call.method) {
-
+        methodCallDispatching: switch (call.method) {
+            ////////////////////////////////////////
+            /* Adapter settings and general */
             case "isAvailable":
                 result.success(true);
                 break;
@@ -256,6 +428,7 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
 
             case "requestEnable":
                 if (!bluetoothAdapter.isEnabled()) {
+                    pendingResultForActivityResult = result;
                     Intent intent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
                     ActivityCompat.startActivityForResult(registrar.activity(), intent, REQUEST_ENABLE_BLUETOOTH, null);
                 }
@@ -287,6 +460,302 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
                 result.success(bluetoothAdapter.getState());
                 break;
 
+            case "getAddress": {
+                String address = bluetoothAdapter.getAddress();
+
+                if (address.equals("02:00:00:00:00:00")) {
+                    Log.w(TAG, "Local Bluetooth MAC address is hidden by system, trying other options...");
+
+                    do {
+                        Log.d(TAG, "Trying to obtain address using Settings Secure bank");
+                        try {
+                            // Requires `LOCAL_MAC_ADDRESS` which could be unavailible for third party applications...
+                            String value = android.provider.Settings.Secure.getString(registrar.activeContext().getContentResolver(), "bluetooth_address");
+                            if (value == null) {
+                                throw new NullPointerException("null returned, might be no permissions problem");
+                            }
+                            address = value;
+                            break;
+                        }
+                        catch (Exception ex) {
+                            // Ignoring failure (since it isn't critical API for most applications)
+                            Log.d(TAG, "Obtaining address using Settings Secure bank failed");
+                            //result.error("hidden_address", "obtaining address using Settings Secure bank failed", exceptionToString(ex));
+                        }
+
+                        Log.d(TAG, "Trying to obtain address using reflection against internal Android code");
+                        try {
+                            // This will most likely work, but well, it is unsafe
+                            java.lang.reflect.Field mServiceField;
+                            mServiceField = bluetoothAdapter.getClass().getDeclaredField("mService");
+                            mServiceField.setAccessible(true);
+
+                            Object bluetoothManagerService = mServiceField.get(bluetoothAdapter);
+                            if (bluetoothManagerService == null) {
+                                if (!bluetoothAdapter.isEnabled()) {
+                                    Log.d(TAG, "Probably failed just because adapter is disabled!");
+                                }
+                                throw new NullPointerException();
+                            }
+                            java.lang.reflect.Method getAddressMethod;
+                            getAddressMethod = bluetoothManagerService.getClass().getMethod("getAddress");
+                            String value = (String) getAddressMethod.invoke(bluetoothManagerService);
+                            if (value == null) {
+                                throw new NullPointerException();
+                            }
+                            address = value;
+                            Log.d(TAG, "Probably succed: " + address + " ✨ :F");
+                            break;
+                        }
+                        catch (Exception ex) {
+                            // Ignoring failure (since it isn't critical API for most applications)
+                            Log.d(TAG, "Obtaining address using reflection against internal Android code failed");
+                            //result.error("hidden_address", "obtaining address using reflection agains internal Android code failed", exceptionToString(ex));
+                        }
+
+                        Log.d(TAG, "Trying to look up address by network interfaces - might be invalid on some devices");
+                        try {
+                            // This method might return invalid MAC address (since Bluetooth might use other address than WiFi).
+                            // @TODO . further testing: 1) check is while open connection, 2) check other devices 
+                            Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
+                            String value = null;
+                            while (interfaces.hasMoreElements()) {
+                                NetworkInterface networkInterface = interfaces.nextElement();
+                                String name = networkInterface.getName();
+
+                                if (!name.equalsIgnoreCase("wlan0")) {
+                                    continue;
+                                }
+
+                                byte[] addressBytes = networkInterface.getHardwareAddress();
+                                if (addressBytes != null) {
+                                    StringBuilder addressBuilder = new StringBuilder(18);
+                                    for (byte b : addressBytes) {
+                                        addressBuilder.append(String.format("%02X:", b));
+                                    }
+                                    addressBuilder.setLength(17);
+                                    value = addressBuilder.toString();
+                                //     Log.v(TAG, "-> '" + name + "' : " + value);
+                                // }
+                                // else {
+                                //    Log.v(TAG, "-> '" + name + "' : <no hardware address>");
+                                }
+                            }
+                            if (value == null) {
+                                throw new NullPointerException();
+                            }
+                            address = value;
+                        }
+                        catch (Exception ex) {
+                            // Ignoring failure (since it isn't critical API for most applications)
+                            Log.w(TAG, "Looking for address by network interfaces failed");
+                            //result.error("hidden_address", "looking for address by network interfaces failed", exceptionToString(ex));
+                        }
+                    }
+                    while (false);
+                }
+                result.success(address);
+                break;
+            }
+
+            case "getName":
+                result.success(bluetoothAdapter.getName());
+                break;
+
+            case "setName": {
+                if (!call.hasArgument("name")) {
+                    result.error("invalid_argument", "argument 'name' not found", null);
+                    break;
+                }
+
+                String name;
+                try {
+                    name = call.argument("name");
+                }
+                catch (ClassCastException ex) {
+                    result.error("invalid_argument", "'name' argument is required to be string", null);
+                    break;
+                }
+
+                result.success(bluetoothAdapter.setName(name));
+                break;
+            }
+
+            ////////////////////////////////////////////////////////////////////////////////
+            /* Discovering and bonding devices */
+            case "getDeviceBondState": {
+                if (!call.hasArgument("address")) {
+                    result.error("invalid_argument", "argument 'address' not found", null);
+                    break;
+                }
+
+                String address;
+                try {
+                    address = call.argument("address");
+                    if (!BluetoothAdapter.checkBluetoothAddress(address)) {
+                        throw new ClassCastException();
+                    }
+                }
+                catch (ClassCastException ex) {
+                    result.error("invalid_argument", "'address' argument is required to be string containing remote MAC address", null);
+                    break;
+                }
+
+                BluetoothDevice device = bluetoothAdapter.getRemoteDevice(address);
+                result.success(device.getBondState());
+                break;
+            }
+
+            case "removeDeviceBond": {
+                if (!call.hasArgument("address")) {
+                    result.error("invalid_argument", "argument 'address' not found", null);
+                    break;
+                }
+
+                String address;
+                try {
+                    address = call.argument("address");
+                    if (!BluetoothAdapter.checkBluetoothAddress(address)) {
+                        throw new ClassCastException();
+                    }
+                }
+                catch (ClassCastException ex) {
+                    result.error("invalid_argument", "'address' argument is required to be string containing remote MAC address", null);
+                    break;
+                }
+
+                BluetoothDevice device = bluetoothAdapter.getRemoteDevice(address);
+                switch (device.getBondState()) {
+                    case BluetoothDevice.BOND_BONDING:
+                        result.error("bond_error", "device already bonding", null);
+                        break methodCallDispatching;
+                    case BluetoothDevice.BOND_NONE:
+                        result.error("bond_error", "device already unbonded", null);
+                        break methodCallDispatching;
+                    default: 
+                        // Proceed.
+                        break;
+                }
+
+                try {
+                    java.lang.reflect.Method method;
+                    method = device.getClass().getMethod("removeBond");
+                    boolean value = (Boolean) method.invoke(device);
+                    result.success(value);
+                }
+                catch (Exception ex) {
+                    result.error("bond_error", "error while unbonding", exceptionToString(ex));
+                }
+                break;
+            }
+
+            case "bondDevice": {
+                if (!call.hasArgument("address")) {
+                    result.error("invalid_argument", "argument 'address' not found", null);
+                    break;
+                }
+
+                String address;
+                try {
+                    address = call.argument("address");
+                    if (!BluetoothAdapter.checkBluetoothAddress(address)) {
+                        throw new ClassCastException();
+                    }
+                }
+                catch (ClassCastException ex) {
+                    result.error("invalid_argument", "'address' argument is required to be string containing remote MAC address", null);
+                    break;
+                }
+
+                if (bondStateBroadcastReceiver != null) {
+                    result.error("bond_error", "another bonding process is ongoing from local device", null);
+                    break;
+                }
+
+                BluetoothDevice device = bluetoothAdapter.getRemoteDevice(address);
+                switch (device.getBondState()) {
+                    case BluetoothDevice.BOND_BONDING:
+                        result.error("bond_error", "device already bonding", null);
+                        break methodCallDispatching;
+                    case BluetoothDevice.BOND_BONDED:
+                        result.error("bond_error", "device already bonded", null);
+                        break methodCallDispatching;
+                    default: 
+                        // Proceed.
+                        break;
+                }
+
+                bondStateBroadcastReceiver = new BroadcastReceiver() {
+                    @Override 
+                    public void onReceive(Context context, Intent intent) {
+                        switch (intent.getAction()) {
+                            // @TODO . BluetoothDevice.ACTION_PAIRING_CANCEL
+                            case BluetoothDevice.ACTION_BOND_STATE_CHANGED:
+                                final BluetoothDevice someDevice = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                                if (!someDevice.equals(device)) {
+                                    break;
+                                }
+
+                                final int newBondState = intent.getIntExtra(BluetoothDevice.EXTRA_BOND_STATE, BluetoothDevice.ERROR);
+                                switch (newBondState) {
+                                    case BluetoothDevice.BOND_BONDING:
+                                        // Wait for true bond result :F
+                                        return;
+                                    case BluetoothDevice.BOND_BONDED:
+                                        result.success(true);
+                                        break;
+                                    case BluetoothDevice.BOND_NONE:
+                                        result.success(false);
+                                        break;
+                                    default:
+                                        result.error("bond_error", "invalid bond state while bonding", null);
+                                        break;
+                                }
+                                registrar.activeContext().unregisterReceiver(this);
+                                bondStateBroadcastReceiver = null;
+                                break;
+
+                            default:
+                                // Ignore.
+                                break;
+                        }
+                    }
+                };
+
+                final IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
+                //filter.setPriority(pairingRequestReceiverPriority + 1);
+                registrar.activeContext().registerReceiver(bondStateBroadcastReceiver, filter);
+
+                if (!device.createBond()) {
+                    result.error("bond_error", "error starting bonding process", null);
+                }
+                break;
+            }
+
+            case "pairingRequestHandlingEnable":
+                if (this.isPairingRequestHandlerSet) {
+                    result.error("logic_error", "pairing request handling is already enabled", null);
+                    break;
+                }
+                Log.d(TAG, "Starting listening for pairing requests to handle");
+
+                this.isPairingRequestHandlerSet = true;
+                final IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_PAIRING_REQUEST);
+                //filter.setPriority(pairingRequestReceiverPriority);
+                registrar.activeContext().registerReceiver(pairingRequestReceiver, filter);
+                break;
+
+            case "pairingRequestHandlingDisable":
+                this.isPairingRequestHandlerSet = false;
+                try {
+                    registrar.activeContext().unregisterReceiver(pairingRequestReceiver);
+                    Log.d(TAG, "Stopped listening for pairing requests to handle");
+                }
+                catch (IllegalArgumentException ex) {
+                    // Ignore `Receiver not registered` exception
+                }
+                break;
+
             case "getBondedDevices":
                 ensurePermissions(new EnsurePermissionsCallback() {
                     @Override
@@ -302,8 +771,8 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
                             entry.put("address", device.getAddress());
                             entry.put("name", device.getName());
                             entry.put("type", device.getType());
-                            // @TODO ? maybe "connected" - look for each of connection instances etc
-                            entry.put("bonded", true);
+                            entry.put("isConnected", checkIsDeviceConnected(device));
+                            entry.put("bondState", BluetoothDevice.BOND_BONDED);
                             list.add(entry);
                         }
 
@@ -357,7 +826,31 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
                 result.success(null);
                 break;
 
-            /* Connection */
+            case "isDiscoverable":
+                result.success(bluetoothAdapter.getScanMode() == BluetoothAdapter.SCAN_MODE_CONNECTABLE_DISCOVERABLE);
+                break;
+
+            case "requestDiscoverable": {
+                Intent intent = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
+
+                if (call.hasArgument("duration")) {
+                    try {
+                        int duration = (int) call.argument("duration");
+                        intent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, duration);
+                    }
+                    catch (ClassCastException ex) {
+                        result.error("invalid_argument", "'duration' argument is required to be integer", null);
+                        break;
+                    }
+                }
+
+                pendingResultForActivityResult = result;
+                ActivityCompat.startActivityForResult(registrar.activity(), intent, REQUEST_DISCOVERABLE_BLUETOOTH, null);
+                break;
+            }
+
+            ////////////////////////////////////////////////////////////////////////////////
+            /* Connecting and connection */
             case "connect": {
                 if (!call.hasArgument("address")) {
                     result.error("invalid_argument", "argument 'address' not found", null);
@@ -399,6 +892,7 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
                                 result.error("connect_error", ex.getMessage(), exceptionToString(ex));
                             }
                         });
+                        connections.remove(id);
                     }
                 });
                 break;
@@ -517,32 +1011,78 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
         return false;
     }
 
-    // @TODO ? Registrar addActivityResultListener(ActivityResultListener listener);
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+    @Override
+    public boolean onActivityResult(int requestCode, int resultCode, Intent data) {
         switch (requestCode) {
             case REQUEST_ENABLE_BLUETOOTH:
-                if (resultCode == 0) { // @TODO - use underlying value of `Activity.RESULT_CANCELED` since we tend to use `androidx` in where I could find the value.
-                    pendingResultForActivityResult.success(false);
-                }
-                else {
-                    pendingResultForActivityResult.success(true);
-                }
-                break;
+                // @TODO - used underlying value of `Activity.RESULT_CANCELED` since we tend to use `androidx` in which I were not able to find the constant.
+                pendingResultForActivityResult.success(resultCode == 0 ? false : true);
+                return true;
+
+            case REQUEST_DISCOVERABLE_BLUETOOTH:
+                pendingResultForActivityResult.success(resultCode == 0 ? -1 : resultCode);
+                return true;
 
             default:
-                // Ignore.
-                break;
+                return false;
         }
+    }
+
+    @Override
+    public boolean onViewDestroy(FlutterNativeView view) {
+        // Unregister all ongoing receivers
+        try {
+            registrar.activeContext().unregisterReceiver(stateReceiver);
+        }
+        catch (IllegalArgumentException ex) {
+            // Ignore `Receiver not registered` exception
+        }
+        try {
+            registrar.activeContext().unregisterReceiver(discoveryReceiver);
+        }
+        catch (IllegalArgumentException ex) {
+            // Ignore `Receiver not registered` exception
+        }
+        try {
+            registrar.activeContext().unregisterReceiver(pairingRequestReceiver);
+        }
+        catch (IllegalArgumentException ex) {
+            // Ignore `Receiver not registered` exception
+        }
+        try {
+            if (bondStateBroadcastReceiver != null) {
+                registrar.activeContext().unregisterReceiver(bondStateBroadcastReceiver);
+                bondStateBroadcastReceiver = null;
+            }
+        }
+        catch (IllegalArgumentException ex) {
+            // Ignore `Receiver not registered` exception
+        }
+
+        return false;
     }
 
 
 
     /// Helper function to get string out of exception
-    private String exceptionToString(Exception ex) {
+    static private String exceptionToString(Exception ex) {
         StringWriter sw = new StringWriter();
         PrintWriter pw = new PrintWriter(sw);
         ex.printStackTrace(pw);
         return sw.toString();
+    }
+
+    /// Helper function to check is device connected
+    static private boolean checkIsDeviceConnected(BluetoothDevice device) {
+        try {
+            java.lang.reflect.Method method;
+            method = device.getClass().getMethod("isConnected");
+            boolean value = (Boolean) method.invoke(device);
+            return value;
+        }
+        catch (Exception ex) {
+            return false;
+        }
     }
 
 
@@ -565,7 +1105,7 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
             public void onCancel(Object o) {
                 // If canceled by local, disconnects - in other case, by remote, does nothing
                 self.disconnect();
-                
+
                 // True dispose 
                 AsyncTask.execute(() -> {
                     readChannel.setStreamHandler(null);

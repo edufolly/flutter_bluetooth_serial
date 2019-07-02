@@ -39,8 +39,8 @@ class BluetoothDeviceListEntry extends ListTile {
             )
           ),
         ) : Container(width: 0, height: 0),
-        device.connected ? Icon(Icons.import_export) : Container(width: 0, height: 0),
-        device.bonded ? Icon(Icons.link) : Container(width: 0, height: 0),
+        device.isConnected ? Icon(Icons.import_export) : Container(width: 0, height: 0),
+        device.isBonded ? Icon(Icons.link) : Container(width: 0, height: 0),
       ]
     ),
   );
