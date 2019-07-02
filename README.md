@@ -17,7 +17,9 @@ The first goal of this project, started by `Edufolly` was making an interface fo
 
 + Opening settings,
 
-+ Discovering devices,
++ Discovering devices (and requesting discoverability),
+
++ Listing bonded devices and pairing new ones,
 
 + Connecting to multiple devices at the same time,
 
@@ -36,7 +38,7 @@ For now there is only Android support.
 # Add dependency to `pubspec.yaml` of your project.
 dependencies:
     # ...
-    flutter_bluetooth_serial: ^0.1.1
+    flutter_bluetooth_serial: ^0.2.0
 
 ```
 
@@ -80,6 +82,8 @@ catch (exception) {
 }
 ```
 
+Note: Work is underway to make the communication easier than operations on byte streams. See #41 for discussion about the topic.
+
 #### Examples
 
 Check out [example application](example/README.md) with connections with both Arduino HC-05 and Raspberry Pi (RFCOMM) Bluetooth interfaces.
@@ -92,10 +96,12 @@ Main screen and options |  Discovery and connecting  |  Simple chat with server 
 
 ## To-do list
 
-+ Add some utils to easier manage `BluetoothConnection` (as request/response),
++ Add some utils to easier manage `BluetoothConnection` (see discussion #41),
 + Allow connection method/protocol/UUID specification,
 + Listening/server mode,
 + Recognizing and displaying `BluetoothClass` of device,
 + Maybe integration with `flutter_blue` one day ;)
+
+You might also want to check [milestones](https://github.com/edufolly/flutter_bluetooth_serial/milestones).
 
 

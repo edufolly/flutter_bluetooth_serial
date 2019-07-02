@@ -8,7 +8,9 @@ Example application demonstrates key features of the `flutter_bluetooth_serial` 
 
 + Opening settings,
 
-+ Discovering devices,
++ Discovering devices (and requesting discoverability),
+
++ Listing bonded devices and pairing new ones,
 
 + Connecting to multiple devices at the same time,
 
@@ -22,12 +24,23 @@ Main screen and options |  Discovery and connecting  |  Simple chat with server 
 :---:|:---:|:---:|:---:|
 ![](https://i.imgur.com/qeeMsVe.png)  |  ![](https://i.imgur.com/zruuelZ.png)  |  ![](https://i.imgur.com/y5mTUey.png)  |  ![](https://i.imgur.com/3wvwDVo.png)
 
+Note: There screen-shots might be out-dated. Build and see the example app for yourself, you won't regret it. :)
 
 #### Tests 
 
 There is a recording of the tests (click for open video as WEBM version):
 
 [![Test with multiple connections](https://i.imgur.com/rDFrYcS.png)](https://webm.red/qpGg.webm)
+
+
+
+## General
+
+The basics are simple, so there is no need to write about it so much.
+
+#### Discovery page
+
+On devices list you can long tap to start pairing process. If device is already paired, you can use long tap to unbond it. 
 
 
 

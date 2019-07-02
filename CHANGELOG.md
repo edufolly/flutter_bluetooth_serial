@@ -1,3 +1,21 @@
+## [0.2.0] - 2019-07-02
+
+Two big features packs: 
+* Bonding (Pairing):
+    - starting outgoing pairing requests,
+    - handling incoming pairing requests,
+    - remove current bondings to devices,
+* Discoverability!
+    - requesting discoverable mode for specified duration,
+    - example with timeout countdown,
+    - checking discoverable mode.
+
+And few more features:
+* get/set for local (discoverable) device name,
+* getting local adapter address (with some hacks to work on newer Androids),
+* checking for `isConnected` for discovered or bonded devices,
+* fixed few broadcast receiver leaks.
+
 ## [0.1.1] - 2019-07-01
 
 * Patch #43 for "Error when meet unknown devices".
