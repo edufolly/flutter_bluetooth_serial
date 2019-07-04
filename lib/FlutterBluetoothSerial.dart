@@ -16,6 +16,7 @@ class FlutterBluetoothSerial {
           if (_pairingRequestHandler != null) {
             return _pairingRequestHandler(BluetoothPairingRequest.fromMap(call.arguments));
           }
+          return null;
           break;
 
         default:
@@ -128,6 +129,7 @@ class FlutterBluetoothSerial {
           }
         }
         // Other pairing variant used, cannot automate
+        return null;
       });
     }
     return await _methodChannel.invokeMethod('bondDevice', {"address": address});

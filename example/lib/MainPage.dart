@@ -194,6 +194,7 @@ class _MainPage extends State<MainPage> {
                     if (request.pairingVariant == PairingVariant.Pin) {
                       return Future.value("1234");
                     }
+                    return null;
                   });
                 }
                 else {
