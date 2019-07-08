@@ -58,7 +58,9 @@ class _ChatPage extends State<ChatPage> {
   void dispose() {
     // Avoid memory leak (`setState` after dispose) and disconnect
     if (isConnected) {
+      connection.cancel();
       connection.dispose();
+      connection = null;
       print('we are disconnecting locally!');
     }
 
