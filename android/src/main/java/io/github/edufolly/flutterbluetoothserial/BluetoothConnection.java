@@ -66,7 +66,7 @@ public abstract class BluetoothConnection
     
     /// Disconnects current session (ignore if not connected)
     public void disconnect() {
-        if (!isConnected()) {
+        if (isConnected()) {
             connectionThread.cancel();
             connectionThread = null;
         }

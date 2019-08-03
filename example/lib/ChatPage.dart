@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
@@ -22,8 +23,7 @@ class _Message {
 class _ChatPage extends State<ChatPage> {
   static final clientID = 0;
   static final maxMessageLength = 4096 - 3;
-
-  StreamSubscription<Uint8List> _streamSubscription;
+  BluetoothConnection connection;
 
   List<_Message> messages = List<_Message>();
   String _messageBuffer = '';
@@ -32,33 +32,34 @@ class _ChatPage extends State<ChatPage> {
   final ScrollController listScrollController = new ScrollController();
 
   bool isConnecting = true;
-  bool get isConnected => _streamSubscription != null;
+  bool get isConnected => connection != null && connection.isConnected;
 
   @override
   void initState() {
     super.initState();
+    try {
+      BluetoothConnection.toAddress(widget.server.address).then((_connection) {
+        print('Connected to the device');
+        connection = _connection;
+        setState(() {
+          isConnecting = false;
+        });
 
-    FlutterBluetoothSerial.instance.connect(widget.server).then((_) { // @TODO ? shouldn't be done via `.listen()`?
-      isConnecting = false;
-
-      // Subscribe for incoming data after connecting
-      _streamSubscription = FlutterBluetoothSerial.instance.onRead().listen(_onDataReceived);
-      setState(() {/* Update for `isConnecting`, since depends on `_streamSubscription` */});
-
-      // Subscribe for remote disconnection
-      _streamSubscription.onDone(() {
-        print('we got disconnected by remote!');
-        _streamSubscription = null;
-        setState(() {/* Update for `isConnected`, since is depends on `_streamSubscription` */});
+        connection.input.listen(_onDataReceived).onDone(() {
+          print('Disconnected by remote request');
+        });
       });
-    });
+    } catch (exception) {
+      print('Cannot connect, exception occured');
+    }
   }
 
   @override
   void dispose() {
     // Avoid memory leak (`setState` after dispose) and disconnect
     if (isConnected) {
-      _streamSubscription.cancel();
+      connection.dispose();
+      connection = null;
       print('we are disconnecting locally!');
     }
 
@@ -193,7 +194,7 @@ class _ChatPage extends State<ChatPage> {
     if (text.length > 0)  {
       textEditingController.clear();
 
-      FlutterBluetoothSerial.instance.write(text + "\r\n");
+      connection.output.add(utf8.encode(text + "\r\n"));
 
       setState(() {
         messages.add(_Message(clientID, text));
