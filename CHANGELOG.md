@@ -1,3 +1,11 @@
+## [0.2.1] - 2019-08-05
+
+Patch release.
+
+* apply patch #48 for some disconnection issues,
+* update `ChatPage` to newer API,
+* fix and update AndroidX declaration.
+
 ## [0.2.0] - 2019-07-02
 
 Two big features packs: 
