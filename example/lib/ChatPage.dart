@@ -34,6 +34,8 @@ class _ChatPage extends State<ChatPage> {
   bool isConnecting = true;
   bool get isConnected => connection != null && connection.isConnected;
 
+  bool isDisconnecting = false;
+
   @override
   void initState() {
     super.initState();
@@ -43,9 +45,22 @@ class _ChatPage extends State<ChatPage> {
       connection = _connection;
       setState(() {
         isConnecting = false;
+        isDisconnecting = false;
       });
 
       connection.input.listen(_onDataReceived).onDone(() {
+        // Example: Detect which side closed the connection
+        // There should be `isDisconnecting` flag to show are we are (locally)
+        // in middle of disconnecting process, should be set before calling
+        // `dispose`, `finish` or `close`, which all causes to disconnect.
+        // If we except the disconnection, `onDone` should be fired as result.
+        // If we didn't except this (no flag set), it means closing by remote.
+        if (isDisconnecting) {
+          print('Disconnecting locally!');
+        }
+        else {
+          print('Disconnected remotely!');
+        }
         if (this.mounted) {
           setState(() {});
         }
@@ -60,9 +75,9 @@ class _ChatPage extends State<ChatPage> {
   void dispose() {
     // Avoid memory leak (`setState` after dispose) and disconnect
     if (isConnected) {
+      isDisconnecting = true;
       connection.dispose();
       connection = null;
-      print('we are disconnecting locally!');
     }
 
     super.dispose();
