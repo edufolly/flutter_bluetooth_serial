@@ -1,0 +1,24 @@
+{
+  "name": "bluetooth_serial_chatserver",
+  "version": "0.1.0",
+  "description": "Example Bluetooth serial chat server. Created for Flutter Bluetooh serial plugin.",
+  "author": "Patryk \"PsychoX\" Ludwikowski <patryk.ludwikowski.7@gmail.com>",
+  "license": "MIT",
+  "keywords": [
+    "bluetooth",
+    "serial",
+    "chat",
+    "server",
+    "classic",
+    "flutter",
+    "example"
+  ],
+  "main": "main.js",
+  "scripts": {
+    "start": "node main.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "bluetooth-serial-port": "git://github.com/PsychoXIVI/node-bluetooth-serial-port.git#master"
+  }
+}
