@@ -62,9 +62,13 @@ class BluetoothConnection {
 
   /// Closes connection (rather immediately), in result should also disconnect.
   Future<void> cancel() async {
+    print('DEBUG: BluetoothConnection cancel - entered');
     await output.close();
+    print('DEBUG: BluetoothConnection cancel - output closed');
     await _readStreamController.close();
+    print('DEBUG: BluetoothConnection cancel - read stream controller closed');
     await _readStreamSubscription.cancel();
+    print('DEBUG: BluetoothConnection cancel - read stream subscription closed]');
   }
 
   /// Closes connection (rather gracefully), in result should also disconnect.
