@@ -1,5 +1,5 @@
 name: flutter_bluetooth_serial_example
-version: 0.2.1
+version: 0.2.2
 description: Demonstrates how to use the `flutter_bluetooth_serial` plugin.
 authors: 
 - Patryk Ludwikowski <patryk.ludwikowski.7@gmail.com>

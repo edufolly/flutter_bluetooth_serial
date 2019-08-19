@@ -1,3 +1,12 @@
+## [0.2.2] - 2019-08-19
+
+Patch release.
+
+* Fix closing connections which are not `listen`ing to `input` (solved #60),
+* Add more clear example of detecting which side caused disconnection,
+* Add exception on `add`ing to `output` if connection closed,
+* `BluetoothConnection` `cancel` is deprecated now, use `close` instead. It was stupid to name `cancel` something that `close`s (it was even documented that way, lol).
+
 ## [0.2.1] - 2019-08-05
 
 Patch release.
