@@ -1,10 +1,24 @@
 part of flutter_bluetooth_serial;
 
-/// Represents Bluetooth connection to remote device.
+/// Represents ongoing Bluetooth connection to remote device.
 class BluetoothConnection {
+  // Note by PsychoX at 2019-08-19 while working on issue #60:
+  // Fixed and then tested whole thing multiple times:
+  // - [X] basic `connect`, use `output`/`input` and `disconnect` by local scenario,
+  // - [X] fail on connecting to device that isn't listening,
+  // - [X] working `output` if no `listen`ing to `input`,
+  // - [X] closing by local if no `input` written,
+  // - [X] closing by local if no `listen`ing to `input` (this was the #60),
+  // - [X] closing by remote if no `input` written,
+  // - [X] closing by remote if no `listen`ing to `input`,
+  //    It works, but library user is notifed either by error on `output.add` or
+  //    by observing `connection.isConnected`. In "normal" conditions user can
+  //    listen to `input` even just for the `onDone` to proper detect closing.
+  // 
+
   /// This ID identifies real full `BluetoothConenction` object on platform side code.
   final int _id;
-  
+
   final EventChannel _readChannel;
   StreamSubscription<Uint8List> _readStreamSubscription;
   StreamController<Uint8List> _readStreamController;
@@ -31,14 +45,12 @@ class BluetoothConnection {
     this._id = id,
     this._readChannel = EventChannel('${FlutterBluetoothSerial.namespace}/read/$id')
   {
-    _readStreamController = StreamController<Uint8List>(onCancel: () {
-      cancel();
-    });
+    _readStreamController = StreamController<Uint8List>();
 
     _readStreamSubscription = _readChannel.receiveBroadcastStream().cast<Uint8List>().listen(
       _readStreamController.add,
       onError: _readStreamController.addError,
-      onDone: _readStreamController.close,
+      onDone: this.close,
     );
 
     input = _readStreamController.stream;
@@ -61,16 +73,24 @@ class BluetoothConnection {
 
 
   /// Closes connection (rather immediately), in result should also disconnect.
-  Future<void> cancel() async {
-    await output.close();
-    await _readStreamController.close();
-    await _readStreamSubscription.cancel();
+  Future<void> close() {
+    return Future.wait([
+      output.close(),
+      _readStreamSubscription.cancel(),
+      (!_readStreamController.isClosed) 
+        ? _readStreamController.close()
+        : Future.value(/* Empty future */)
+    ], eagerError: true);
   }
+
+  /// Closes connection (rather immediately), in result should also disconnect.
+  @Deprecated('Use `close` instead')
+  Future<void> cancel() => this.close();
 
   /// Closes connection (rather gracefully), in result should also disconnect.
   Future<void> finish() async {
     await output.allSent;
-    await cancel();
+    close();
   }
 
 }

@@ -37,21 +37,23 @@ class _ChatPage extends State<ChatPage> {
   @override
   void initState() {
     super.initState();
-    try {
-      BluetoothConnection.toAddress(widget.server.address).then((_connection) {
-        print('Connected to the device');
-        connection = _connection;
-        setState(() {
-          isConnecting = false;
-        });
 
-        connection.input.listen(_onDataReceived).onDone(() {
-          print('Disconnected by remote request');
-        });
+    BluetoothConnection.toAddress(widget.server.address).then((_connection) {
+      print('Connected to the device');
+      connection = _connection;
+      setState(() {
+        isConnecting = false;
       });
-    } catch (exception) {
+
+      connection.input.listen(_onDataReceived).onDone(() {
+        if (this.mounted) {
+          setState(() {});
+        }
+      });
+    }).catchError((error) {
       print('Cannot connect, exception occured');
-    }
+      print(error);
+    });
   }
 
   @override

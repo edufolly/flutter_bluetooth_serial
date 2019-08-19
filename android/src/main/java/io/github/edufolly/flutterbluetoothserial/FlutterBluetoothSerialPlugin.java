@@ -1143,14 +1143,14 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
                 @Override
                 public void run() {
                     if (byRemote) {
-                        Log.d(TAG, "Connection onDisconnected by remote");
+                        Log.d(TAG, "onDisconnected by remote (id: " + id + ")");
                         if (readSink != null) {
                             readSink.endOfStream();
                             readSink = null;
                         }
                     }
                     else {
-                        Log.d(TAG, "Connection onDisconnected by local");
+                        Log.d(TAG, "onDisconnected by local (id: " + id + ")");
                     }
                 }
             });
