@@ -191,20 +191,27 @@ class _ChatPage extends State<ChatPage> {
     }
   }
 
-  void _sendMessage(String text) {
+  void _sendMessage(String text) async {
     text = text.trim();
+    textEditingController.clear();
+
     if (text.length > 0)  {
-      textEditingController.clear();
+      try {
+        connection.output.add(utf8.encode(text + "\r\n"));
+        await connection.output.allSent;
 
-      connection.output.add(utf8.encode(text + "\r\n"));
+        setState(() {
+          messages.add(_Message(clientID, text));
+        });
 
-      setState(() {
-        messages.add(_Message(clientID, text));
-      });
-
-      Future.delayed(Duration(milliseconds: 333)).then((_) {
-        listScrollController.animateTo(listScrollController.position.maxScrollExtent, duration: Duration(milliseconds: 333), curve: Curves.easeOut);
-      });
+        Future.delayed(Duration(milliseconds: 333)).then((_) {
+          listScrollController.animateTo(listScrollController.position.maxScrollExtent, duration: Duration(milliseconds: 333), curve: Curves.easeOut);
+        });
+      }
+      catch (e) {
+        // Ignore error, but notify state
+        setState(() {});
+      }
     }
   }
 }

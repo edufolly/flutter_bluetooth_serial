@@ -113,12 +113,12 @@ class _BluetoothStreamSink<Uint8List> extends StreamSink<Uint8List> {
   _BluetoothStreamSink(this._id) {
     // `_doneFuture` must be initialized here because `close` must return the same future.
     // If it would be in `done` get body, it would result in creating new futures every call.
-    _doneFuture = Future (() async {
+    _doneFuture = Future(() async {
       // @TODO ? is there any better way to do it? xD this below is weird af
-      while (this != null && this.isConnected) {
+      while (this.isConnected) {
         await Future.delayed(Duration(milliseconds: 111));
       }
-      if (this != null && this.exception != null) {
+      if (this.exception != null) {
         throw this.exception;
       }
     });
@@ -131,18 +131,24 @@ class _BluetoothStreamSink<Uint8List> extends StreamSink<Uint8List> {
   /// all added data are sent. 
   /// 
   /// You should use some encoding to send string, for example `ascii.encode('Hello!')` or `utf8.encode('Cześć!)`. 
+  /// 
+  /// Might throw `StateError("Not connected!")` if not connected.
   @override
   void add(Uint8List data) {
-    if (isConnected) {
-      _chainedFutures = _chainedFutures.then((_) async {
-        if (this != null && this.isConnected) {
-          await FlutterBluetoothSerial._methodChannel.invokeMethod('write', {'id': _id, 'bytes': data});
-        }
-      }).catchError((e) {
-        this.exception = e;
-        close();
-      });
+    if (!isConnected) {
+      throw StateError("Not connected!");
     }
+
+    _chainedFutures = _chainedFutures.then((_) async {
+      if (!isConnected) {
+        throw StateError("Not connected!");
+      }
+
+      await FlutterBluetoothSerial._methodChannel.invokeMethod('write', {'id': _id, 'bytes': data});
+    }).catchError((e) {
+      this.exception = e;
+      close();
+    });
   }
 
   /// Unsupported - this ouput sink cannot pass errors to platfom code.
@@ -179,7 +185,9 @@ class _BluetoothStreamSink<Uint8List> extends StreamSink<Uint8List> {
   /// Returns a future which is completed when the sink sent all added data, 
   /// instead of only if the sink got closed.
   /// 
-  /// Might fail with an error in case if some occured while sending the data.
+  /// Might fail with an error in case if some occured while sending the data. 
+  /// Typical error could be `StateError("Not connected!")` which could happen
+  /// if disconnected in middle of sending (queued) `add`ed data.
   /// 
   /// Otherwise, the returned future will complete when either:
   Future get allSent => Future(() async {
