@@ -51,33 +51,60 @@ There is implemented simple chat. Client (the Flutter host) connects to selected
 #### Simple (console) server on Raspberry Pi:
 
 1. Enable Bluetooth and pair Raspberry with the Flutter host device (only first time)
-```
-$ sudo bluetoothctl
-# power on
-# agent on
-# scan on
-# pair [MAC of the Flutter host]
-# quit
-```
+    ```
+    $ sudo bluetoothctl
+    # power on
+    # agent on
+    # scan on
+    # pair [MAC of the Flutter host]
+    # quit
+    ```
 
 2. Add SP/RFCOMM entry to the SDP service
-```
-$ sudo sdptool add SP         # There can be channel specified one of 79 channels by adding `--channel N`.
-$ sudo sdptool browse local   # Check on which channel RFCOMM will be operating, to select in next step.
-```
-SDP tool tends to use good (and free) channels, so you don't have to keep track of other services if you let it decide.
+    ```
+    $ sudo sdptool add SP         # There can be channel specified one of 79 channels by adding `--channel N`.
+    $ sudo sdptool browse local   # Check on which channel RFCOMM will be operating, to select in next step.
+    ```
+    SDP tool tends to use good (and free) channels, so you don't have to keep   track of other services if you let it decide.
 
 3. Start RFCOMM listening
-```
-$ sudo killall rfcomm
-$ sudo rfcomm listen /dev/rfcomm0 N picocom -c /dev/rfcomm0 --omap crcrlf   # `N` should be channel number on which SDP is pointing the SP.
-```
 
-4. Now you can connect and chat to the server with example application using the console. Every character is send to your device and buffered. Only full messages, between new line characters (`\n`) are displayed. You can use `Ctrl+A` and `Ctrl+Q` to exit from `picocom` utility if you want to end stream from server side (and `Ctrl+C` for exit watch-mode of `rfcomm` utility). 
+    a) Binding and listening as `/dev/rfcomm0` and i/o using `picocom`
+    ```
+    $ sudo killall rfcomm
+    $ sudo rfcomm listen /dev/rfcomm0 N picocom -c /dev/rfcomm0 --omap crcrlf   # `N` should be channel number on which SDP is pointing the SP.
+    ```
 
-If you experiencing problems with your terminal (some `term_exitfunc` of `picocom` errors), you should try saving good terminal settings (`stty --save > someFile`) and loading them after picocom exits (adding ``; stty `cat someFile` `` to the second command of 3. should do the thing).
+    b) Listening using Node.js script. [Click here for more details](peripheral/scripts/chatserver/README.md).
+    ```
+    $ npm start
+    ```
 
-You can also use the descriptor (`/dev/rfcomm0`) in other way, not necessarily to run interactive terminal on it, in order to chat. It can be used in various ways, providing more automation and/or abstraction.
+
+4. Now you can connect and chat to the server with example application. 
+
+    a) Using `picocom` method. 
+    
+    <details><summary>Click here for more details on this method.</summary>
+
+    Every character is send to your device and buffered. Only full messages, between new line characters (`\n`) are displayed. You can use `Ctrl+A` and `Ctrl+Q` to exit from `picocom` utility if you want to end stream from server side (and `Ctrl+C` for exit watch-mode of `rfcomm` utility). 
+
+    If you experiencing problems with your terminal (some `term_exitfunc` of `picocom` errors), you should try saving good terminal settings (`stty --save > someFile`) and loading them after picocom exits (adding ``; stty `cat someFile` `` to the second command of 3. should do the thing).
+
+    You can also use the descriptor (`/dev/rfcomm0`) in other way, not necessarily to run interactive terminal (like `picocom`) on it, in order to chat. It can be used in various ways, providing more automation and/or abstraction.
+
+    </details>
+
+    b) Using Node script method.
+
+    <details><summary>Click here for more details on this method.</summary>
+
+    This script is more civilized approach. It listen for connections, and then read each line of user input sending whole messages to the connected client. On other point, the client sends the messages, and the script is displaying it. `Ctrl`+`C` keyboard shotcut can be used to exit (close current connection and stop listening).
+
+    It is much better than `picocom`/binding device approach since it just works without any problems, doesn't require `sudo`, doesn't crash sometimes. It is easier to setup, run and exit.
+
+    </details>
+
 
 
 
@@ -87,6 +114,6 @@ For testing multiple connections there were created background data collector, w
 
 The example uses Celsius degree, which was chosen because it utilizes standard conditions of water freezing and ice melting points instead of just rolling a dice over periodic table of elements like a Fahrenheit do...
 
-Project of the Arduino side could be found in `/arduino` folder, but there is a note: **the code is prepared for testing in certain environment** and will not work without its hardware side (termometers, pH meter). If you can alter the real termometer code for example for random data generator or your own inputs. 
+Project of the Arduino side could be found in `./peripheral/arduino` folder, but there is a note: **the code is prepared for testing in certain environment** and will not work without its hardware side (termometers, pH meter). If you can alter the real termometer code for example for random data generator or your own inputs. 
 
 
