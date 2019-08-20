@@ -70,7 +70,12 @@ class BluetoothConnection {
     finish();
   }
 
-
+  static Future<BluetoothConnection> toAddress(String address) async {
+    // Sorry for pseudo-factory, but `factory` keyword disallows `Future`.
+    return BluetoothConnection._consumeConnectionID(
+      await FlutterBluetoothSerial._methodChannel.invokeMethod('connect', {"address": address})
+    );
+  }
 
   /// Closes connection (rather immediately), in result should also disconnect.
   Future<void> close() {
