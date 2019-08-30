@@ -21,7 +21,6 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Enumeration;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -172,7 +171,7 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
                                 {
                                     final BroadcastReceiver.PendingResult broadcastResult = this.goAsync();
 
-                                    Map<String, Object> arguments = new HashMap<String, Object>();
+                                    Map<String, Object> arguments = new HashMap<>();
                                     arguments.put("address", device.getAddress());
                                     arguments.put("variant", pairingVariant);
 
@@ -185,6 +184,7 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
                                                     final String passkeyString = (String) handlerResult;
                                                     final byte[] passkey = passkeyString.getBytes();
                                                     Log.d(TAG, "Trying to set passkey for pairing to " + passkeyString);
+                                                    // TODO: This will break in API 18 or lower.
                                                     device.setPin(passkey); 
                                                     broadcastResult.abortBroadcast();
                                                 }
@@ -245,6 +245,7 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
                                                     Log.d(TAG, "Trying to set pairing confirmation to " + confirm + " (key: " + pairingKey + ")");
                                                     // @WARN `BLUETOOTH_PRIVILEGED` permission required, but might be 
                                                     // unavailable for thrid party apps on newer versions of Androids.
+                                                    // TODO: This will break in API 18 or lower.
                                                     device.setPairingConfirmation(confirm);
                                                     broadcastResult.abortBroadcast();
                                                 }
@@ -726,6 +727,7 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
                 //filter.setPriority(pairingRequestReceiverPriority + 1);
                 registrar.activeContext().registerReceiver(bondStateBroadcastReceiver, filter);
 
+                // TODO: This will break in API 18 or lower.
                 if (!device.createBond()) {
                     result.error("bond_error", "error starting bonding process", null);
                 }
