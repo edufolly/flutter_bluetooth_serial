@@ -3,6 +3,24 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
+import 'package:flutter_bluetooth_serial/BluetoothConnectionAsPackets.dart';
+
+class ChatPacketType {
+  static const PushMessage    = 0x01; // Also allows for edit the message
+
+  // TODO: Implement whole example, instead of just one package type.
+  // For now it is only `PushMessage` and only one client.
+
+  static const MessageSeen    = 0x02;
+  static const RemoveMessage  = 0x03;
+
+  static const BlockUser    = 0x21;
+  static const UnblockUser  = 0x22;
+
+  static const UserInfo = 0xA1;
+  static const UserInfoRequest = 0xA2;
+  //...
+}
 
 class ChatPage extends StatefulWidget {
   final BluetoothDevice server;
@@ -22,17 +40,16 @@ class _Message {
 
 class _ChatPage extends State<ChatPage> {
   static final clientID = 0;
-  static final maxMessageLength = 4096 - 3;
-  BluetoothConnection connection;
+
+  BluetoothConnectionAsPackets _connection;
 
   List<_Message> messages = List<_Message>();
-  String _messageBuffer = '';
 
   final TextEditingController textEditingController = new TextEditingController();
   final ScrollController listScrollController = new ScrollController();
 
   bool isConnecting = true;
-  bool get isConnected => connection != null && connection.isConnected;
+  bool get isConnected => _connection != null && _connection.isConnected;
 
   bool isDisconnecting = false;
 
@@ -40,15 +57,10 @@ class _ChatPage extends State<ChatPage> {
   void initState() {
     super.initState();
 
-    BluetoothConnection.toAddress(widget.server.address).then((_connection) {
-      print('Connected to the device');
-      connection = _connection;
-      setState(() {
-        isConnecting = false;
-        isDisconnecting = false;
-      });
-
-      connection.input.listen(_onDataReceived).onDone(() {
+    BluetoothConnection.toAddress(widget.server.address).then((connection) {
+      this._connection = BluetoothConnectionAsPackets.fromConnection(connection);
+      this._connection.onPacket(_onDataReceived);
+      this._connection.onDone(() {
         // Example: Detect which side closed the connection
         // There should be `isDisconnecting` flag to show are we are (locally)
         // in middle of disconnecting process, should be set before calling
@@ -65,6 +77,11 @@ class _ChatPage extends State<ChatPage> {
           setState(() {});
         }
       });
+      print('Connected to the device');
+      setState(() {
+        isConnecting = false;
+        isDisconnecting = false;
+      });
     }).catchError((error) {
       print('Cannot connect, exception occured');
       print(error);
@@ -76,8 +93,8 @@ class _ChatPage extends State<ChatPage> {
     // Avoid memory leak (`setState` after dispose) and disconnect
     if (isConnected) {
       isDisconnecting = true;
-      connection.dispose();
-      connection = null;
+      _connection.dispose();
+      _connection = null;
     }
 
     super.dispose();
@@ -155,54 +172,17 @@ class _ChatPage extends State<ChatPage> {
     );
   }
 
-  void _onDataReceived(Uint8List data) {
-    // Allocate buffer for parsed data
-    int backspacesCounter = 0;
-    data.forEach((byte) {
-      if (byte == 8 || byte == 127) {
-        backspacesCounter++;
-      }
-    });
-    Uint8List buffer = Uint8List(data.length - backspacesCounter);
-    int bufferIndex = buffer.length;
+  void _onDataReceived(int type, Iterable<int> data) {
+    switch (type) {
+      case ChatPacketType.PushMessage:
+        setState(() {
+          messages.add(_Message(1, utf8.decode(data.toList())));
+        });
+        break;
 
-    // Apply backspace control character
-    backspacesCounter = 0;
-    for (int i = data.length - 1; i >= 0; i--) {
-      if (data[i] == 8 || data[i] == 127) {
-        backspacesCounter++;
-      }
-      else {
-        if (backspacesCounter > 0) {
-          backspacesCounter--;
-        }
-        else {
-          buffer[--bufferIndex] = data[i];
-        }
-      }
-    }
-
-    // Create message if there is new line character
-    String dataString = String.fromCharCodes(buffer);
-    int index = buffer.indexOf(13);
-    if (~index != 0) { // \r\n
-      setState(() {
-        messages.add(_Message(1, 
-          backspacesCounter > 0 
-            ? _messageBuffer.substring(0, _messageBuffer.length - backspacesCounter) 
-            : _messageBuffer
-          + dataString.substring(0, index)
-        ));
-        _messageBuffer = dataString.substring(index);
-      });
-    }
-    else {
-      _messageBuffer = (
-        backspacesCounter > 0 
-          ? _messageBuffer.substring(0, _messageBuffer.length - backspacesCounter) 
-          : _messageBuffer
-        + dataString
-      );
+      default:
+        print('Error: Unhandled packet type: $type');
+        break;
     }
   }
 
@@ -212,14 +192,13 @@ class _ChatPage extends State<ChatPage> {
 
     if (text.length > 0)  {
       try {
-        connection.output.add(utf8.encode(text + "\r\n"));
-        await connection.output.allSent;
+        await this._connection.sendPacket(ChatPacketType.PushMessage, utf8.encode(text));
 
         setState(() {
           messages.add(_Message(clientID, text));
         });
 
-        Future.delayed(Duration(milliseconds: 333)).then((_) {
+        Future.delayed(Duration(milliseconds: 111)).then((_) {
           listScrollController.animateTo(listScrollController.position.maxScrollExtent, duration: Duration(milliseconds: 333), curve: Curves.easeOut);
         });
       }
