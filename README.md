@@ -98,6 +98,7 @@ Main screen and options |  Discovery and connecting  |  Simple chat with server 
 
 + Add some utils to easier manage `BluetoothConnection` (see discussion #41),
 + Allow connection method/protocol/UUID specification,
++ Add even simpler example (raw RFCOMM communication from Linux/Windows?),
 + Listening/server mode,
 + Recognizing and displaying `BluetoothClass` of device,
 + Maybe integration with `flutter_blue` one day ;)

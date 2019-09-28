@@ -153,14 +153,24 @@ class BluetoothConnectionAsPackets {
   /// Sends given packet `type` with given `data` attached.
   /// 
   /// Note: `type` must be 16 bit integer. `data` length is limited to 65535.
-  Future<void> sendPacket(int type, Uint8List data) async {
-    connection.output.add(Uint8List.fromList([
-      (type >> 8) & 0xFF, 
-      type & 0xFF, 
-      (data.length >> 8) & 0xFF, 
-      data.length & 0xFF
-    ]));
-    connection.output.add(data);
+  Future<void> sendPacket(int type, [Uint8List data]) async {
+    if (data == null) {
+      connection.output.add(Uint8List.fromList([
+        (type >> 8) & 0xFF, 
+        type & 0xFF, 
+        0, 
+        0
+      ]));
+    }
+    else {
+      connection.output.add(Uint8List.fromList([
+        (type >> 8) & 0xFF, 
+        type & 0xFF, 
+        (data.length >> 8) & 0xFF, 
+        data.length & 0xFF
+      ]));
+      connection.output.add(data);
+    }
     await connection.output.allSent;
   }
 
