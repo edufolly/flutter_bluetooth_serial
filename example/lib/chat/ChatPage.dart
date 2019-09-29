@@ -9,11 +9,11 @@ import './ChatPacketType.dart';
 
 class _MessageData {
   int id;
-  int clientID;
+  int clientId;
   String content;
   bool seen;
 
-  _MessageData(this.content, {this.id = 0, this.clientID = 0, this.seen = false});
+  _MessageData(this.content, {this.id = 0, this.clientId = 0, this.seen = false});
 }
 
 class _ClientInformationData {
@@ -122,7 +122,7 @@ class _ChatPage extends State<ChatPage> {
                     children: <Widget>[
                       GestureDetector(
                         onHorizontalDragEnd: (DragEndDetails details) {
-                          if (details.primaryVelocity > 17.0) { // TODO: find nice value
+                          if (details.primaryVelocity > 17.0) {
                             _removeMessage(index);
                           }
                         },
@@ -133,13 +133,13 @@ class _ChatPage extends State<ChatPage> {
                           margin: EdgeInsets.only(bottom: 8.0, left: 8.0, right: 8.0),
                           width: 222.0,
                           decoration: BoxDecoration(
-                            color: clients[message.clientID]?.color ?? Colors.grey, 
+                            color: clients[message.clientId]?.color ?? Colors.grey, 
                             borderRadius: BorderRadius.circular(7.0)
                           ),
                         ),
                       )
                     ],
-                    mainAxisAlignment: message.clientID == localClientId ? MainAxisAlignment.end : MainAxisAlignment.start,
+                    mainAxisAlignment: message.clientId == localClientId ? MainAxisAlignment.end : MainAxisAlignment.start,
                   );
                 },
               )
@@ -184,11 +184,11 @@ class _ChatPage extends State<ChatPage> {
       case ChatPacketType.Message:
         setState(() {
           // There is no `utf8.decode` working on `Iterator<int>` :C
-          final List prefix = data.take(2).toList();
-          final int clientID = prefix[0];
-          final int messageID = prefix[1]; // TODO: Use more bytes for message IDs (longer chats than 255 messages)
+          final List prefix = data.take(3).toList();
+          final int clientId = prefix[0];
+          final int messageId = prefix[1] * 0xFF + prefix[2];
           final String content = utf8.decode(data.skip(2).toList());
-          messages.add(_MessageData(content, id: messageID, clientID: clientID));
+          messages.add(_MessageData(content, id: messageId, clientId: clientId));
         });
         break;
 
@@ -198,8 +198,9 @@ class _ChatPage extends State<ChatPage> {
 
       case ChatPacketType.MessageRemoved:
         setState(() {
-          final int id = data.first;
-          final int index = messages.indexWhere((message) => message.id == id);
+          List<int> prefix = data.take(2).toList();
+          final messageId = prefix[0] * 0xFF + prefix[1];
+          final int index = messages.indexWhere((message) => message.id == messageId);
           if (index != -1) {
             messages.removeAt(index); // TODO: Maybe reduce message to "Message removed" or something?
           }
@@ -236,12 +237,13 @@ class _ChatPage extends State<ChatPage> {
         if (messages.last.id != 0) {
           // TODO: warning: id was already assigned
         }
-        final messageId = data.first;
+        List<int> prefix = data.take(2).toList();
+        final messageId = prefix[0] * 0xFF + prefix[1];
         if (messageId == 0) {
           // TODO: warning: server rejected message
           return;
         }
-        messages.last.id = messageId; // TODO: Use more bytes for message IDs (longer chats than 255 messages)
+        messages.last.id = messageId;
         break;
 
       default:
@@ -259,7 +261,7 @@ class _ChatPage extends State<ChatPage> {
         await this._connection.sendPacket(ChatPacketType.PushMessage, utf8.encode(text));
 
         setState(() {
-          messages.add(_MessageData(text, clientID: localClientId));
+          messages.add(_MessageData(text, clientId: localClientId));
         });
 
         Future.delayed(Duration(milliseconds: 111)).then((_) {
@@ -274,7 +276,10 @@ class _ChatPage extends State<ChatPage> {
   }
 
   void _removeMessage(int index) async {
-    final id = messages[index].id;
-    await this._connection.sendPacket(ChatPacketType.RemoveMessage, Uint8List.fromList([id]));
+    final int messageId = messages[index].id;
+    await this._connection.sendPacket(ChatPacketType.RemoveMessage, Uint8List.fromList([
+      messageId ~/ 0xFF,
+      messageId % 0xFF
+    ]));
   }
 }

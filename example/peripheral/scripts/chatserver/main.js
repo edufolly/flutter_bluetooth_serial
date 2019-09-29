@@ -19,10 +19,11 @@ class MessageData extends Buffer {
             messageId = ++lastMessageId;
         }
 
-        super(1 + 1 + Buffer.byteLength(content, 'utf-8'));
+        super(1 + 2 + Buffer.byteLength(content, 'utf-8'));
 
         this[0] = clientId;
-        this[1] = messageId; // TODO: Use more bytes for message IDs (longer chats than 255 messages)
+        this[1] = messageId / 0xFF;
+        this[2] = messageId % 0xFF;
         this.write(content, 2, 'utf-8');
     }
 }
@@ -58,31 +59,39 @@ class Client {
             case ChatPacketType.PushMessage: {
                 // There seems to be no way to directly decode Iterator of 
                 // bytes (ints < 256) into String (at least in basic modules).
-                // Starting with 2 bytes gap to avoid further copying in order
-                // to broadcast the message (2 bytes broadcast packet header).
-                let buffer = Buffer.allocUnsafe(2 + dataIterable.length);
+                // Starting with 3 bytes gap to avoid further copying in order
+                // to broadcast the message (3 bytes broadcast packet header).
+                let buffer = Buffer.allocUnsafe(3 + dataIterable.length);
                 let it = dataIterable.iterator;
                 buffer[0] = this.id;
-                buffer[1] = ++lastMessageId; // TODO: Use more bytes for message IDs (longer chats than 255 messages)
-                for (let i = 2; i < dataIterable.length + 2; i++) {
+                
+                // Assign next message ID
+                lastMessageId += 1;
+                buffer[1] = lastMessageId / 0xFF;
+                buffer[2] = lastMessageId % 0xFF;
+                
+                for (let i = 3; i < dataIterable.length + 3; i++) {
                     buffer[i] = it.next().value;
                 }
 
-                const text = buffer.toString('utf-8', 2);
+                const text = buffer.toString('utf-8', 3);
                 console.log(`#${('' + lastMessageId).padStart(4, '0')} <${this.toString()}> ${text}`);
 
                 clients.broadcastPacket(ChatPacketType.Message, buffer, [this]);
-                this.sendPacket(ChatPacketType.MessageIdAssigned, Buffer.from([lastMessageId]));
+                this.sendPacket(ChatPacketType.MessageIdAssigned, Buffer.from([buffer[1], buffer[2]]));
                 break;
             }
             case ChatPacketType.UserIdentification:
             case ChatPacketType.NotifyMessageSeen:
             case ChatPacketType.RemoveMessage: {
-                const messageId = dataIterable.iterator.next().value;
+                let it = dataIterable.iterator;
+                const high = it.next().value;
+                const low = it.next().value;
+                const messageId = (high * 0xFF + low);
                 // TODO: Allow only removing/editing messages added by the same user (requires message history).
-                console.log(`Client #${this.toString()} removes message #${('' + messageId).padStart(4, '0')}`);
-                clients.broadcastPacket(ChatPacketType.MessageRemoved, Buffer.from([messageId]));
-                // ^ TODO: Use more bytes for message IDs (longer chats than 255 messages)
+                console.log(`Client ${this.toString()} removes message #${('' + messageId).padStart(4, '0')}`);
+                clients.broadcastPacket(ChatPacketType.MessageRemoved, Buffer.from([high, low]));
+                break;
             }
             case ChatPacketType.EditMessage:
             //case ChatPacketType.UpdateUserInfo:
@@ -107,9 +116,7 @@ class ClientsSet extends Set {
                 continue;
             }
 
-            if (client.serverPort.isOpen) { // TODO: It should even be there, so why checking?
-                client.serverPort.sendPacket(type, data);
-            }
+            client.serverPort.sendPacket(type, data);
         }
     };
 
