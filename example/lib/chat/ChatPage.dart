@@ -17,8 +17,53 @@ class _MessageData {
 }
 
 class _ClientInformationData {
-  String name;
+  _ClientInformationData(int colorId) {
+    switch(colorId) {
+      case 0x00: color = Colors.pinkAccent;       break;
+      case 0x01: color = Colors.redAccent;        break;
+      case 0x02: color = Colors.deepOrangeAccent; break;
+      case 0x03: color = Colors.orangeAccent;     break;
+      case 0x04: color = Colors.amberAccent;      break;
+      case 0x05: color = Colors.yellowAccent;     break;
+      case 0x06: color = Colors.limeAccent;       break;
+      case 0x07: color = Colors.lightGreenAccent; break;
+      case 0x08: color = Colors.greenAccent;      break;
+      case 0x09: color = Colors.tealAccent;       break;
+      case 0x0A: color = Colors.cyanAccent;       break;
+      case 0x0B: color = Colors.lightBlueAccent;  break;
+      case 0x0C: color = Colors.blueAccent;       break;
+      case 0x0D: color = Colors.indigoAccent;     break;
+      case 0x0E: color = Colors.purpleAccent;     break;
+      case 0x0F: color = Colors.deepPurpleAccent; break;
+      case 0x10: color = Colors.brown;            break;
+      default:   color = Colors.grey;
+    }
+  }
+
   Color color;
+  //String name;
+
+  // NOTE(psychox): I was too lazy... Colors would be fine in example app :F
+  String get name {
+    /**/ if (color == Colors.pinkAccent)        return 'Pinky';
+    else if (color == Colors.redAccent)         return 'RED';
+    else if (color == Colors.deepOrangeAccent)  return 'More oranges';
+    else if (color == Colors.orangeAccent)      return 'Oranges';
+    else if (color == Colors.amberAccent)       return 'Amber';
+    else if (color == Colors.yellowAccent)      return 'Sun yellow';
+    else if (color == Colors.limeAccent)        return 'Limes';
+    else if (color == Colors.lightGreenAccent)  return 'GREEN';
+    else if (color == Colors.greenAccent)       return 'Grass';
+    else if (color == Colors.tealAccent)        return 'Tealed';
+    else if (color == Colors.cyanAccent)        return 'Cyan';
+    else if (color == Colors.lightBlueAccent)   return 'Sky blue';
+    else if (color == Colors.blueAccent)        return 'Sea blue';
+    else if (color == Colors.indigoAccent)      return 'Indigo';
+    else if (color == Colors.purpleAccent)      return 'Purple King';
+    else if (color == Colors.deepPurpleAccent)  return 'Purple Queen';
+    else if (color == Colors.brown)             return 'Mush-brown';
+    else return 'Unknown';
+  }
 }
 
 class ChatPage extends StatefulWidget {
@@ -74,7 +119,7 @@ class _ChatPage extends State<ChatPage> {
           setState(() {});
         }
       });
-      this._connection.sendPacket(ChatPacketType.UserIdentification);
+      this._connection.sendPacket(ChatPacketType.UserIdentification, );
       print('Connected to the device');
       setState(() {
         isConnecting = false;
@@ -118,29 +163,63 @@ class _ChatPage extends State<ChatPage> {
                 itemCount: messages.length,
                 itemBuilder: (BuildContext context, int index) {
                   final _MessageData message = messages[index];
-                  return Row(
-                    children: <Widget>[
-                      GestureDetector(
-                        onHorizontalDragEnd: (DragEndDetails details) {
-                          if (details.primaryVelocity > 17.0) {
-                            _removeMessage(index);
-                          }
-                        },
-                        child: Container(
-                          child: Text(message.content == '/shrug' ? '¯\\_(ツ)_/¯' : message.content, 
-                            style: TextStyle(color: Colors.white)),
+                  if (message.clientId == 0) {
+                    // Server message
+                    return Row(
+                      children: <Widget>[
+                        Container(
+                          child: Text(message.content, 
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Colors.grey[700], 
+                              fontWeight: FontWeight.w300
+                            )
+                          ),
                           padding: EdgeInsets.all(12.0),
                           margin: EdgeInsets.only(bottom: 8.0, left: 8.0, right: 8.0),
-                          width: 222.0,
-                          decoration: BoxDecoration(
-                            color: clients[message.clientId]?.color ?? Colors.grey, 
-                            borderRadius: BorderRadius.circular(7.0)
-                          ),
+                          width: 200.0,
                         ),
-                      )
-                    ],
-                    mainAxisAlignment: message.clientId == localClientId ? MainAxisAlignment.end : MainAxisAlignment.start,
-                  );
+                      ],
+                      mainAxisAlignment: MainAxisAlignment.center,
+                    );
+                  } 
+                  else {
+                    // Users message
+                    Color backgroundColor = clients[message.clientId]?.color ?? Colors.grey;
+                    Color foregroundColor = backgroundColor.computeLuminance() >= 0.5 ? Colors.black : Colors.white;
+                    return Row(
+                      children: <Widget>[
+                        GestureDetector(
+                          onHorizontalDragEnd: (DragEndDetails details) {
+                            if (details.primaryVelocity > 17.0) {
+                              _removeMessage(index);
+                            }
+                          },
+                          child: Container(
+                            child: Text(message.content.length == 0 ? 'Message removed' : message.content, 
+                              style: TextStyle(
+                                color: foregroundColor, 
+                                fontStyle: message.content.length == 0 ? FontStyle.italic : null,
+                                fontWeight: message.content.length == 0 ? FontWeight.w300 : null,
+                              )
+                            ),
+                            padding: EdgeInsets.all(10.0),
+                            margin: EdgeInsets.only(bottom: 4.0, left: 4.0, right: 4.0),
+                            width: 200.0,
+                            decoration: BoxDecoration(
+                              color: backgroundColor, 
+                              borderRadius: BorderRadius.circular(8.0)
+                            ),
+                          ),
+                        )
+                      ],
+                      mainAxisAlignment: (
+                        message.clientId == localClientId ? 
+                          MainAxisAlignment.end : 
+                          MainAxisAlignment.start
+                      ),
+                    );
+                  }
                 },
               )
             ),
@@ -200,9 +279,10 @@ class _ChatPage extends State<ChatPage> {
         setState(() {
           List<int> prefix = data.take(2).toList();
           final messageId = prefix[0] * 0xFF + prefix[1];
-          final int index = messages.indexWhere((message) => message.id == messageId);
+          final int index = messages.lastIndexWhere((message) => message.id == messageId);
           if (index != -1) {
-            messages.removeAt(index); // TODO: Maybe reduce message to "Message removed" or something?
+            //messages.removeAt(index);
+            messages[index].content = '';
           }
         });
         break;
@@ -211,18 +291,33 @@ class _ChatPage extends State<ChatPage> {
         // TODO: Multiple packet type still not implemented
         throw 'not implemented';
 
-      case ChatPacketType.UserJoined:
+      case ChatPacketType.UserJoined: {
+        List<int> prefix = data.take(2).toList();
+        final clientId = prefix[0];
+        final colorId = prefix[1];
+        if (localClientId == 0) {
+          localClientId = clientId;
+          // Note: For now there is no `name` in `_ClientInformationData` (see this class for details)
+          clients[clientId] = _ClientInformationData(colorId);
+          return;
+        }
+        final name = clients[clientId].name;
         setState(() {
-          final clientId = data.first;
-          if (localClientId == 0) {
-            localClientId = clientId;
-            return;
-          }
-          // TODO: Add some nice centered message about new user
+          messages.add(_MessageData('User $name joined to the server!', clientId: 0));
         });
         break;
+      }
 
-      case ChatPacketType.UserLeft:
+      case ChatPacketType.UserLeft: {
+        final clientId = data.first;
+        final name = clients[clientId].name;
+        setState(() {
+          messages.add(_MessageData('User $name left the server!', clientId: 0));
+        });
+        //clients.remove(clientId); // For now data still used to preseve messages colors.
+        break;
+      }
+
       case ChatPacketType.UserKicked:
       case ChatPacketType.UserMuted:
       case ChatPacketType.UserUnmuted:
@@ -257,6 +352,10 @@ class _ChatPage extends State<ChatPage> {
     textEditingController.clear();
 
     if (text.length > 0)  {
+      if (text.startsWith('/shrug')) {
+        text = text.length > 7 ? '¯\\_(ツ)_/¯' + text.substring(7) : '¯\\_(ツ)_/¯';
+      }
+
       try {
         await this._connection.sendPacket(ChatPacketType.PushMessage, utf8.encode(text));
 
@@ -276,6 +375,10 @@ class _ChatPage extends State<ChatPage> {
   }
 
   void _removeMessage(int index) async {
+    if (!this._connection.isConnected) {
+      // Ignore, if not connected.
+      return;
+    }
     final int messageId = messages[index].id;
     await this._connection.sendPacket(ChatPacketType.RemoveMessage, Uint8List.fromList([
       messageId ~/ 0xFF,

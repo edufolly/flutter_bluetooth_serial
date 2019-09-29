@@ -28,6 +28,8 @@ class MessageData extends Buffer {
     }
 }
 
+let freeColors = Array(17).fill(undefined).map((_, i) => i + 1);
+
 class Client {
     constructor(serverPort, address, channel) {
         this.id = ++lastUserId;
@@ -37,6 +39,8 @@ class Client {
 
         this.serverPort.onClosed = () => this._onClosed();
         this.serverPort.onPacket = (...args) => this._onPacket(...args);
+
+        this.colorId = freeColors.splice(Math.floor(Math.random() * freeColors.length), 1)[0];
     }
 
     toString() {
@@ -52,6 +56,7 @@ class Client {
         this.serverPort.close();
         clients.delete(this);
         freePorts.push(this.channel);
+        freeColors.push(this.colorId);
     }
 
     _onPacket(type, dataIterable) {
@@ -123,7 +128,7 @@ class ClientsSet extends Set {
     add(client) {
         super.add(client);
         console.info(`Client ${client.toString()} joined the server`);
-        clients.broadcastPacket(ChatPacketType.UserJoined, Buffer.from([client.id]));
+        clients.broadcastPacket(ChatPacketType.UserJoined, Buffer.from([client.id, client.colorId]));
     }
 
     delete(client) {
@@ -177,6 +182,12 @@ async function listenForNextClient(channel) {
     }).on('line', (line) => {
         if (line.startsWith('/')) {
             // TODO: special commands
+            if (line.startsWith('/shrug')) {
+                line = '¯\\_(ツ)_/¯' + line.substring(7);
+                lastMessageId += 1;
+                console.log(`#${('' + lastMessageId).padStart(4, '0')} <SRV ${serverAddress}> ${line}`);
+                clients.broadcastPacket(ChatPacketType.Message, new MessageData(line, 0, lastMessageId));
+            }
         }
         else {
             if (clients.size == 0) {

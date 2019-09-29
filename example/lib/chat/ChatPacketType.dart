@@ -3,17 +3,20 @@ class ChatPacketType {
     // Client informs server...
     static const UserIdentification   = 0x0A00; // User identifies to the server.
     static const PushMessage          = 0x0A01; // Message to server.
+      // `content` - whole message
     static const NotifyMessageSeen    = 0x0A02; // User saw specified message.
     static const RemoveMessage        = 0x0A03; // Specified message should be removed.
+      // `messageId` - 2 byte
     static const EditMessage          = 0x0A04; // Alternate content of specified message.
 
     // Server broadcasts to rest of clients...
     static const Message              = 0x0B01; // Message to rest of clients.
-        // `clientID` - 1 byte, `messageID` - 2 bytes, `context` - the rest
+        // `clientId` - 1 byte, `messageId` - 2 bytes, `content` - the rest
     static const MessageSeen          = 0x0B02; // Specified message was seen by rest of clients.
     static const MessageRemoved       = 0x0B03; // Specified message was removed.
     static const MessageRedacted      = 0x0B04; // Specified message was redacted.
     static const UserJoined           = 0x0C01; // User joined the server (with user details) 
+        // `clientId` - 1 byte, `colorId` - 1 byte
     static const UserLeft             = 0x0C02; // Specified user left the server.
     static const UserKicked           = 0x0C03; // Specified user was kicked from the server.
     static const UserMuted            = 0x0C04; // Specified user was muted.
@@ -26,4 +29,5 @@ class ChatPacketType {
     static const FloodWarning         = 0x0D03; // Too many messages in short time.
     static const MessageIdAssigned    = 0x0D04; // Last pushed message id was assigned. 
         // Server might respond with invalid ID meaning that message was rejected.
+        // `messageId` - 2 byte
 }
