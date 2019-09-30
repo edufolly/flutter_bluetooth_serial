@@ -10,13 +10,25 @@ const ChatPacketType = require('./ChatPacketType.js');
 
 let serverRunning = true;
 let serverAddress = '';
+
 let lastMessageId = 0;
+function getNextMessageId() {
+    if (lastMessageId == 0xFFFF) { // Last 2 byte message ID 
+        lastMessageId = 1;
+
+        // Reset last seen message IDs on value overflow
+        for (let client of clients) {
+            client.lastSeenMessageId = 0;
+        }
+    }
+    return ++lastMessageId
+}
 let lastUserId = 0;
 
 class MessageData extends Buffer {
     constructor(content, clientId = 0, messageId = undefined) {
         if (messageId == undefined) {
-            messageId = ++lastMessageId;
+            messageId = getNextMessageId();
         }
 
         super(1 + 2 + Buffer.byteLength(content, 'utf-8'));
@@ -41,6 +53,8 @@ class Client {
         this.serverPort.onPacket = (...args) => this._onPacket(...args);
 
         this.colorId = freeColors.splice(Math.floor(Math.random() * freeColors.length), 1)[0];
+
+        this.lastSeenMessageId = 0;
     }
 
     toString() {
@@ -71,23 +85,52 @@ class Client {
                 buffer[0] = this.id;
                 
                 // Assign next message ID
-                lastMessageId += 1;
-                buffer[1] = lastMessageId / 0xFF;
-                buffer[2] = lastMessageId % 0xFF;
-                
+                const messageId = getNextMessageId();
+                buffer[1] = messageId / 0xFF;
+                buffer[2] = messageId % 0xFF;
+
                 for (let i = 3; i < dataIterable.length + 3; i++) {
                     buffer[i] = it.next().value;
                 }
 
                 const text = buffer.toString('utf-8', 3);
-                console.log(`#${('' + lastMessageId).padStart(4, '0')} <${this.toString()}> ${text}`);
+                console.log(`#${('' + messageId).padStart(4, '0')} <${this.toString()}> ${text}`);
 
                 clients.broadcastPacket(ChatPacketType.Message, buffer, [this]);
                 this.sendPacket(ChatPacketType.MessageIdAssigned, Buffer.from([buffer[1], buffer[2]]));
+
+                this.lastSeenMessageId = messageId;
                 break;
             }
+
             case ChatPacketType.UserIdentification:
-            case ChatPacketType.NotifyMessageSeen:
+                // Ignore. It was used while initializing chat session.
+                break;
+
+            case ChatPacketType.NotifyMessageSeen: {
+                let it = dataIterable.iterator;
+                const high = it.next().value;
+                const low = it.next().value;
+                const messageId = (high * 0xFF + low);
+
+                if (messageId > this.lastSeenMessageId) {
+                    this.lastSeenMessageId = messageId;
+                }
+
+                for (const client of clients) {
+                    if (client.lastSeenMessageId < messageId) {
+                        return;
+                    }
+                }
+
+                if (messageId > this.lastSeenMessageId) {
+                    this.lastSeenMessageId = messageId;
+                }
+
+                clients.broadcastPacket(ChatPacketType.MessageSeen, Buffer.from([high, low]));
+                break;
+            }
+
             case ChatPacketType.RemoveMessage: {
                 let it = dataIterable.iterator;
                 const high = it.next().value;
@@ -183,8 +226,8 @@ async function listenForNextClient(channel) {
         if (line.startsWith('/')) {
             // TODO: special commands
             if (line.startsWith('/shrug')) {
-                line = '¯\\_(ツ)_/¯' + line.substring(7);
-                lastMessageId += 1;
+                line = '¯\\_(ツ)_/¯ ' + line.substring(7);
+                getNextMessageId();
                 console.log(`#${('' + lastMessageId).padStart(4, '0')} <SRV ${serverAddress}> ${line}`);
                 clients.broadcastPacket(ChatPacketType.Message, new MessageData(line, 0, lastMessageId));
             }
@@ -194,7 +237,7 @@ async function listenForNextClient(channel) {
                 console.warn('No clients connected');
                 return;
             }
-            lastMessageId += 1;
+            getNextMessageId();
             console.log(`#${('' + lastMessageId).padStart(4, '0')} <SRV ${serverAddress}> ${line}`);
             clients.broadcastPacket(ChatPacketType.Message, new MessageData(line, 0, lastMessageId)); // Server uses 0 as clientID.
         }

@@ -11,9 +11,8 @@ class _MessageData {
   int id;
   int clientId;
   String content;
-  bool seen;
 
-  _MessageData(this.content, {this.id = 0, this.clientId = 0, this.seen = false});
+  _MessageData(this.content, {this.id = 0, this.clientId = 0});
 }
 
 class _ClientInformationData {
@@ -85,10 +84,13 @@ class _ChatPage extends State<ChatPage> {
   bool isDisconnecting = false;
 
   /* Chat context */
+  Map<int, _ClientInformationData> clients = <int, _ClientInformationData>{};
   int localClientId = 0;
 
-  Map<int, _ClientInformationData> clients = <int, _ClientInformationData>{};
   List<_MessageData> messages = <_MessageData>[];
+  int lastSeenMessageIndex = -1;
+  int lastSeenMessageIndexReported = -2;
+  int lastSeenUserMessageIndex = -1;
 
   /* User interface */
   final TextEditingController textEditingController = new TextEditingController();
@@ -153,106 +155,126 @@ class _ChatPage extends State<ChatPage> {
           Text('Chat log with ' + widget.server.name)
         )
       ),
-      body: SafeArea(
-        child: Column(
-          children: <Widget>[
-            Flexible(
-              child: ListView.builder(
-                padding: const EdgeInsets.all(12.0),
-                controller: listScrollController,
-                itemCount: messages.length,
-                itemBuilder: (BuildContext context, int index) {
-                  final _MessageData message = messages[index];
-                  if (message.clientId == 0) {
-                    // Server message
-                    return Row(
-                      children: <Widget>[
-                        Container(
-                          child: Text(message.content, 
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: Colors.grey[700], 
-                              fontWeight: FontWeight.w300
-                            )
-                          ),
-                          padding: EdgeInsets.all(12.0),
-                          margin: EdgeInsets.only(bottom: 8.0, left: 8.0, right: 8.0),
-                          width: 200.0,
-                        ),
-                      ],
-                      mainAxisAlignment: MainAxisAlignment.center,
-                    );
-                  } 
-                  else {
-                    // Users message
-                    Color backgroundColor = clients[message.clientId]?.color ?? Colors.grey;
-                    Color foregroundColor = backgroundColor.computeLuminance() >= 0.5 ? Colors.black : Colors.white;
-                    return Row(
-                      children: <Widget>[
-                        GestureDetector(
-                          onHorizontalDragEnd: (DragEndDetails details) {
-                            if (details.primaryVelocity > 17.0) {
-                              _removeMessage(index);
-                            }
-                          },
-                          child: Container(
-                            child: Text(message.content.length == 0 ? 'Message removed' : message.content, 
+      body: Listener(
+        behavior: HitTestBehavior.translucent,
+        onPointerMove: (_) {
+          // On any user gesture on app, mark last message as seen.
+          _notifySeen();
+        },
+        child: SafeArea(
+          child: Column(
+            children: <Widget>[
+              Flexible(
+                child: ListView.builder(
+                  padding: const EdgeInsets.all(12.0),
+                  controller: listScrollController,
+                  itemCount: messages.length,
+                  itemBuilder: (BuildContext context, int index) {
+                    final _MessageData message = messages[index];
+                    if (message.clientId == 0) {
+                      // Server message
+                      return Row(
+                        children: <Widget>[
+                          Container(
+                            child: Text(message.content, 
+                              textAlign: TextAlign.center,
                               style: TextStyle(
-                                color: foregroundColor, 
-                                fontStyle: message.content.length == 0 ? FontStyle.italic : null,
-                                fontWeight: message.content.length == 0 ? FontWeight.w300 : null,
+                                color: Colors.grey[700], 
+                                fontWeight: FontWeight.w300
                               )
                             ),
-                            padding: EdgeInsets.all(10.0),
-                            margin: EdgeInsets.only(bottom: 4.0, left: 4.0, right: 4.0),
-                            width: 200.0,
-                            decoration: BoxDecoration(
-                              color: backgroundColor, 
-                              borderRadius: BorderRadius.circular(8.0)
+                            padding: EdgeInsets.all(12.0),
+                            margin: EdgeInsets.only(bottom: 8.0, left: 8.0, right: 8.0),
+                            width: 300.0,
+                          ),
+                        ],
+                        mainAxisAlignment: MainAxisAlignment.center,
+                      );
+                    } 
+                    else {
+                      // Users message
+                      Color backgroundColor = clients[message.clientId]?.color ?? Colors.grey;
+                      Color foregroundColor = backgroundColor.computeLuminance() >= 0.5 ? Colors.black : Colors.white;
+                      return Column(
+                        children: <Widget>[
+                          GestureDetector(
+                            onHorizontalDragEnd: (DragEndDetails details) {
+                              if (details.primaryVelocity > 17.0) {
+                                _removeMessage(index);
+                              }
+                            },
+                            child: Container(
+                              child: Text(message.content.length == 0 ? 'Message removed' : message.content, 
+                                style: TextStyle(
+                                  color: foregroundColor, 
+                                  fontStyle: message.content.length == 0 ? FontStyle.italic : null,
+                                  fontWeight: message.content.length == 0 ? FontWeight.w300 : null,
+                                )
+                              ),
+                              padding: EdgeInsets.all(10.0),
+                              margin: EdgeInsets.only(bottom: 4.0, left: 4.0, right: 4.0),
+                              width: 200.0,
+                              decoration: BoxDecoration(
+                                color: backgroundColor, 
+                                borderRadius: BorderRadius.circular(8.0)
+                              ),
                             ),
                           ),
+                          (
+                            lastSeenUserMessageIndex == index ?
+                              Container(
+                                child: Text('Seen by all',
+                                  style: TextStyle(
+                                    color: Colors.grey,
+                                    fontWeight: FontWeight.w300,
+                                  ),
+                                  textScaleFactor: 0.85,
+                                ),
+                                margin: EdgeInsets.only(right: 8.0),
+                              ) : Container()
+                          )
+                        ],
+                        crossAxisAlignment: (
+                          message.clientId == localClientId ?
+                            CrossAxisAlignment.end :
+                            CrossAxisAlignment.start
                         )
-                      ],
-                      mainAxisAlignment: (
-                        message.clientId == localClientId ? 
-                          MainAxisAlignment.end : 
-                          MainAxisAlignment.start
-                      ),
-                    );
-                  }
-                },
-              )
-            ),
-            Row(
-              children: <Widget>[
-                Flexible(
-                  child: Container(
-                    margin: const EdgeInsets.only(left: 16.0),
-                    child: TextField(
-                      style: const TextStyle(fontSize: 15.0),
-                      controller: textEditingController,
-                      decoration: InputDecoration.collapsed(
-                        hintText: (
-                          isConnecting ? 'Wait until connected...' : 
-                          isConnected ? 'Type your message...' : 
-                          'Chat got disconnected'
+                      );
+                    }
+                  },
+                )
+              ),
+              Row(
+                children: <Widget>[
+                  Flexible(
+                    child: Container(
+                      margin: const EdgeInsets.only(left: 16.0),
+                      child: TextField(
+                        style: const TextStyle(fontSize: 15.0),
+                        controller: textEditingController,
+                        decoration: InputDecoration.collapsed(
+                          hintText: (
+                            isConnecting ? 'Wait until connected...' : 
+                            isConnected ? 'Type your message...' : 
+                            'Chat got disconnected'
+                          ),
+                          hintStyle: const TextStyle(color: Colors.grey),
                         ),
-                        hintStyle: const TextStyle(color: Colors.grey),
-                      ),
-                      enabled: isConnected,
+                        enabled: isConnected,
+                      )
                     )
-                  )
-                ),
-                Container(
-                  margin: const EdgeInsets.all(8.0),
-                  child: IconButton(
-                    icon: const Icon(Icons.send),
-                    onPressed: isConnected ? () => _pushMessage(textEditingController.text) : null
                   ),
-                ),
-              ]
-            )
-          ]
+                  Container(
+                    margin: const EdgeInsets.all(8.0),
+                    child: IconButton(
+                      icon: const Icon(Icons.send),
+                      onPressed: isConnected ? () => _pushMessage(textEditingController.text) : null
+                    ),
+                  ),
+                ]
+              )
+            ]
+          )
         )
       )
     );
@@ -260,32 +282,53 @@ class _ChatPage extends State<ChatPage> {
 
   void _onPacketReceived(int type, Iterable<int> data) {
     switch (type) {
-      case ChatPacketType.Message:
-        setState(() {
+      case ChatPacketType.Message: {
           // There is no `utf8.decode` working on `Iterator<int>` :C
           final List prefix = data.take(3).toList();
           final int clientId = prefix[0];
           final int messageId = prefix[1] * 0xFF + prefix[2];
           final String content = utf8.decode(data.skip(2).toList());
-          messages.add(_MessageData(content, id: messageId, clientId: clientId));
-        });
+          setState(() {
+            messages.add(_MessageData(content, id: messageId, clientId: clientId));
+          });
+          break;
+        }
+
+      case ChatPacketType.MessageSeen: {
+        List<int> prefix = data.take(2).toList();
+        final messageId = prefix[0] * 0xFF + prefix[1];
+        final int index = messages.lastIndexWhere((message) => message.id == messageId);
+        if (index != -1) {
+          setState(() {
+            if (index > lastSeenMessageIndex) {
+              lastSeenMessageIndex = index;
+              if (messages[index].clientId == 0) {
+                lastSeenUserMessageIndex = messages.lastIndexWhere((message) =>
+                  (message.clientId != 0) &&
+                  (message.id < messageId)
+                );
+              }
+              else {
+                lastSeenUserMessageIndex = index;
+              }
+            }
+          });
+        }
         break;
+      }
 
-      case ChatPacketType.MessageSeen:
-        // TODO: Multiple packet type still not implemented
-        throw 'not implemented';
-
-      case ChatPacketType.MessageRemoved:
-        setState(() {
-          List<int> prefix = data.take(2).toList();
-          final messageId = prefix[0] * 0xFF + prefix[1];
-          final int index = messages.lastIndexWhere((message) => message.id == messageId);
-          if (index != -1) {
+      case ChatPacketType.MessageRemoved: {
+        List<int> prefix = data.take(2).toList();
+        final messageId = prefix[0] * 0xFF + prefix[1];
+        final int index = messages.lastIndexWhere((message) => message.id == messageId);
+        if (index != -1) {
+          setState(() {
             //messages.removeAt(index);
             messages[index].content = '';
-          }
-        });
+          });
+        }
         break;
+      }
 
       case ChatPacketType.MessageRedacted:
         // TODO: Multiple packet type still not implemented
@@ -381,6 +424,25 @@ class _ChatPage extends State<ChatPage> {
     }
     final int messageId = messages[index].id;
     await this._connection.sendPacket(ChatPacketType.RemoveMessage, Uint8List.fromList([
+      messageId ~/ 0xFF,
+      messageId % 0xFF
+    ]));
+  }
+
+  void _notifySeen() {
+    if (!this._connection.isConnected) {
+      // Ignore, if not connected.
+      return;
+    }
+    if (lastSeenMessageIndex <= lastSeenMessageIndexReported) {
+      return;
+    }
+    if (messages.length - 1 <= lastSeenMessageIndex) {
+      return;
+    }
+    lastSeenMessageIndexReported = lastSeenMessageIndex;
+    final int messageId = messages.last.id;
+    this._connection.sendPacket(ChatPacketType.NotifyMessageSeen, Uint8List.fromList([
       messageId ~/ 0xFF,
       messageId % 0xFF
     ]));

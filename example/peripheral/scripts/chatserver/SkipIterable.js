@@ -39,6 +39,10 @@ class SkipIterable extends BaseIterable {
         }
     }
 
+    skip(count) {
+        return new SkipIterable(this._iterable, this._count + count)
+    }
+
     static registerIn(...types) {
         if (types.length == 0) {
             return this.registerIn(global.Array);

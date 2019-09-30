@@ -39,6 +39,10 @@ class TakeIterable extends BaseIterable {
         }
     }
 
+    take(count) {
+        return new TakeIterable(this._iterable, Math.min(this.count, count));
+    }
+
     static registerIn(...types) {
         if (types.length == 0) {
             return this.registerIn(global.Array);

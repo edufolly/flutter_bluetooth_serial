@@ -34,6 +34,10 @@ class ChainedIterables extends BaseIterable {
         return sum;
     }
 
+    chain(...others) {
+        return new ChainedIterables(this._iterables.concat([...others]));
+    }
+
     static registerIn(...types) {
         if (types.length == 0) {
             return this.registerIn(global.Array);
