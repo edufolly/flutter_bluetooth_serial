@@ -42,6 +42,8 @@ class _ClientInformationData {
   Color color;
   //String name;
 
+  bool muted = false;
+
   // NOTE(psychox): I was too lazy... Colors would be fine in example app :F
   String get name {
     /**/ if (color == Colors.pinkAccent)        return 'Pinky';
@@ -65,6 +67,26 @@ class _ClientInformationData {
   }
 }
 
+void _showDialog(context, text, {title = 'Warning'}) {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: Text(title),
+        content: Text(text),
+        actions: <Widget>[
+          FlatButton(
+            child: const Text("Close"),
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+          ),
+        ],
+      );
+    },
+  );
+}
+
 class ChatPage extends StatefulWidget {
   final BluetoothDevice server;
 
@@ -84,7 +106,9 @@ class _ChatPage extends State<ChatPage> {
   bool isDisconnecting = false;
 
   /* Chat context */
-  Map<int, _ClientInformationData> clients = <int, _ClientInformationData>{};
+  Map<int, _ClientInformationData> clients = <int, _ClientInformationData>{
+    0: _ClientInformationData(-1),
+  };
   int localClientId = 0;
 
   List<_MessageData> messages = <_MessageData>[];
@@ -255,12 +279,13 @@ class _ChatPage extends State<ChatPage> {
                         decoration: InputDecoration.collapsed(
                           hintText: (
                             isConnecting ? 'Wait until connected...' : 
-                            isConnected ? 'Type your message...' : 
-                            'Chat got disconnected'
+                            !isConnected ? 'Chat got disconnected' : 
+                            clients[localClientId].muted ? 'You are muted.' : 
+                            'Type your message...'
                           ),
                           hintStyle: const TextStyle(color: Colors.grey),
                         ),
-                        enabled: isConnected,
+                        enabled: isConnected && !clients[localClientId].muted,
                       )
                     )
                   ),
@@ -361,24 +386,89 @@ class _ChatPage extends State<ChatPage> {
         break;
       }
 
-      case ChatPacketType.UserKicked:
-      case ChatPacketType.UserMuted:
-      case ChatPacketType.UserUnmuted:
+      case ChatPacketType.UserKicked: {
+        final clientId = data.first;
+        if (clientId == localClientId) {
+          setState(() {
+            messages.add(_MessageData('You were kicked from the server!', clientId: 0));
+          });
+          // The connection will be closed by remote server, so chat will got
+          // disconnected and there will be proper message in text box.
+        }
+        else {
+          setState(() {
+            messages.add(_MessageData('User ${clients[clientId].name} was kicked from server!', clientId: 0));
+          });
+        }
+        break;
+      }
+
+      case ChatPacketType.UserMuted: {
+        final clientId = data.first;
+        _ClientInformationData client = clients[clientId];
+        client.muted = true;
+        if (clientId == localClientId) {
+          textEditingController.clear();
+          setState(() {
+            messages.add(_MessageData('You were muted on the server!', clientId: 0));
+          });
+        }
+        else {
+          setState(() {
+            messages.add(_MessageData('User ${client.name} was muted on the server!', clientId: 0));
+          });
+        }
+        break;
+      }
+
+      case ChatPacketType.UserUnmuted: {
+        final clientId = data.first;
+        _ClientInformationData client = clients[clientId];
+        client.muted = false;
+        if (clientId == localClientId) {
+          setState(() {
+            messages.add(_MessageData('You were unmuted on the server!', clientId: 0));
+          });
+        }
+        else {
+          setState(() {
+            messages.add(_MessageData('User ${client.name} was unmuted on the server!', clientId: 0));
+          });
+        }
+        break;
+      }
+
       case ChatPacketType.AskUserIdentification:
-      case ChatPacketType.InvalidOperation:
-      case ChatPacketType.NoPermissions:
-      case ChatPacketType.FloodWarning:
         // TODO: Multiple packet type still not implemented
         throw 'not implemented';
 
+      case ChatPacketType.InvalidOperation:
+        _showDialog(context, 'Invalid operation!');
+        break;
+
+      case ChatPacketType.NoPermissions: 
+        _showDialog(context, 'No permissions!');
+        break;
+
+      case ChatPacketType.FloodWarning:
+        _showDialog(context, 'Please do not spam!');
+        break;
+
       case ChatPacketType.MessageIdAssigned:
         if (messages.last.id != 0) {
-          // TODO: warning: id was already assigned
+          // Warning: Message ID was already assigned.
+          // Ignored, since its example app. In real world each message should 
+          // have client side indentifier that which would be used by server 
+          // to assign the message right global message id.
         }
         List<int> prefix = data.take(2).toList();
         final messageId = prefix[0] * 0xFF + prefix[1];
         if (messageId == 0) {
-          // TODO: warning: server rejected message
+          // Warning: Server rejected message.
+          // See above note too; In real world, below message to be removed 
+          // also should be 'confirmed' by server using client side message ID.
+          messages.removeLast();
+          _showDialog(context, 'Message was rejected by server!');
           return;
         }
         messages.last.id = messageId;

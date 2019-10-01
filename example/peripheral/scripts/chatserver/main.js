@@ -11,6 +11,11 @@ const ChatPacketType = require('./ChatPacketType.js');
 let serverRunning = true;
 let serverAddress = '';
 
+// TOOD: Instead of having united message IDs, client could hold `messageIdOffset` 
+//  and have the messages stored in array (which could prevent scanning while
+//  searching for specified message. Also, some messages could be periodicly
+//  dropped from storage, and offset could be updated (and also sent to server).
+
 let lastMessageId = 0;
 function getNextMessageId() {
     if (lastMessageId == 0xFFFF) { // Last 2 byte message ID 
@@ -23,7 +28,7 @@ function getNextMessageId() {
     }
     return ++lastMessageId
 }
-let lastUserId = 0;
+let lastClientId = 0;
 
 class MessageData extends Buffer {
     constructor(content, clientId = 0, messageId = undefined) {
@@ -44,7 +49,7 @@ let freeColors = Array(17).fill(undefined).map((_, i) => i + 1);
 
 class Client {
     constructor(serverPort, address, channel) {
-        this.id = ++lastUserId;
+        this.id = ++lastClientId;
         this.serverPort = serverPort;
         this.address = address;
         this.channel = channel;
@@ -55,6 +60,8 @@ class Client {
         this.colorId = freeColors.splice(Math.floor(Math.random() * freeColors.length), 1)[0];
 
         this.lastSeenMessageId = 0;
+
+        this.muted = false;
     }
 
     toString() {
@@ -66,11 +73,15 @@ class Client {
         return this.serverPort.sendPacket(type, data);
     }
 
+    kick() {
+        this._onClosed();
+    }
+
     _onClosed() {
-        this.serverPort.close();
         clients.delete(this);
         freePorts.push(this.channel);
         freeColors.push(this.colorId);
+        this.serverPort.close();
     }
 
     _onPacket(type, dataIterable) {
@@ -82,8 +93,13 @@ class Client {
                 // to broadcast the message (3 bytes broadcast packet header).
                 let buffer = Buffer.allocUnsafe(3 + dataIterable.length);
                 let it = dataIterable.iterator;
-                buffer[0] = this.id;
-                
+                const clientId = buffer[0] = this.id;
+
+                if (clients.getById(clientId).muted) {
+                    this.sendPacket(ChatPacketType.NoPermissions, Buffer.from('muted', 'utf-8'));
+                    return;
+                }
+
                 // Assign next message ID
                 const messageId = getNextMessageId();
                 buffer[1] = messageId / 0xFF;
@@ -175,9 +191,29 @@ class ClientsSet extends Set {
     }
 
     delete(client) {
-        super.delete(client);
-        console.info(`Client ${client.toString()} left the server`);
-        clients.broadcastPacket(ChatPacketType.UserLeft, Buffer.from([client.id]));
+        if (super.delete(client)) {
+            console.info(`Client ${client.toString()} left the server`);
+            clients.broadcastPacket(ChatPacketType.UserLeft, Buffer.from([client.id]));
+        }
+    }
+
+    getById(id) {
+        for (let client of this) {
+            if (client.id == id) {
+                return client;
+            }
+        }
+        return undefined;
+    }
+
+    getByAddress(address) {
+        address = address.toUpperCase();
+        for (let client of this) {
+            if (client.address == address) {
+                return client;
+            }
+        }
+        return undefined;
     }
 }
 
@@ -210,31 +246,87 @@ async function listenForNextClient(channel) {
 
     // await new Promise(resolve => setTimeout(resolve, 0x17));
 
-    return new Client(serverPort, clientAddress, channel);
+    return new Client(serverPort, clientAddress.toUpperCase(), channel);
+}
+
+function parseCommand(line) {
+    let parts = line.split(' ');
+
+    // Helper functions
+    function consumeForClient(part) {
+        // Try get client as ID
+        let clientId = parseInt(part);
+        if (clientId) {
+            let client = clients.getById(clientId);
+            if (client) {
+                return client;
+            }
+        }
+        // Try get client as address
+        let client = clients.getByAddress(part);
+        if (client) {
+            return client;
+        }
+        throw 'Client not found';
+    }
+
+    let commandName = parts[0].substring(1).toLowerCase();
+
+    try {
+        switch (commandName) {
+            case 'kick': {
+                let client = consumeForClient(parts[1]);
+                console.log(`Kicking client ${client.toString()}`);
+                clients.broadcastPacket(ChatPacketType.UserKicked, Buffer.from([client.id]));
+                setTimeout(() => client.kick(), 0x17);
+                break;
+            }
+            case 'mute': {
+                let client = consumeForClient(parts[1]);
+                if (client.muted) {
+                    console.warn(`Client ${client.toString()} already muted.`);
+                }
+                client.muted = true;
+                console.info(`Client ${client.toString()} muted.`);
+                clients.broadcastPacket(ChatPacketType.UserMuted, Buffer.from([client.id]));
+                break;
+            }
+            case 'unmute': {
+                let client = consumeForClient(parts[1]);
+                if (!client.muted) {
+                    console.warn(`Client ${client.toString()} is not muted.`);
+                }
+                client.muted = false;
+                console.info(`Client ${client.toString()} unmuted.`);
+                clients.broadcastPacket(ChatPacketType.UserUnmuted, Buffer.from([client.id]));
+                break;
+            }
+        }
+    }
+    catch (e) {
+        console.warn('Command failed: ', e);
+    }
 }
 
 // Main
 (async () => {
     serverAddress = execSync("hcitool dev | awk 'ORS=\"\";$0=$2'").toString();
     console.debug(`Server MAC address: ${serverAddress}`);
-    
+
     console.debug(`Setuping interface...`);
     let input = readline.createInterface({
         input: process.stdin,
         output: process.stdout
     }).on('line', (line) => {
+        if (line.startsWith('/shrug')) {
+            line = '¯\\_(ツ)_/¯ ' + line.substring(7);
+        }
         if (line.startsWith('/')) {
-            // TODO: special commands
-            if (line.startsWith('/shrug')) {
-                line = '¯\\_(ツ)_/¯ ' + line.substring(7);
-                getNextMessageId();
-                console.log(`#${('' + lastMessageId).padStart(4, '0')} <SRV ${serverAddress}> ${line}`);
-                clients.broadcastPacket(ChatPacketType.Message, new MessageData(line, 0, lastMessageId));
-            }
+            parseCommand(line);
         }
         else {
             if (clients.size == 0) {
-                console.warn('No clients connected');
+                console.warn('No clients connected to send this message.');
                 return;
             }
             getNextMessageId();
