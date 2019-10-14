@@ -115,6 +115,15 @@ class Client {
                 clients.broadcastPacket(ChatPacketType.Message, buffer, [this]);
                 this.sendPacket(ChatPacketType.MessageIdAssigned, Buffer.from([buffer[1], buffer[2]]));
 
+                // Updating seen message id, but not broadcasting,
+                // since the message is freshly pushed. What it's mean is, 
+                // if there is single user, there will be no 'seen', 
+                // but this is quite special situation...
+                // Also, please note that there is assumption, that message id
+                // numbers are considered as indexing. In some systems, 
+                // like multi-user distributed/decentralized systems, 
+                // there would be no such assumption - messages could be 
+                // received asynchronously by different users.
                 this.lastSeenMessageId = messageId;
                 break;
             }
@@ -137,10 +146,6 @@ class Client {
                     if (client.lastSeenMessageId < messageId) {
                         return;
                     }
-                }
-
-                if (messageId > this.lastSeenMessageId) {
-                    this.lastSeenMessageId = messageId;
                 }
 
                 clients.broadcastPacket(ChatPacketType.MessageSeen, Buffer.from([high, low]));
@@ -180,7 +185,7 @@ class ClientsSet extends Set {
                 continue;
             }
 
-            client.serverPort.sendPacket(type, data);
+            client.sendPacket(type, data);
         }
     };
 

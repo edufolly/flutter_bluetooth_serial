@@ -472,6 +472,9 @@ class _ChatPage extends State<ChatPage> {
           return;
         }
         messages.last.id = messageId;
+        setState(() {
+          lastSeenUserMessageIndex = lastSeenMessageIndex = messages.length - 1; 
+        });
         break;
 
       default:
