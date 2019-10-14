@@ -163,13 +163,15 @@ class BluetoothConnectionAsPackets {
       ]));
     }
     else {
-      connection.output.add(Uint8List.fromList([
-        (type >> 8) & 0xFF, 
-        type & 0xFF, 
-        (data.length >> 8) & 0xFF, 
-        data.length & 0xFF
-      ]));
-      connection.output.add(data);
+      connection.output.addIterable(<Uint8List>[
+        Uint8List.fromList([
+          (type >> 8) & 0xFF, 
+          type & 0xFF, 
+          (data.length >> 8) & 0xFF, 
+          data.length & 0xFF
+        ]),
+        data
+      ]);
     }
     await connection.output.allSent;
   }
