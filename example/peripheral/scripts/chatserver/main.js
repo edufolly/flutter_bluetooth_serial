@@ -11,6 +11,12 @@ const ChatPacketType = require('./ChatPacketType.js');
 let serverRunning = true;
 let serverAddress = '';
 
+let serverOptions = {
+    floodCounter: 3,
+    floodDisconnectThreshold: 33,
+    floodCounterRecoveryTimeout: 3333
+};
+
 // TOOD: Instead of having united message IDs, client could hold `messageIdOffset` 
 //  and have the messages stored in array (which could prevent scanning while
 //  searching for specified message. Also, some messages could be periodicly
@@ -62,6 +68,7 @@ class Client {
         this.lastSeenMessageId = 0;
 
         this.muted = false;
+        this.floodCounter = 0;
     }
 
     toString() {
@@ -100,16 +107,33 @@ class Client {
                     return;
                 }
 
+                // Prepare data 
+                for (let i = 3; i < dataIterable.length + 3; i++) {
+                    buffer[i] = it.next().value;
+                }
+                const text = buffer.toString('utf-8', 3);
+
+                if (this.floodCounter >= serverOptions.floodCounter) {
+                    this.sendPacket(ChatPacketType.FloodWarning);
+                    if (this.floodCounter >= serverOptions.floodDisconnectThreshold) {
+                        console.log(`Kicking client ${this.toString()} due to flooding`);
+                        clients.broadcastPacket(ChatPacketType.UserKicked, Buffer.from([this.id]));
+                        setTimeout(() => this.kick(), 0x17);
+                        return;
+                    }
+                    console.log(`Client ${this.toString()} warned about flooding (level: ${this.floodCounter}, message: ${text})`);
+                    return;
+                }
+                this.floodCounter += 1;
+                setTimeout(() => {
+                    this.floodCounter -= 1;
+                }, serverOptions.floodCounterRecoveryTimeout);
+
                 // Assign next message ID
                 const messageId = getNextMessageId();
                 buffer[1] = messageId / 0xFF;
                 buffer[2] = messageId % 0xFF;
 
-                for (let i = 3; i < dataIterable.length + 3; i++) {
-                    buffer[i] = it.next().value;
-                }
-
-                const text = buffer.toString('utf-8', 3);
                 console.log(`#${('' + messageId).padStart(4, '0')} <${this.toString()}> ${text}`);
 
                 clients.broadcastPacket(ChatPacketType.Message, buffer, [this]);
