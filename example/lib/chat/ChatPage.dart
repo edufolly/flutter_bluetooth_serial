@@ -452,6 +452,7 @@ class _ChatPage extends State<ChatPage> {
 
       case ChatPacketType.FloodWarning:
         _showDialog(context, 'Please do not spam!');
+        messages.removeLast();
         break;
 
       case ChatPacketType.MessageIdAssigned:
