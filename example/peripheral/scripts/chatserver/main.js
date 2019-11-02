@@ -94,40 +94,42 @@ class Client {
     _onPacket(type, dataIterable) {
         switch (type) {
             case ChatPacketType.PushMessage: {
-                // There seems to be no way to directly decode Iterator of 
-                // bytes (ints < 256) into String (at least in basic modules).
-                // Starting with 3 bytes gap to avoid further copying in order
-                // to broadcast the message (3 bytes broadcast packet header).
-                let buffer = Buffer.allocUnsafe(3 + dataIterable.length);
-                let it = dataIterable.iterator;
-                const clientId = buffer[0] = this.id;
+                const clientId = this.id;
 
                 if (clients.getById(clientId).muted) {
                     this.sendPacket(ChatPacketType.NoPermissions, Buffer.from('muted', 'utf-8'));
                     return;
                 }
 
-                // Prepare data 
-                for (let i = 3; i < dataIterable.length + 3; i++) {
-                    buffer[i] = it.next().value;
-                }
-                const text = buffer.toString('utf-8', 3);
-
                 if (this.floodCounter >= serverOptions.floodCounter) {
                     this.sendPacket(ChatPacketType.FloodWarning);
                     if (this.floodCounter >= serverOptions.floodDisconnectThreshold) {
                         console.log(`Kicking client ${this.toString()} due to flooding`);
-                        clients.broadcastPacket(ChatPacketType.UserKicked, Buffer.from([this.id]));
+                        clients.broadcastPacket(ChatPacketType.UserKicked, Buffer.from([clientId]));
                         setTimeout(() => this.kick(), 0x17);
                         return;
                     }
-                    console.log(`Client ${this.toString()} warned about flooding (level: ${this.floodCounter}, message: ${text})`);
+                    console.log(`Client ${this.toString()} warned about flooding (level: ${this.floodCounter})`);
                     return;
                 }
                 this.floodCounter += 1;
                 setTimeout(() => {
                     this.floodCounter -= 1;
                 }, serverOptions.floodCounterRecoveryTimeout);
+
+                // There seems to be no way to directly decode Iterator of 
+                // bytes (ints < 256) into String (at least in basic modules).
+                // Starting with 3 bytes gap to avoid further copying in order
+                // to broadcast the message (3 bytes broadcast packet header).
+                let it = dataIterable.iterator;
+                let buffer = Buffer.allocUnsafe(3 + dataIterable.length);
+                buffer[0] = clientId;
+
+                // Prepare data 
+                for (let i = 3; i < dataIterable.length + 3; i++) {
+                    buffer[i] = it.next().value;
+                }
+                const text = buffer.toString('utf-8', 3);
 
                 // Assign next message ID
                 const messageId = getNextMessageId();
@@ -330,6 +332,9 @@ function parseCommand(line) {
                 clients.broadcastPacket(ChatPacketType.UserUnmuted, Buffer.from([client.id]));
                 break;
             }
+            default:
+                console.warn(`Unknown server console command: ${commandName}`);
+                break;
         }
     }
     catch (e) {
