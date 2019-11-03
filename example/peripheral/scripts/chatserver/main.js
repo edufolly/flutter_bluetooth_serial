@@ -141,8 +141,8 @@ class Client {
     _onPacket(type, dataIterable) {
         switch (type) {
             case ChatPacketType.PushMessage: {
-                encounterMutedCheck(this);
                 encounterFloodingCheck(this);
+                encounterMutedCheck(this);
 
                 // There seems to be no way to directly decode Iterator of 
                 // bytes (ints < 256) into String (at least in basic modules).
@@ -232,8 +232,8 @@ class Client {
             }
 
             case ChatPacketType.EditMessage: {
-                encounterMutedCheck(this);
                 encounterFloodingCheck(this);
+                encounterMutedCheck(this);
 
                 let it = dataIterable.iterator;
                 const messageIdHigh = it.next().value;
