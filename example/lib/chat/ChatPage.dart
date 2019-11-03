@@ -215,7 +215,7 @@ class _ChatPage extends State<ChatPage> {
                             ),
                             padding: EdgeInsets.all(12.0),
                             margin: EdgeInsets.only(bottom: 8.0, left: 8.0, right: 8.0),
-                            width: 300.0,
+                            width: MediaQuery.of(context).size.width * 0.75,
                           ),
                         ],
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -249,7 +249,7 @@ class _ChatPage extends State<ChatPage> {
                               ),
                               padding: EdgeInsets.all(10.0),
                               margin: EdgeInsets.only(bottom: 4.0, left: 4.0, right: 4.0),
-                              width: 200.0,
+                              width: MediaQuery.of(context).size.width * 0.55,
                               decoration: BoxDecoration(
                                 color: backgroundColor, 
                                 borderRadius: BorderRadius.circular(8.0)
@@ -371,8 +371,6 @@ class _ChatPage extends State<ChatPage> {
       case ChatPacketType.MessageRedacted: {
         final List prefix = data.take(2).toList();
         final int messageId = prefix[0] * 0xFF + prefix[1];
-        debugPrint('MessageRedacted MessageRedacted MessageRedacted ');
-        debugPrint('MessageRedacted id: $messageId');
         final int index = messages.lastIndexWhere((message) => message.id == messageId);
         if (index != -1) {
           final String content = utf8.decode(data.skip(2).toList());
@@ -387,12 +385,18 @@ class _ChatPage extends State<ChatPage> {
         List<int> prefix = data.take(2).toList();
         final clientId = prefix[0];
         final colorId = prefix[1];
+
+        // After local client joined, got the ID for itself
         if (localClientId == 0) {
           localClientId = clientId;
           // Note: For now there is no `name` in `_ClientInformationData` (see this class for details)
           clients[clientId] = _ClientInformationData(colorId);
           return;
         }
+
+        // Any further clients joined - these are other clients
+        clients[clientId] = _ClientInformationData(colorId);
+
         final name = clients[clientId].name;
         setState(() {
           messages.add(_MessageData('User $name joined to the server!', clientId: 0));
@@ -497,9 +501,6 @@ class _ChatPage extends State<ChatPage> {
           return;
         }
         messages.last.id = messageId;
-        setState(() {
-          lastSeenUserMessageIndex = lastSeenMessageIndex = messages.length - 1; 
-        });
         break;
 
       default:
