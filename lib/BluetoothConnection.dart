@@ -151,10 +151,37 @@ class _BluetoothStreamSink<Uint8List> extends StreamSink<Uint8List> {
     });
   }
 
-  /// Unsupported - this ouput sink cannot pass errors to platfom code.
-  @override
-  void addError(Object error, [StackTrace stackTrace]) {
-    throw UnsupportedError("BluetoothConnection output (response) sink cannot receive errors!");
+  /// Adds multiple raw bytes parts to the output sink. 
+  /// 
+  /// This is guaranted to send the data sequently in constrast to `this.add`
+  /// which might allow to simultaneous addition from multiple threads.
+  /// 
+  /// Please note, that passed `dataIterable` is not copied - you should not 
+  /// modify it while until `this.allSent` future completed.
+  /// 
+  /// The data is sent almost immediately, but if you want to be sure,
+  /// there is `this.allSent` that provides future which completes when
+  /// all added data are sent. 
+  /// 
+  /// You should use some encoding to send string, for example `ascii.encode('Hello!')` or `utf8.encode('Cześć!)`. 
+  /// 
+  /// Might throw `StateError("Not connected!")` if not connected.
+  void addIterable(Iterable<Uint8List> dataIterable) {
+    if (!isConnected) {
+      throw StateError("Not connected!");
+    }
+
+    _chainedFutures = _chainedFutures.then((_) async {
+      for (final Uint8List data in dataIterable) {
+        if (!isConnected) {
+          throw StateError("Not connected!");
+        }
+        await FlutterBluetoothSerial._methodChannel.invokeMethod('write', {'id': _id, 'bytes': data});
+      }
+    }).catchError((e) {
+      this.exception = e;
+      close();
+    });
   }
 
   @override
@@ -172,6 +199,12 @@ class _BluetoothStreamSink<Uint8List> extends StreamSink<Uint8List> {
     await completer.future;
     await _chainedFutures; // Wait last* `add` of the stream to be fulfilled
   });
+
+  /// Unsupported - this ouput sink cannot pass errors to platfom code.
+  @override
+  void addError(Object error, [StackTrace stackTrace]) {
+    throw UnsupportedError("BluetoothConnection output (response) sink cannot receive errors!");
+  }
 
   @override
   Future close() {

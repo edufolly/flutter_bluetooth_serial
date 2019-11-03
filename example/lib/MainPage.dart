@@ -5,7 +5,7 @@ import 'package:scoped_model/scoped_model.dart';
 
 import './DiscoveryPage.dart';
 import './SelectBondedDevicePage.dart';
-import './ChatPage.dart';
+import './chat/ChatPage.dart';
 import './BackgroundCollectingTask.dart';
 import './BackgroundCollectedPage.dart';
 
