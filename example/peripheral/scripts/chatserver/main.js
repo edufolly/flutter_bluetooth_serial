@@ -36,6 +36,30 @@ function getNextMessageId() {
 }
 let lastClientId = 0;
 
+function encounterMutedCheck(client) {
+    if (clients.getById(client.id).muted) {
+        client.sendPacket(ChatPacketType.NoPermissions, Buffer.from('muted', 'utf-8'));
+        return;
+    }
+}
+function encounterFloodingCheck(client) {
+    if (client.floodCounter >= serverOptions.floodCounter) {
+        client.sendPacket(ChatPacketType.FloodWarning);
+        if (client.floodCounter >= serverOptions.floodDisconnectThreshold) {
+            console.log(`Kicking client ${client.toString()} due to flooding`);
+            clients.broadcastPacket(ChatPacketType.UserKicked, Buffer.from([client.id]));
+            setTimeout(() => client.kick(), 0x17);
+            return;
+        }
+        console.log(`Client ${client.toString()} warned about flooding (level: ${client.floodCounter})`);
+        return;
+    }
+    client.floodCounter += 1;
+    setTimeout(() => {
+        client.floodCounter -= 1;
+    }, serverOptions.floodCounterRecoveryTimeout);
+}
+
 class MessageData extends Buffer {
     constructor(content, clientId = 0, messageId = undefined) {
         if (messageId == undefined) {
@@ -94,28 +118,8 @@ class Client {
     _onPacket(type, dataIterable) {
         switch (type) {
             case ChatPacketType.PushMessage: {
-                const clientId = this.id;
-
-                if (clients.getById(clientId).muted) {
-                    this.sendPacket(ChatPacketType.NoPermissions, Buffer.from('muted', 'utf-8'));
-                    return;
-                }
-
-                if (this.floodCounter >= serverOptions.floodCounter) {
-                    this.sendPacket(ChatPacketType.FloodWarning);
-                    if (this.floodCounter >= serverOptions.floodDisconnectThreshold) {
-                        console.log(`Kicking client ${this.toString()} due to flooding`);
-                        clients.broadcastPacket(ChatPacketType.UserKicked, Buffer.from([clientId]));
-                        setTimeout(() => this.kick(), 0x17);
-                        return;
-                    }
-                    console.log(`Client ${this.toString()} warned about flooding (level: ${this.floodCounter})`);
-                    return;
-                }
-                this.floodCounter += 1;
-                setTimeout(() => {
-                    this.floodCounter -= 1;
-                }, serverOptions.floodCounterRecoveryTimeout);
+                encounterMutedCheck(this);
+                encounterFloodingCheck(this);
 
                 // There seems to be no way to directly decode Iterator of 
                 // bytes (ints < 256) into String (at least in basic modules).
@@ -123,7 +127,7 @@ class Client {
                 // to broadcast the message (3 bytes broadcast packet header).
                 let it = dataIterable.iterator;
                 let buffer = Buffer.allocUnsafe(3 + dataIterable.length);
-                buffer[0] = clientId;
+                buffer[0] = this.id;
 
                 // Prepare data 
                 for (let i = 3; i < dataIterable.length + 3; i++) {
@@ -188,12 +192,36 @@ class Client {
                 clients.broadcastPacket(ChatPacketType.MessageRemoved, Buffer.from([high, low]));
                 break;
             }
-            case ChatPacketType.EditMessage:
-            //case ChatPacketType.UpdateUserInfo:
-            //case ChatPacketType.AskUserInfo:
-                // TODO: Multiple packet type still not implemented
-                throw 'not implemented';
-            
+
+            case ChatPacketType.EditMessage: {
+                encounterMutedCheck(this);
+                encounterFloodingCheck(this);
+
+                let it = dataIterable.iterator;
+                const messageIdHigh = it.next().value;
+                const messageIdLow  = it.next().value;
+                const messageId = messageIdHigh * 0xFF + messageIdLow;
+
+                // TODO: Check was the message originaly posted by the same client - if not, raise NoPermission.
+
+                // TOOD: Check was the message removed - if so, prevent editing
+
+                let buffer = Buffer.allocUnsafe(dataIterable.length);
+                buffer[0] = messageIdHigh;
+                buffer[1] = messageIdLow;
+
+                // Prepare data 
+                for (let i = 2; i < dataIterable.length + 2; i++) {
+                    buffer[i] = it.next().value;
+                }
+                const text = buffer.toString('utf-8', 2);
+
+                console.log(`#${('' + messageId).padStart(4, '0')} <${this.toString()}> ${text}`);
+
+                clients.broadcastPacket(ChatPacketType.MessageRedacted, buffer);
+                break;
+            }
+
             default:
                 console.warn(`Unhandled packet type: ${type}`);
                 break;

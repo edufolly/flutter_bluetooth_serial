@@ -115,8 +115,10 @@ class _ChatPage extends State<ChatPage> {
   int lastSeenMessageIndex = -1;
   int lastSeenMessageIndexReported = -2;
   int lastSeenUserMessageIndex = -1;
+  int editingMessageId = -1;
 
   /* User interface */
+  final FocusNode textFieldFocusNode = new FocusNode();
   final TextEditingController textEditingController = new TextEditingController();
   final ScrollController listScrollController = new ScrollController();
 
@@ -166,6 +168,7 @@ class _ChatPage extends State<ChatPage> {
       _connection = null;
     }
 
+    textFieldFocusNode.dispose();
     textEditingController.dispose();
     listScrollController.dispose();
 
@@ -230,6 +233,12 @@ class _ChatPage extends State<ChatPage> {
                                 _removeMessage(index);
                               }
                             },
+                            onLongPress: () {
+                              // Start editing message
+                              editingMessageId = messages[index].id;
+                              textEditingController.text = messages[index].content;
+                              FocusScope.of(context).requestFocus(textFieldFocusNode);
+                            },
                             child: Container(
                               child: Text(message.content.length == 0 ? 'Message removed' : message.content, 
                                 style: TextStyle(
@@ -278,6 +287,7 @@ class _ChatPage extends State<ChatPage> {
                       margin: const EdgeInsets.only(left: 16.0),
                       child: TextField(
                         style: const TextStyle(fontSize: 15.0),
+                        focusNode: textFieldFocusNode,
                         controller: textEditingController,
                         decoration: InputDecoration.collapsed(
                           hintText: (
@@ -296,7 +306,7 @@ class _ChatPage extends State<ChatPage> {
                     margin: const EdgeInsets.all(8.0),
                     child: IconButton(
                       icon: const Icon(Icons.send),
-                      onPressed: isConnected ? () => _pushMessage(textEditingController.text) : null
+                      onPressed: isConnected ? () => _enterMessage() : null
                     ),
                   ),
                 ]
@@ -358,9 +368,20 @@ class _ChatPage extends State<ChatPage> {
         break;
       }
 
-      case ChatPacketType.MessageRedacted:
-        // TODO: Multiple packet type still not implemented
-        throw 'not implemented';
+      case ChatPacketType.MessageRedacted: {
+        final List prefix = data.take(2).toList();
+        final int messageId = prefix[0] * 0xFF + prefix[1];
+        debugPrint('MessageRedacted MessageRedacted MessageRedacted ');
+        debugPrint('MessageRedacted id: $messageId');
+        final int index = messages.lastIndexWhere((message) => message.id == messageId);
+        if (index != -1) {
+          final String content = utf8.decode(data.skip(2).toList());
+          setState(() {
+            messages[index].content = content;
+          });
+        }
+        break;
+      }
 
       case ChatPacketType.UserJoined: {
         List<int> prefix = data.take(2).toList();
@@ -487,8 +508,8 @@ class _ChatPage extends State<ChatPage> {
     }
   }
 
-  void _pushMessage(String text) async {
-    text = text.trim();
+  void _enterMessage() async {
+    String text = textEditingController.text.trim();
     textEditingController.clear();
 
     if (text.length > 0)  {
@@ -497,15 +518,33 @@ class _ChatPage extends State<ChatPage> {
       }
 
       try {
-        await this._connection.sendPacket(ChatPacketType.PushMessage, utf8.encode(text));
+        // New message
+        if (editingMessageId == -1) {
+          await this._connection.sendPacket(ChatPacketType.PushMessage, utf8.encode(text));
 
-        setState(() {
-          messages.add(_MessageData(text, clientId: localClientId));
-        });
+          setState(() {
+            messages.add(_MessageData(text, clientId: localClientId));
+          });
 
-        Future.delayed(Duration(milliseconds: 111)).then((_) {
-          listScrollController.animateTo(listScrollController.position.maxScrollExtent, duration: Duration(milliseconds: 333), curve: Curves.easeOut);
-        });
+          Future.delayed(Duration(milliseconds: 111)).then((_) {
+            listScrollController.animateTo(listScrollController.position.maxScrollExtent, duration: Duration(milliseconds: 333), curve: Curves.easeOut);
+          });
+        }
+        // Editing message
+        else {
+          // There is no `utf8.encode` encoding to `Iterator<int>` :C
+          final List<int> list = [
+            editingMessageId ~/ 0xFF,
+            editingMessageId % 0xFF,
+          ];
+          list.addAll(utf8.encode(text));
+          final Uint8List data = Uint8List.fromList(list);
+
+          // End editing
+          editingMessageId = -1;
+
+          await this._connection.sendPacket(ChatPacketType.EditMessage, data);
+        }
       }
       catch (e) {
         // Ignore error, but notify state
