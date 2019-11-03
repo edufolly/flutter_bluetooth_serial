@@ -166,6 +166,9 @@ class _ChatPage extends State<ChatPage> {
       _connection = null;
     }
 
+    textEditingController.dispose();
+    listScrollController.dispose();
+
     super.dispose();
   }
 
@@ -312,7 +315,7 @@ class _ChatPage extends State<ChatPage> {
           final List prefix = data.take(3).toList();
           final int clientId = prefix[0];
           final int messageId = prefix[1] * 0xFF + prefix[2];
-          final String content = utf8.decode(data.skip(2).toList());
+          final String content = utf8.decode(data.skip(3).toList());
           setState(() {
             messages.add(_MessageData(content, id: messageId, clientId: clientId));
           });

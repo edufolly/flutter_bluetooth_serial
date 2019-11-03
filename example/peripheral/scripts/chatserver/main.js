@@ -47,7 +47,7 @@ class MessageData extends Buffer {
         this[0] = clientId;
         this[1] = messageId / 0xFF;
         this[2] = messageId % 0xFF;
-        this.write(content, 2, 'utf-8');
+        this.write(content, 3, 'utf-8');
     }
 }
 
