@@ -19,8 +19,8 @@ class ChatPacketType {
     static UserKicked           = 0x0C03; // Specified user was kicked from the server.
     static UserMuted            = 0x0C04; // Specified user was muted.
     static UserUnmuted          = 0x0C05; // Specified user was unmuted.
-    // static UserInfo             = 0x0C10; // Specified user info (initial or update).
-    
+    static UserInfo             = 0x0C10; // Specified user info (initial or update).
+
     // Server informs specified client...
     static AskUserIdentification= 0x0D00; // Ask for renewed user identification.
     static InvalidOperation     = 0x0D01; // The user tried to do invalid operation.

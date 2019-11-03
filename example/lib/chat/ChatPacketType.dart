@@ -21,7 +21,8 @@ class ChatPacketType {
     static const UserKicked           = 0x0C03; // Specified user was kicked from the server.
     static const UserMuted            = 0x0C04; // Specified user was muted.
     static const UserUnmuted          = 0x0C05; // Specified user was unmuted.
-    
+    static const UserInfo             = 0x0C10; // Specified user info (initial or update).
+
     // Server informs specified client...
     static const AskUserIdentification= 0x0D00; // Ask for renewed user identification.
     static const InvalidOperation     = 0x0D01; // The user tried to do invalid operation.

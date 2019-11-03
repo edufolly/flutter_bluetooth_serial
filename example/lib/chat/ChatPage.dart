@@ -466,9 +466,13 @@ class _ChatPage extends State<ChatPage> {
         break;
       }
 
-      case ChatPacketType.AskUserIdentification:
-        // TODO: Multiple packet type still not implemented
-        throw 'not implemented';
+      case ChatPacketType.UserInfo: {
+        List<int> prefix = data.take(2).toList();
+        final clientId = prefix[0];
+        final colorId = prefix[1];
+        clients[clientId] = _ClientInformationData(colorId);
+        break;
+      }
 
       case ChatPacketType.InvalidOperation:
         _showDialog(context, 'Invalid operation!');

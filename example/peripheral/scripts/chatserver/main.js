@@ -291,6 +291,15 @@ class ClientsSet extends Set {
         super.add(client);
         console.info(`Client ${client.toString()} joined the server`);
         clients.broadcastPacket(ChatPacketType.UserJoined, Buffer.from([client.id, client.colorId]));
+
+        // Send info about all other clients that are already connected
+        for (const other of this) {
+            if (other == client) {
+                continue;
+            }
+
+            client.sendPacket(ChatPacketType.UserInfo, Buffer.from([other.id, other.colorId]))
+        }
     }
 
     delete(client) {
