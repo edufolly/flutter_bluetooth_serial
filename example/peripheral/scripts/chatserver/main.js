@@ -75,6 +75,29 @@ class MessageData extends Buffer {
     }
 }
 
+class MessageHistoryEntry {
+    constructor(data) {
+        // this._data = data;
+        // For now, only these are required:
+        this.clientId = data[0];
+        this.removed = false;
+    }
+
+    // get clientId() {
+    //     return this._data[0];
+    // }
+
+    // get messageId() {
+    //     return this._data[1] * 0xFF + this._data[2];
+    // }
+
+    // get contentAsString() {
+    //     return this._data.toString('utf-8', 3);
+    // }
+}
+
+let messages = [];
+
 let freeColors = Array(17).fill(undefined).map((_, i) => i + 1);
 
 class Client {
@@ -140,6 +163,9 @@ class Client {
                 buffer[1] = messageId / 0xFF;
                 buffer[2] = messageId % 0xFF;
 
+                // Add to history
+                messages[messageId] = new MessageHistoryEntry(buffer);
+
                 console.log(`#${('' + messageId).padStart(4, '0')} <${this.toString()}> ${text}`);
 
                 clients.broadcastPacket(ChatPacketType.Message, buffer, [this]);
@@ -187,7 +213,19 @@ class Client {
                 const high = it.next().value;
                 const low = it.next().value;
                 const messageId = (high * 0xFF + low);
-                // TODO: Allow only removing/editing messages added by the same user (requires message history).
+
+                if (messages[messageId].clientId != this.id) {
+                    this.sendPacket(ChatPacketType.NoPermissions, Buffer.from('not message owner', 'utf-8'));
+                    return;
+                }
+
+                if (messages[messageId].removed) {
+                    this.sendPacket(ChatPacketType.InvalidOperation, Buffer.from('message removed', 'utf-8'));
+                    return;
+                }
+
+                messages[messageId].removed = true;
+
                 console.log(`Client ${this.toString()} removes message #${('' + messageId).padStart(4, '0')}`);
                 clients.broadcastPacket(ChatPacketType.MessageRemoved, Buffer.from([high, low]));
                 break;
@@ -202,9 +240,15 @@ class Client {
                 const messageIdLow  = it.next().value;
                 const messageId = messageIdHigh * 0xFF + messageIdLow;
 
-                // TODO: Check was the message originaly posted by the same client - if not, raise NoPermission.
+                if (messages[messageId].clientId != this.id) {
+                    this.sendPacket(ChatPacketType.NoPermissions, Buffer.from('not message owner', 'utf-8'));
+                    return;
+                }
 
-                // TOOD: Check was the message removed - if so, prevent editing
+                if (messages[messageId].removed) {
+                    this.sendPacket(ChatPacketType.InvalidOperation, Buffer.from('message removed', 'utf-8'));
+                    return;
+                }
 
                 let buffer = Buffer.allocUnsafe(dataIterable.length);
                 buffer[0] = messageIdHigh;
