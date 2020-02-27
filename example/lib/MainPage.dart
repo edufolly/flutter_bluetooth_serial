@@ -9,7 +9,7 @@ import './ChatPage.dart';
 import './BackgroundCollectingTask.dart';
 import './BackgroundCollectedPage.dart';
 
-//import './LineChart.dart';
+// import './helpers/LineChart.dart';
 
 class MainPage extends StatefulWidget {
   @override
