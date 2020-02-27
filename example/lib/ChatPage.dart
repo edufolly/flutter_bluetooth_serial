@@ -22,7 +22,6 @@ class _Message {
 
 class _ChatPage extends State<ChatPage> {
   static final clientID = 0;
-  static final maxMessageLength = 4096 - 3;
   BluetoothConnection connection;
 
   List<_Message> messages = List<_Message>();
@@ -181,7 +180,6 @@ class _ChatPage extends State<ChatPage> {
     String dataString = String.fromCharCodes(buffer);
     int index = buffer.indexOf(13);
     if (~index != 0) {
-      // \r\n
       setState(() {
         messages.add(_Message(
             1,
