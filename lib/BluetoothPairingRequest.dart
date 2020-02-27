@@ -8,42 +8,60 @@ class PairingVariant {
 
   factory PairingVariant.fromUnderlyingValue(int value) {
     switch (value) {
-      case 0: return PairingVariant.Pin;
-      case 1: return PairingVariant.Passkey;
-      case 2: return PairingVariant.PasskeyConfirmation;
-      case 3: return PairingVariant.Consent;
-      case 4: return PairingVariant.DisplayPasskey;
-      case 5: return PairingVariant.DisplayPin;
-      case 6: return PairingVariant.OOB;
-      case 7: return PairingVariant.Pin16Digits;
-      default:return PairingVariant.Error;
+      case 0:
+        return PairingVariant.Pin;
+      case 1:
+        return PairingVariant.Passkey;
+      case 2:
+        return PairingVariant.PasskeyConfirmation;
+      case 3:
+        return PairingVariant.Consent;
+      case 4:
+        return PairingVariant.DisplayPasskey;
+      case 5:
+        return PairingVariant.DisplayPin;
+      case 6:
+        return PairingVariant.OOB;
+      case 7:
+        return PairingVariant.Pin16Digits;
+      default:
+        return PairingVariant.Error;
     }
   }
   int toUnderlyingValue() => underlyingValue;
 
   String toString() {
     switch (underlyingValue) {
-      case 0: return 'PairingVariant.Pin';
-      case 1: return 'PairingVariant.Passkey';
-      case 2: return 'PairingVariant.PasskeyConfirmation';
-      case 3: return 'PairingVariant.Consent';
-      case 4: return 'PairingVariant.DisplayPasskey';
-      case 5: return 'PairingVariant.DisplayPin';
-      case 6: return 'PairingVariant.OOB';
-      case 7: return 'PairingVariant.Pin16Digits';
-      default:return 'PairingVariant.Error';
+      case 0:
+        return 'PairingVariant.Pin';
+      case 1:
+        return 'PairingVariant.Passkey';
+      case 2:
+        return 'PairingVariant.PasskeyConfirmation';
+      case 3:
+        return 'PairingVariant.Consent';
+      case 4:
+        return 'PairingVariant.DisplayPasskey';
+      case 5:
+        return 'PairingVariant.DisplayPin';
+      case 6:
+        return 'PairingVariant.OOB';
+      case 7:
+        return 'PairingVariant.Pin16Digits';
+      default:
+        return 'PairingVariant.Error';
     }
   }
 
-  static const Error                = PairingVariant._(-1);
-  static const Pin                  = PairingVariant._(0);
-  static const Passkey              = PairingVariant._(1);
-  static const PasskeyConfirmation  = PairingVariant._(2);
-  static const Consent              = PairingVariant._(3);
-  static const DisplayPasskey       = PairingVariant._(4);
-  static const DisplayPin           = PairingVariant._(5);
-  static const OOB                  = PairingVariant._(6);
-  static const Pin16Digits          = PairingVariant._(7);
+  static const Error = PairingVariant._(-1);
+  static const Pin = PairingVariant._(0);
+  static const Passkey = PairingVariant._(1);
+  static const PasskeyConfirmation = PairingVariant._(2);
+  static const Consent = PairingVariant._(3);
+  static const DisplayPasskey = PairingVariant._(4);
+  static const DisplayPin = PairingVariant._(5);
+  static const OOB = PairingVariant._(6);
+  static const Pin16Digits = PairingVariant._(7);
 
   // operator ==(Object other) {
   //   return other is PairingVariant && other.underlyingValue == this.underlyingValue;
@@ -66,7 +84,7 @@ class BluetoothPairingRequest {
 
   /// Construct `BluetoothPairingRequest` with given values.
   const BluetoothPairingRequest({
-    this.address, 
+    this.address,
     this.pairingVariant,
     this.passkey,
   });

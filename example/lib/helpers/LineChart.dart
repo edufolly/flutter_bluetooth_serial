@@ -1,6 +1,6 @@
 /// @name LineChart
 /// @version 0.0.5
-/// @description Simple line chart widget 
+/// @description Simple line chart widget
 /// @author Patryk "PsychoX" Ludwikowski <patryk.ludwikowski.7+dart@gmail.com>
 /// @license MIT License (see https://mit-license.org/)
 
@@ -21,13 +21,13 @@ class LabelEntry {
 ///
 /// All arguments, values and labels data should be sorted!
 /// Since both the arguments and the values must be `double` type,
-/// be aware of the precision. 
+/// be aware of the precision.
 class LineChart extends StatelessWidget {
   /// Constraints for the line chart.
   final BoxConstraints constraints;
 
   // @TODO ? Both `_LineChartPainter` and `LineChart` have most the same fields.
-  //  `LineChart` is just mainly passing them to the painter. Shouldn't there be 
+  //  `LineChart` is just mainly passing them to the painter. Shouldn't there be
   //  only one class containing these data? Some `LineChartData` forged inside here
   //  and then passed and used by the painter? :thinking:
 
@@ -35,7 +35,7 @@ class LineChart extends StatelessWidget {
   final EdgeInsets padding;
 
   /* Arguments */
-  /// Collection of doubles as arguments. 
+  /// Collection of doubles as arguments.
   final Iterable<double> arguments;
 
   /// Mappings of strings for doubles arguments, which allow to specify custom
@@ -71,50 +71,42 @@ class LineChart extends StatelessWidget {
 
   /* Series points & lines styles */
   /// List of paint styles for series values points.
-  /// 
+  ///
   /// On whole list null would use predefined set of styles.
   /// On list entry null there will be no points for certain series.
   final List<Paint> seriesPointsPaints;
 
   /// List of paint styles for lines between next series points.
-  /// 
+  ///
   /// On null there will be no lines.
   final List<Paint> seriesLinesPaints;
 
   final double additionalMinimalHorizontalLabelsInterval;
   final double additionalMinimalVerticalLablesInterval;
 
-
-
   LineChart({
     @required this.constraints,
     this.padding = const EdgeInsets.fromLTRB(32, 12, 20, 28),
-
     this.arguments,
     this.argumentsLabels,
-
     this.values,
     this.valuesLabels,
-
     this.horizontalLabelsTextStyle,
     this.verticalLabelsTextStyle,
-
-    PaintStyle horizontalLinesStyle = const PaintStyle(color: Colors.grey), 
+    PaintStyle horizontalLinesStyle = const PaintStyle(color: Colors.grey),
     PaintStyle verticalLinesStyle, // null for default
 
     this.additionalMinimalHorizontalLabelsInterval = 8,
     this.additionalMinimalVerticalLablesInterval = 8,
-
-    Iterable<PaintStyle> seriesPointsStyles, // null would use predefined set of styles
+    Iterable<PaintStyle>
+        seriesPointsStyles, // null would use predefined set of styles
     Iterable<PaintStyle> seriesLinesStyles, // null for default
-  })
-  :
-    horizontalLinesPaint = horizontalLinesStyle?.toPaint(),
-    verticalLinesPaint   = verticalLinesStyle?.toPaint(),
-    seriesPointsPaints   = _prepareSeriesPointsPaints(seriesPointsStyles),
-    seriesLinesPaints    = _prepareSeriesLinesPaints(seriesLinesStyles)
-  {
-    if (seriesPointsStyles.length < values.length && 12 /* default paints */ < values.length) {
+  })  : horizontalLinesPaint = horizontalLinesStyle?.toPaint(),
+        verticalLinesPaint = verticalLinesStyle?.toPaint(),
+        seriesPointsPaints = _prepareSeriesPointsPaints(seriesPointsStyles),
+        seriesLinesPaints = _prepareSeriesLinesPaints(seriesLinesStyles) {
+    if (seriesPointsStyles.length < values.length &&
+        12 /* default paints */ < values.length) {
       throw "Too few `seriesPointsPaintStyle`s! Try define more or limit number of displayed series";
     }
     if (seriesLinesStyles.length < values.length) {
@@ -122,7 +114,8 @@ class LineChart extends StatelessWidget {
     }
   }
 
-  static Iterable<Paint> _prepareSeriesPointsPaints(Iterable<PaintStyle> seriesPointsStyles) {
+  static Iterable<Paint> _prepareSeriesPointsPaints(
+      Iterable<PaintStyle> seriesPointsStyles) {
     if (seriesPointsStyles == null) {
       // Default paint for points
       return List<Paint>.unmodifiable(<Paint>[
@@ -143,17 +136,16 @@ class LineChart extends StatelessWidget {
 
         // For more, user should specify them :F
       ]);
-    }
-    else {
+    } else {
       return seriesPointsStyles.map((style) => style?.toPaint()).toList();
     }
   }
 
-  static Iterable<Paint> _prepareSeriesLinesPaints(Iterable<PaintStyle> seriesLinesStyles) {
+  static Iterable<Paint> _prepareSeriesLinesPaints(
+      Iterable<PaintStyle> seriesLinesStyles) {
     if (seriesLinesStyles == null) {
       return null;
-    }
-    else {
+    } else {
       return seriesLinesStyles.map((style) => style.toPaint()).toList();
     }
   }
@@ -161,42 +153,36 @@ class LineChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ConstrainedBox(
-      constraints: this.constraints,
-      child: CustomPaint(
-        painter: _LineChartPainter(
+        constraints: this.constraints,
+        child: CustomPaint(
+            painter: _LineChartPainter(
           padding: padding,
-
           arguments: arguments,
           argumentsLabels: argumentsLabels,
-
           values: values,
           valuesLabels: valuesLabels,
-
-          horizontalLabelsTextStyle: horizontalLabelsTextStyle ?? Theme.of(context).textTheme.caption,
-          verticalLabelsTextStyle: verticalLabelsTextStyle ?? Theme.of(context).textTheme.caption,
-
+          horizontalLabelsTextStyle:
+              horizontalLabelsTextStyle ?? Theme.of(context).textTheme.caption,
+          verticalLabelsTextStyle:
+              verticalLabelsTextStyle ?? Theme.of(context).textTheme.caption,
           horizontalLinesPaint: horizontalLinesPaint,
           verticalLinesPaint: verticalLinesPaint,
-
-          additionalMinimalHorizontalLabelsInterval: additionalMinimalHorizontalLabelsInterval,
-          additionalMinimalVerticalLablesInterval: additionalMinimalVerticalLablesInterval,
-
+          additionalMinimalHorizontalLabelsInterval:
+              additionalMinimalHorizontalLabelsInterval,
+          additionalMinimalVerticalLablesInterval:
+              additionalMinimalVerticalLablesInterval,
           seriesPointsPaints: seriesPointsPaints,
           seriesLinesPaints: seriesLinesPaints,
-        )
-      )
-    );
+        )));
   }
 }
-
-
 
 class _LineChartPainter extends CustomPainter {
   /// Padding around main drawng area. Necessary for displaying labels (around the chart).
   final EdgeInsets padding;
 
   /* Arguments */
-  /// Collection of doubles as arguments. 
+  /// Collection of doubles as arguments.
   final Iterable<double> arguments;
 
   /// Mappings of strings for doubles arguments, which allow to specify custom
@@ -232,13 +218,13 @@ class _LineChartPainter extends CustomPainter {
 
   /* Series points & lines styles */
   /// Collection of paint styles for series values points.
-  /// 
+  ///
   /// On whole argument null would use predefined set of styles.
   /// On collection entry null there will be no points for certain series.
   final Iterable<Paint> seriesPointsPaints;
 
   /// Collection of paint styles for lines between next series points.
-  /// 
+  ///
   /// On null there will be no lines.
   final Iterable<Paint> seriesLinesPaints;
 
@@ -248,46 +234,37 @@ class _LineChartPainter extends CustomPainter {
 
   /// Maximal value of all data series values
   double maxValue = -double.maxFinite;
+
   /// Minimal value of all data series values
   double minValue = double.maxFinite;
 
   double _minimalHorizontalRatio = 0;
   double _minimalVerticalRatio = 0;
 
-
-
   /// Creates `_LineChartPainter` (`CustomPainter`) with given data and styling.
   _LineChartPainter({
     this.padding = const EdgeInsets.fromLTRB(40, 8, 8, 32),
-
     this.arguments,
     this.argumentsLabels,
-
     this.values,
     this.valuesLabels,
-
     @required this.horizontalLabelsTextStyle,
     @required this.verticalLabelsTextStyle,
-
     @required this.horizontalLinesPaint,
     @required this.verticalLinesPaint,
-
     double additionalMinimalHorizontalLabelsInterval = 8,
     double additionalMinimalVerticalLablesInterval = 8,
-
     @required this.seriesPointsPaints,
     @required this.seriesLinesPaints,
-  })
-  :
-    this.minimalHorizontalLabelsInterval = horizontalLabelsTextStyle.fontSize + additionalMinimalHorizontalLabelsInterval
-  { 
+  }) : this.minimalHorizontalLabelsInterval =
+            horizontalLabelsTextStyle.fontSize +
+                additionalMinimalHorizontalLabelsInterval {
     // Find max & min values of data to be show
     for (Iterable<double> series in values) {
       for (double value in series) {
         if (value > maxValue) {
           maxValue = value;
-        }
-        else if (value < minValue) {
+        } else if (value < minValue) {
           minValue = value;
         }
       }
@@ -300,7 +277,8 @@ class _LineChartPainter extends CustomPainter {
       double lastValue = entry.current.value;
 
       while (entry.moveNext()) {
-        final double goodRatio = minimalHorizontalLabelsInterval / (entry.current.value - lastValue);
+        final double goodRatio =
+            minimalHorizontalLabelsInterval / (entry.current.value - lastValue);
         if (goodRatio > _minimalVerticalRatio) {
           _minimalVerticalRatio = goodRatio;
         }
@@ -314,13 +292,19 @@ class _LineChartPainter extends CustomPainter {
       Iterator<LabelEntry> entry = argumentsLabels.iterator;
       entry.moveNext();
       double lastValue = entry.current.value;
-      double lastWidth = _getLabelTextPainter(entry.current.label, verticalLabelsTextStyle).width;
+      double lastWidth =
+          _getLabelTextPainter(entry.current.label, verticalLabelsTextStyle)
+              .width;
 
       while (entry.moveNext()) {
         final double nextValue = entry.current.value;
-        final double nextWidth = _getLabelTextPainter(entry.current.label, verticalLabelsTextStyle).width;
+        final double nextWidth =
+            _getLabelTextPainter(entry.current.label, verticalLabelsTextStyle)
+                .width;
 
-        final double goodRatio = ((lastWidth + nextWidth) / 2 + additionalMinimalVerticalLablesInterval) / (nextValue - lastValue);
+        final double goodRatio = ((lastWidth + nextWidth) / 2 +
+                additionalMinimalVerticalLablesInterval) /
+            (nextValue - lastValue);
         if (goodRatio > _minimalHorizontalRatio) {
           _minimalHorizontalRatio = goodRatio;
         }
@@ -339,13 +323,14 @@ class _LineChartPainter extends CustomPainter {
     /* Horizontal lines with labels */
     double valuesOffset = 0; // @TODO ? could be used in future for scrolling
     double verticalRatio;
-    
+
     {
       Iterable<LabelEntry> labels;
 
       // If no labels provided - generate them!
       if (valuesLabels == null) {
-        final double optimalStepValue = _calculateOptimalStepValue(maxValue - minValue, height);
+        final double optimalStepValue =
+            _calculateOptimalStepValue(maxValue - minValue, height);
         int stepsNumber = 1;
 
         // Find bottom line value
@@ -355,8 +340,7 @@ class _LineChartPainter extends CustomPainter {
             bottomValue += optimalStepValue;
           }
           bottomValue -= optimalStepValue;
-        }
-        else {
+        } else {
           while (bottomValue > minValue) {
             bottomValue -= optimalStepValue;
           }
@@ -371,13 +355,18 @@ class _LineChartPainter extends CustomPainter {
         }
 
         // Set labels iterable from prepared generator
-        Iterable<LabelEntry> generator(double optimalStepValue, int stepsNumber, [double value = 0.0]) sync* {
+        Iterable<LabelEntry> generator(double optimalStepValue, int stepsNumber,
+            [double value = 0.0]) sync* {
           //double value = _bottomValue;
           for (int i = 0; i < stepsNumber; i++) {
-            yield LabelEntry(value, value.toString()); // @TODO , choose better precision based on optimal step value while parsing to string 
+            yield LabelEntry(
+                value,
+                value
+                    .toString()); // @TODO , choose better precision based on optimal step value while parsing to string
             value += optimalStepValue;
           }
         }
+
         labels = generator(optimalStepValue, stepsNumber, bottomValue);
 
         if (!snapToTopLabel) {
@@ -402,8 +391,12 @@ class _LineChartPainter extends CustomPainter {
 
         // Calculate vertical ratio of pixels per value
         // Note: `_minimalVerticalRatio` is calculated in constructor
-        final double topValue = snapToTopLabel ? math.max(maxValue, valuesLabels.last.value) : maxValue;
-        final double bottomValue = snapToBottomLabel ? math.min(minValue, valuesLabels.first.value) : minValue;
+        final double topValue = snapToTopLabel
+            ? math.max(maxValue, valuesLabels.last.value)
+            : maxValue;
+        final double bottomValue = snapToBottomLabel
+            ? math.min(minValue, valuesLabels.first.value)
+            : minValue;
         final double noEmptySpaceRatio = height / (topValue - bottomValue);
         verticalRatio = math.max(_minimalVerticalRatio, noEmptySpaceRatio);
       }
@@ -411,32 +404,29 @@ class _LineChartPainter extends CustomPainter {
       // Draw the horizontal lines and labels
       for (LabelEntry tuple in labels) {
         if (tuple.value < valuesOffset) continue;
-        final double yOffset = (
-          size.height - padding.bottom - (tuple.value - valuesOffset) * verticalRatio
-        );
+        final double yOffset = (size.height -
+            padding.bottom -
+            (tuple.value - valuesOffset) * verticalRatio);
         if (yOffset < padding.top) break;
 
         // Draw line
         if (horizontalLinesPaint != null) {
           canvas.drawLine(
-            Offset(padding.left, yOffset),
-            Offset(size.width - padding.right, yOffset),
-            horizontalLinesPaint
-          );
+              Offset(padding.left, yOffset),
+              Offset(size.width - padding.right, yOffset),
+              horizontalLinesPaint);
         }
 
         // Draw label
         TextPainter(
-          text: TextSpan(text: tuple.label, style: horizontalLabelsTextStyle),
-          textAlign: TextAlign.right,
-          textDirection: TextDirection.ltr
-        )
+            text: TextSpan(text: tuple.label, style: horizontalLabelsTextStyle),
+            textAlign: TextAlign.right,
+            textDirection: TextDirection.ltr)
           ..layout(minWidth: padding.left - 4)
-          ..paint(canvas, Offset(0, yOffset - horizontalLabelsTextStyle.fontSize / 2 - 1));
+          ..paint(canvas,
+              Offset(0, yOffset - horizontalLabelsTextStyle.fontSize / 2 - 1));
       }
     }
-
-
 
     /* Vertical lines with labels */
     double argumentsOffset = 0;
@@ -449,7 +439,7 @@ class _LineChartPainter extends CustomPainter {
       // If no labels provided - generate them!
       if (argumentsLabels == null) {
         throw "not implemented";
-        // @TODO . after few hot days of thinking about the problem for 1-2 hour a day, I just gave up. 
+        // @TODO . after few hot days of thinking about the problem for 1-2 hour a day, I just gave up.
         // The hardest in the problem is that there must be trade-off between space for labels and max lines,
         // but keep in mind that the label values should be in some human-readable steps (0.5, 10, 0.02...).
       }
@@ -467,8 +457,12 @@ class _LineChartPainter extends CustomPainter {
 
         // Calculate vertical ratio of pixels per value
         // Note: `_minimalHorizontalRatio` is calculated in constructor
-        final double leftMost = snapToLeftLabel ? math.min(arguments.first, argumentsLabels.first.value) : arguments.first;
-        final double rightMost = snapToRightLabel ? math.max(arguments.last, argumentsLabels.last.value) : arguments.last;
+        final double leftMost = snapToLeftLabel
+            ? math.min(arguments.first, argumentsLabels.first.value)
+            : arguments.first;
+        final double rightMost = snapToRightLabel
+            ? math.max(arguments.last, argumentsLabels.last.value)
+            : arguments.last;
         final double noEmptySpaceRatio = width / (rightMost - leftMost);
         horizontalRatio = math.max(_minimalHorizontalRatio, noEmptySpaceRatio);
       }
@@ -476,36 +470,35 @@ class _LineChartPainter extends CustomPainter {
       // Draw the vertical lines and labels
       for (LabelEntry tuple in labels) {
         if (tuple.value < argumentsOffset) continue;
-        final double xOffset = padding.left + (tuple.value - argumentsOffset) * horizontalRatio;
+        final double xOffset =
+            padding.left + (tuple.value - argumentsOffset) * horizontalRatio;
         if (xOffset > xOffsetLimit) break;
 
         // Draw line
         if (verticalLinesPaint != null) {
           canvas.drawLine(
-            Offset(xOffset, padding.top), 
-            Offset(xOffset, size.height - padding.bottom), 
-            verticalLinesPaint
-          );
+              Offset(xOffset, padding.top),
+              Offset(xOffset, size.height - padding.bottom),
+              verticalLinesPaint);
         }
 
         // Draw label
         final TextPainter textPainter = TextPainter(
-          text: TextSpan(text: tuple.label, style: verticalLabelsTextStyle),
-          textDirection: TextDirection.ltr
-        )
+            text: TextSpan(text: tuple.label, style: verticalLabelsTextStyle),
+            textDirection: TextDirection.ltr)
           ..layout();
-        textPainter.paint(canvas, Offset(
-          xOffset - textPainter.width / 2, 
-          size.height - verticalLabelsTextStyle.fontSize - 8)
-        );
+        textPainter.paint(
+            canvas,
+            Offset(xOffset - textPainter.width / 2,
+                size.height - verticalLabelsTextStyle.fontSize - 8));
       }
     }
 
-
-
     /* Points and lines between subsequent */
     Iterator<Iterable<double>> series = values.iterator;
-    Iterator<Paint> linesPaints = seriesLinesPaints == null ? <Paint>[].iterator : seriesLinesPaints.iterator;
+    Iterator<Paint> linesPaints = seriesLinesPaints == null
+        ? <Paint>[].iterator
+        : seriesLinesPaints.iterator;
     Iterator<Paint> pointsPaints = seriesPointsPaints.iterator;
     while (series.moveNext()) {
       List<Offset> points = [];
@@ -516,11 +509,14 @@ class _LineChartPainter extends CustomPainter {
         if (value.current == null || value.current == double.nan) continue;
 
         if (argument.current < argumentsOffset) continue;
-        final double xOffset = padding.left + (argument.current - argumentsOffset) * horizontalRatio;
+        final double xOffset = padding.left +
+            (argument.current - argumentsOffset) * horizontalRatio;
         if (xOffset > xOffsetLimit) break;
 
         if (value.current < valuesOffset) continue;
-        final double yOffset = size.height - padding.bottom - (value.current- valuesOffset) * verticalRatio;
+        final double yOffset = size.height -
+            padding.bottom -
+            (value.current - valuesOffset) * verticalRatio;
         if (yOffset < padding.top) continue;
 
         points.add(Offset(xOffset, yOffset));
@@ -539,23 +535,23 @@ class _LineChartPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_LineChartPainter old) => (
-      this.arguments                  != old.arguments                  ||
-      this.values                     != old.values                     ||
-      this.argumentsLabels            != old.argumentsLabels            ||
-      this.valuesLabels               != old.valuesLabels               ||
-      this.seriesPointsPaints         != old.seriesPointsPaints         ||
-      this.seriesLinesPaints          != old.seriesLinesPaints          ||
-      this.horizontalLabelsTextStyle  != old.horizontalLabelsTextStyle  ||
-      this.verticalLabelsTextStyle    != old.verticalLabelsTextStyle    ||
-      this.padding                    != old.padding                    //
-  );
+  bool shouldRepaint(_LineChartPainter old) =>
+      (this.arguments != old.arguments ||
+          this.values != old.values ||
+          this.argumentsLabels != old.argumentsLabels ||
+          this.valuesLabels != old.valuesLabels ||
+          this.seriesPointsPaints != old.seriesPointsPaints ||
+          this.seriesLinesPaints != old.seriesLinesPaints ||
+          this.horizontalLabelsTextStyle != old.horizontalLabelsTextStyle ||
+          this.verticalLabelsTextStyle != old.verticalLabelsTextStyle ||
+          this.padding != old.padding //
+      );
 
   // ..., 0.01, 0.02, 0.05, 0.1, [0.125], 0.2, [0.25], 0.5, 1, 2, 5, 10, 20, 50, 100, 200, 500, ...
   double _calculateOptimalStepValue(double valueRange, double height) {
     final int maxSteps = height ~/ minimalHorizontalLabelsInterval;
     if (maxSteps <= 0) {
-        throw "invalid max lines!";
+      throw "invalid max lines!";
     }
     double interval = valueRange / maxSteps;
     if (interval > 1) {
@@ -564,23 +560,31 @@ class _LineChartPainter extends CustomPainter {
         interval = interval / 10;
         zeros += 1;
       }
-      /**/ if (interval <= 1) { interval = 1; }
-      else if (interval <= 2) { interval = 2; }
-      else if (interval <= 5) { interval = 5; }
-      for (;zeros-- != 0;) {
+      /**/ if (interval <= 1) {
+        interval = 1;
+      } else if (interval <= 2) {
+        interval = 2;
+      } else if (interval <= 5) {
+        interval = 5;
+      }
+      for (; zeros-- != 0;) {
         interval *= 10;
       }
-    }
-    else { // @TODO ! not working at all for lower :C
+    } else {
+      // @TODO ! not working at all for lower :C
       int zeros = 0;
       while (interval < 0) {
         interval = interval * 10;
         zeros += 1;
       }
-      /**/ if (interval <= 1) { interval = 1; }
-      else if (interval <= 2) { interval = 2; }
-      else if (interval <= 5) { interval = 5; }
-      for (;zeros-- != 0;) {
+      /**/ if (interval <= 1) {
+        interval = 1;
+      } else if (interval <= 2) {
+        interval = 2;
+      } else if (interval <= 5) {
+        interval = 5;
+      }
+      for (; zeros-- != 0;) {
         interval /= 10;
       }
     }
@@ -589,9 +593,8 @@ class _LineChartPainter extends CustomPainter {
 
   TextPainter _getLabelTextPainter(String text, TextStyle style) {
     return TextPainter(
-      text: TextSpan(text: text, style: style),
-      textDirection: TextDirection.ltr
-    )
+        text: TextSpan(text: text, style: style),
+        textDirection: TextDirection.ltr)
       ..layout();
   }
 }
