@@ -28,8 +28,8 @@ class BackgroundCollectingTask extends Model {
   // @TODO , Such sample collection in real code should be delegated
   // (via `Stream<DataSample>` preferably) and then saved for later
   // displaying on chart (or even stright prepare for displaying).
-  List<DataSample> samples = List<
-      DataSample>(); // @TODO ? should be shrinked at some point, endless colleting data would cause memory shortage.
+  // @TODO ? should be shrinked at some point, endless colleting data would cause memory shortage.
+  List<DataSample> samples = List<DataSample>();
 
   bool inProgress;
 
