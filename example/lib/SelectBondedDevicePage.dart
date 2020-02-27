@@ -54,11 +54,14 @@ class _SelectBondedDevicePage extends State<SelectBondedDevicePage> {
         .then((List<BluetoothDevice> bondedDevices) {
       setState(() {
         devices = bondedDevices
-            .map((device) => _DeviceWithAvailability(
+            .map(
+              (device) => _DeviceWithAvailability(
                 device,
                 widget.checkAvailability
                     ? _DeviceAvailability.maybe
-                    : _DeviceAvailability.yes))
+                    : _DeviceAvailability.yes,
+              ),
+            )
             .toList();
       });
     });
@@ -115,20 +118,27 @@ class _SelectBondedDevicePage extends State<SelectBondedDevicePage> {
             ))
         .toList();
     return Scaffold(
-        appBar: AppBar(
-          title: Text('Select device'),
-          actions: <Widget>[
-            (_isDiscovering
-                ? FittedBox(
-                    child: Container(
-                        margin: new EdgeInsets.all(16.0),
-                        child: CircularProgressIndicator(
-                            valueColor:
-                                AlwaysStoppedAnimation<Color>(Colors.white))))
-                : IconButton(
-                    icon: Icon(Icons.replay), onPressed: _restartDiscovery))
-          ],
-        ),
-        body: ListView(children: list));
+      appBar: AppBar(
+        title: Text('Select device'),
+        actions: <Widget>[
+          _isDiscovering
+              ? FittedBox(
+                  child: Container(
+                    margin: new EdgeInsets.all(16.0),
+                    child: CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        Colors.white,
+                      ),
+                    ),
+                  ),
+                )
+              : IconButton(
+                  icon: Icon(Icons.replay),
+                  onPressed: _restartDiscovery,
+                )
+        ],
+      ),
+      body: ListView(children: list),
+    );
   }
 }

@@ -109,46 +109,55 @@ class _ChatPage extends State<ChatPage> {
     }).toList();
 
     return Scaffold(
-        appBar: AppBar(
-            title: (isConnecting
-                ? Text('Connecting chat to ' + widget.server.name + '...')
-                : isConnected
-                    ? Text('Live chat with ' + widget.server.name)
-                    : Text('Chat log with ' + widget.server.name))),
-        body: SafeArea(
-            child: Column(children: <Widget>[
-          Flexible(
+      appBar: AppBar(
+          title: (isConnecting
+              ? Text('Connecting chat to ' + widget.server.name + '...')
+              : isConnected
+                  ? Text('Live chat with ' + widget.server.name)
+                  : Text('Chat log with ' + widget.server.name))),
+      body: SafeArea(
+        child: Column(
+          children: <Widget>[
+            Flexible(
               child: ListView(
                   padding: const EdgeInsets.all(12.0),
                   controller: listScrollController,
-                  children: list)),
-          Row(children: <Widget>[
-            Flexible(
-                child: Container(
+                  children: list),
+            ),
+            Row(
+              children: <Widget>[
+                Flexible(
+                  child: Container(
                     margin: const EdgeInsets.only(left: 16.0),
                     child: TextField(
                       style: const TextStyle(fontSize: 15.0),
                       controller: textEditingController,
                       decoration: InputDecoration.collapsed(
-                        hintText: (isConnecting
+                        hintText: isConnecting
                             ? 'Wait until connected...'
                             : isConnected
                                 ? 'Type your message...'
-                                : 'Chat got disconnected'),
+                                : 'Chat got disconnected',
                         hintStyle: const TextStyle(color: Colors.grey),
                       ),
                       enabled: isConnected,
-                    ))),
-            Container(
-              margin: const EdgeInsets.all(8.0),
-              child: IconButton(
-                  icon: const Icon(Icons.send),
-                  onPressed: isConnected
-                      ? () => _sendMessage(textEditingController.text)
-                      : null),
-            ),
-          ])
-        ])));
+                    ),
+                  ),
+                ),
+                Container(
+                  margin: const EdgeInsets.all(8.0),
+                  child: IconButton(
+                      icon: const Icon(Icons.send),
+                      onPressed: isConnected
+                          ? () => _sendMessage(textEditingController.text)
+                          : null),
+                ),
+              ],
+            )
+          ],
+        ),
+      ),
+    );
   }
 
   void _onDataReceived(Uint8List data) {
@@ -181,12 +190,15 @@ class _ChatPage extends State<ChatPage> {
     int index = buffer.indexOf(13);
     if (~index != 0) {
       setState(() {
-        messages.add(_Message(
+        messages.add(
+          _Message(
             1,
             backspacesCounter > 0
                 ? _messageBuffer.substring(
                     0, _messageBuffer.length - backspacesCounter)
-                : _messageBuffer + dataString.substring(0, index)));
+                : _messageBuffer + dataString.substring(0, index),
+          ),
+        );
         _messageBuffer = dataString.substring(index);
       });
     } else {

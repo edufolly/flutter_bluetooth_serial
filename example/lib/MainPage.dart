@@ -133,12 +133,14 @@ class _MainPage extends State<MainPage> {
               onLongPress: null,
             ),
             ListTile(
-                title: _discoverableTimeoutSecondsLeft == 0
-                    ? const Text("Discoverable")
-                    : Text(
-                        "Discoverable for ${_discoverableTimeoutSecondsLeft}s"),
-                subtitle: const Text("PsychoX-Luna"),
-                trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+              title: _discoverableTimeoutSecondsLeft == 0
+                  ? const Text("Discoverable")
+                  : Text(
+                      "Discoverable for ${_discoverableTimeoutSecondsLeft}s"),
+              subtitle: const Text("PsychoX-Luna"),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
                   Checkbox(
                     value: _discoverableTimeoutSecondsLeft != 0,
                     onChanged: null,
@@ -184,7 +186,9 @@ class _MainPage extends State<MainPage> {
                       });
                     },
                   )
-                ])),
+                ],
+              ),
+            ),
             Divider(),
             ListTile(title: const Text('Devices discovery and connection')),
             SwitchListTile(
@@ -215,10 +219,13 @@ class _MainPage extends State<MainPage> {
                   child: const Text('Explore discovered devices'),
                   onPressed: () async {
                     final BluetoothDevice selectedDevice =
-                        await Navigator.of(context)
-                            .push(MaterialPageRoute(builder: (context) {
-                      return DiscoveryPage();
-                    }));
+                        await Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) {
+                          return DiscoveryPage();
+                        },
+                      ),
+                    );
 
                     if (selectedDevice != null) {
                       print('Discovery -> selected ' + selectedDevice.address);
@@ -232,10 +239,13 @@ class _MainPage extends State<MainPage> {
                 child: const Text('Connect to paired device to chat'),
                 onPressed: () async {
                   final BluetoothDevice selectedDevice =
-                      await Navigator.of(context)
-                          .push(MaterialPageRoute(builder: (context) {
-                    return SelectBondedDevicePage(checkAvailability: false);
-                  }));
+                      await Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) {
+                        return SelectBondedDevicePage(checkAvailability: false);
+                      },
+                    ),
+                  );
 
                   if (selectedDevice != null) {
                     print('Connect -> selected ' + selectedDevice.address);
@@ -261,10 +271,14 @@ class _MainPage extends State<MainPage> {
                     });
                   } else {
                     final BluetoothDevice selectedDevice =
-                        await Navigator.of(context)
-                            .push(MaterialPageRoute(builder: (context) {
-                      return SelectBondedDevicePage(checkAvailability: false);
-                    }));
+                        await Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) {
+                          return SelectBondedDevicePage(
+                              checkAvailability: false);
+                        },
+                      ),
+                    );
 
                     if (selectedDevice != null) {
                       await _startBackgroundTask(context, selectedDevice);
@@ -277,20 +291,24 @@ class _MainPage extends State<MainPage> {
               ),
             ),
             ListTile(
-                title: RaisedButton(
-              child: const Text('View background collected data'),
-              onPressed: (_collectingTask != null)
-                  ? () {
-                      Navigator.of(context)
-                          .push(MaterialPageRoute(builder: (context) {
-                        return ScopedModel<BackgroundCollectingTask>(
-                          model: _collectingTask,
-                          child: BackgroundCollectedPage(),
+              title: RaisedButton(
+                child: const Text('View background collected data'),
+                onPressed: (_collectingTask != null)
+                    ? () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) {
+                              return ScopedModel<BackgroundCollectingTask>(
+                                model: _collectingTask,
+                                child: BackgroundCollectedPage(),
+                              );
+                            },
+                          ),
                         );
-                      }));
-                    }
-                  : null,
-            )),
+                      }
+                    : null,
+              ),
+            ),
           ],
         ),
       ),
@@ -298,13 +316,19 @@ class _MainPage extends State<MainPage> {
   }
 
   void _startChat(BuildContext context, BluetoothDevice server) {
-    Navigator.of(context).push(MaterialPageRoute(builder: (context) {
-      return ChatPage(server: server);
-    }));
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) {
+          return ChatPage(server: server);
+        },
+      ),
+    );
   }
 
   Future<void> _startBackgroundTask(
-      BuildContext context, BluetoothDevice server) async {
+    BuildContext context,
+    BluetoothDevice server,
+  ) async {
     try {
       _collectingTask = await BackgroundCollectingTask.connect(server);
       await _collectingTask.start();

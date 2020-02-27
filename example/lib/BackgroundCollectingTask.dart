@@ -9,18 +9,23 @@ class DataSample {
   double waterpHlevel;
   DateTime timestamp;
 
-  DataSample(
-      {this.temperature1,
-      this.temperature2,
-      this.waterpHlevel,
-      this.timestamp});
+  DataSample({
+    this.temperature1,
+    this.temperature2,
+    this.waterpHlevel,
+    this.timestamp,
+  });
 }
 
 class BackgroundCollectingTask extends Model {
-  static BackgroundCollectingTask of(BuildContext context,
-          {bool rebuildOnChange = false}) =>
-      ScopedModel.of<BackgroundCollectingTask>(context,
-          rebuildOnChange: rebuildOnChange);
+  static BackgroundCollectingTask of(
+    BuildContext context, {
+    bool rebuildOnChange = false,
+  }) =>
+      ScopedModel.of<BackgroundCollectingTask>(
+        context,
+        rebuildOnChange: rebuildOnChange,
+      );
 
   final BluetoothConnection _connection;
   List<int> _buffer = List<int>();
