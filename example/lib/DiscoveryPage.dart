@@ -41,12 +41,17 @@ class _DiscoveryPage extends State<DiscoveryPage> {
   }
 
   void _startDiscovery() {
-    _streamSubscription = FlutterBluetoothSerial.instance.startDiscovery().listen((r) {
-      setState(() { results.add(r); });
+    _streamSubscription =
+        FlutterBluetoothSerial.instance.startDiscovery().listen((r) {
+      setState(() {
+        results.add(r);
+      });
     });
 
     _streamSubscription.onDone(() {
-      setState(() { isDiscovering = false; });
+      setState(() {
+        isDiscovering = false;
+      });
     });
   }
 
@@ -64,20 +69,23 @@ class _DiscoveryPage extends State<DiscoveryPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: isDiscovering ? Text('Discovering devices') : Text('Discovered devices'),
+        title: isDiscovering
+            ? Text('Discovering devices')
+            : Text('Discovered devices'),
         actions: <Widget>[
-          (
-            isDiscovering ?
-              FittedBox(child: Container(
-                margin: new EdgeInsets.all(16.0),
-                child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(Colors.white))
-              ))
-            :
-              IconButton(
-                icon: Icon(Icons.replay),
-                onPressed: _restartDiscovery
-              )
-          )
+          isDiscovering
+              ? FittedBox(
+                  child: Container(
+                    margin: new EdgeInsets.all(16.0),
+                    child: CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  ),
+                )
+              : IconButton(
+                  icon: Icon(Icons.replay),
+                  onPressed: _restartDiscovery,
+                )
         ],
       ),
       body: ListView.builder(
@@ -95,27 +103,29 @@ class _DiscoveryPage extends State<DiscoveryPage> {
                 bool bonded = false;
                 if (result.device.isBonded) {
                   print('Unbonding from ${result.device.address}...');
-                  await FlutterBluetoothSerial.instance.removeDeviceBondWithAddress(result.device.address);
+                  await FlutterBluetoothSerial.instance
+                      .removeDeviceBondWithAddress(result.device.address);
                   print('Unbonding from ${result.device.address} has succed');
-                }
-                else {
+                } else {
                   print('Bonding with ${result.device.address}...');
-                  bonded = await FlutterBluetoothSerial.instance.bondDeviceAtAddress(result.device.address);
-                  print('Bonding with ${result.device.address} has ${bonded ? 'succed' : 'failed'}.');
+                  bonded = await FlutterBluetoothSerial.instance
+                      .bondDeviceAtAddress(result.device.address);
+                  print(
+                      'Bonding with ${result.device.address} has ${bonded ? 'succed' : 'failed'}.');
                 }
                 setState(() {
                   results[results.indexOf(result)] = BluetoothDiscoveryResult(
-                    device: BluetoothDevice(
-                      name: result.device.name ?? '',
-                      address: result.device.address,
-                      type: result.device.type,
-                      bondState: bonded ? BluetoothBondState.bonded : BluetoothBondState.none,
-                    ), 
-                    rssi: result.rssi
-                  );
+                      device: BluetoothDevice(
+                        name: result.device.name ?? '',
+                        address: result.device.address,
+                        type: result.device.type,
+                        bondState: bonded
+                            ? BluetoothBondState.bonded
+                            : BluetoothBondState.none,
+                      ),
+                      rssi: result.rssi);
                 });
-              }
-              catch (ex) {
+              } catch (ex) {
                 showDialog(
                   context: context,
                   builder: (BuildContext context) {
@@ -134,10 +144,10 @@ class _DiscoveryPage extends State<DiscoveryPage> {
                   },
                 );
               }
-            }
+            },
           );
         },
-      )
+      ),
     );
   }
 }
