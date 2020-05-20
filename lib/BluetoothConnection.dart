@@ -51,7 +51,7 @@ class BluetoothConnection {
               onDone: this.close,
             );
 
-    input = _readStreamController.stream;
+    input = _readStreamController.stream.asBroadcastStream();
     output = _BluetoothStreamSink<Uint8List>(id);
   }
 
