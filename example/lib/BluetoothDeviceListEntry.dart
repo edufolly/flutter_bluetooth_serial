@@ -67,7 +67,7 @@ class BluetoothDeviceListEntry extends ListTile {
           color: Color.lerp(
               Colors.deepOrangeAccent, Colors.redAccent, -(rssi + 75) / 10));
     else
-      /*code symetry*/
+      /*code symmetry*/
       return TextStyle(color: Colors.redAccent);
   }
 }
