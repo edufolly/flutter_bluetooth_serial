@@ -1018,7 +1018,9 @@ public class FlutterBluetoothSerialPlugin implements MethodCallHandler, RequestP
         switch (requestCode) {
             case REQUEST_ENABLE_BLUETOOTH:
                 // @TODO - used underlying value of `Activity.RESULT_CANCELED` since we tend to use `androidx` in which I were not able to find the constant.
-                pendingResultForActivityResult.success(resultCode == 0 ? false : true);
+                if (pendingResultForActivityResult != null) {
+                    pendingResultForActivityResult.success(resultCode == 0 ? false : true);
+                }
                 return true;
 
             case REQUEST_DISCOVERABLE_BLUETOOTH:
