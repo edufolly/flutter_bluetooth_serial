@@ -17,28 +17,28 @@ class BluetoothConnection {
   //
 
   /// This ID identifies real full `BluetoothConenction` object on platform side code.
-  final int _id;
+  final int? _id;
 
   final EventChannel _readChannel;
-  StreamSubscription<Uint8List> _readStreamSubscription;
-  StreamController<Uint8List> _readStreamController;
+  late StreamSubscription<Uint8List> _readStreamSubscription;
+  late StreamController<Uint8List> _readStreamController;
 
   /// Stream sink used to read from the remote Bluetooth device
   ///
   /// `.onDone` could be used to detect when remote device closes the connection.
   ///
   /// You should use some encoding to receive string in your `.listen` callback, for example `ascii.decode(data)` or `utf8.encode(data)`.
-  Stream<Uint8List> input;
+  Stream<Uint8List>? input;
 
   /// Stream sink used to write to the remote Bluetooth device
   ///
   /// You should use some encoding to send string, for example `.add(ascii.encode('Hello!'))` or `.add(utf8.encode('Cześć!))`.
-  _BluetoothStreamSink<Uint8List> output;
+  late _BluetoothStreamSink<Uint8List> output;
 
   /// Describes is stream connected.
   bool get isConnected => output.isConnected;
 
-  BluetoothConnection._consumeConnectionID(int id)
+  BluetoothConnection._consumeConnectionID(int? id)
       : this._id = id,
         this._readChannel =
             EventChannel('${FlutterBluetoothSerial.namespace}/read/$id') {
@@ -56,7 +56,7 @@ class BluetoothConnection {
   }
 
   /// Returns connection to given address.
-  static Future<BluetoothConnection> toAddress(String address) async {
+  static Future<BluetoothConnection> toAddress(String? address) async {
     // Sorry for pseudo-factory, but `factory` keyword disallows `Future`.
     return BluetoothConnection._consumeConnectionID(await FlutterBluetoothSerial
         ._methodChannel
@@ -92,7 +92,7 @@ class BluetoothConnection {
 
 /// Helper class for sending responses.
 class _BluetoothStreamSink<Uint8List> extends StreamSink<Uint8List> {
-  final int _id;
+  final int? _id;
 
   /// Describes is stream connected.
   bool isConnected = true;
@@ -100,7 +100,7 @@ class _BluetoothStreamSink<Uint8List> extends StreamSink<Uint8List> {
   /// Chain of features, the variable represents last of the futures.
   Future<void> _chainedFutures = Future.value(/* Empty future :F */);
 
-  Future<dynamic> _doneFuture;
+  late Future<dynamic> _doneFuture;
 
   /// Exception to be returend from `done` Future, passed from `add` function or related.
   dynamic exception;
@@ -149,7 +149,7 @@ class _BluetoothStreamSink<Uint8List> extends StreamSink<Uint8List> {
 
   /// Unsupported - this ouput sink cannot pass errors to platfom code.
   @override
-  void addError(Object error, [StackTrace stackTrace]) {
+  void addError(Object error, [StackTrace? stackTrace]) {
     throw UnsupportedError(
         "BluetoothConnection output (response) sink cannot receive errors!");
   }
