@@ -24,7 +24,7 @@ class _ChatPage extends State<ChatPage> {
   static final clientID = 0;
   BluetoothConnection connection;
 
-  List<_Message> messages = List<_Message>();
+  List<_Message> messages = [];
   String _messageBuffer = '';
 
   final TextEditingController textEditingController =
