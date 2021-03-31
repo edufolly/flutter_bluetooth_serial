@@ -22,9 +22,11 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-  
-flutter:
   assets:
-    - ../PNG/
-    - ../jpg/
+    - ./PNG/
+    - ./jpg/
+
+environment:
+
+  sdk: '>=2.10.0 <3.0.0'
 
