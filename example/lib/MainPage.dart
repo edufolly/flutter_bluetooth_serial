@@ -8,6 +8,7 @@ import './SelectBondedDevicePage.dart';
 import './ChatPage.dart';
 import './BackgroundCollectingTask.dart';
 import './BackgroundCollectedPage.dart';
+import './AnaModScreen.dart';
 
 // import './helpers/LineChart.dart';
 
@@ -126,6 +127,15 @@ class _MainPage extends State<MainPage> {
             ListTile(
               title: const Text('Local adapter address'),
               subtitle: Text(_address),
+              trailing: ElevatedButton(
+                child: const Text('Mode Page'),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => SecondRoute()),
+                  );
+                },
+              ),
             ),
             ListTile(
               title: const Text('Local adapter name'),
