@@ -132,7 +132,7 @@ class _MainPage extends State<MainPage> {
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => MyApp1()),
+                    MaterialPageRoute(builder: (context) => SecondRoute()),
                   );
                 },
               ),

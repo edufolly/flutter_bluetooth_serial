@@ -9,7 +9,7 @@ dependencies:
   flutter:
     sdk: flutter
 
-  flutter_splash_screen: ^0.1.0
+  splashscreen:
 
   scoped_model: ^1.0.1
 
