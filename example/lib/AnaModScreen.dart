@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-import 'package:flutter_spleshscreen/Constant/Constant.dart';
+//import 'package:flutter_spleshscreen/Constant/Constant.dart';
 import 'package:flutter/cupertino.dart';
 
 class CustomButton extends StatelessWidget {
