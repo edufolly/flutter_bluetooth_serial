@@ -4,6 +4,10 @@ import 'package:flutter/material.dart';
 //import 'package:flutter_spleshscreen/Constant/Constant.dart';
 import 'package:flutter/cupertino.dart';
 
+Widget build(BuildContext context) {
+  return Image(image: AssetImage('assets/PNG/LOGO/logo.png'));
+}
+
 class CustomButton extends StatelessWidget {
   CustomButton({@required this.onPressed});
   final GestureTapCallback onPressed;
