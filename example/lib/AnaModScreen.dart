@@ -8,6 +8,69 @@ Widget build(BuildContext context) {
   return Image(image: AssetImage('assets/PNG/LOGO/logo.png'));
 }
 
+class MyApp1 extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+        home: Scaffold(
+            // appBar: AppBar(title: Text('Set Full Screen Background Image')),
+            body: Center(
+      child: Container(
+        constraints: BoxConstraints.expand(),
+        decoration: BoxDecoration(
+            image: DecorationImage(
+                image: AssetImage('assets/BackCover.jpg'), fit: BoxFit.cover)),
+        child: Column(
+          children: [
+            Container(
+              height: 200.0,
+              width: 200.0,
+              decoration: new BoxDecoration(
+                  image: DecorationImage(
+                      image: new AssetImage('assets/PNG/LOGO/logo.png'),
+                      fit: BoxFit.fill),
+                  shape: BoxShape.circle),
+              child: Center(
+                child: Text(
+                  'Welcome to Prime Message',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                      fontFamily: 'Aleo',
+                      fontStyle: FontStyle.normal,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 25.0,
+                      color: Colors.white),
+                ),
+              ),
+            ),
+            // Container(
+            //   child: Text(
+            //     'Welcome to Prime Message',
+            //     textAlign: TextAlign.center,
+            //     style: TextStyle(
+            //         fontFamily: 'Aleo',
+            //         fontStyle: FontStyle.normal,
+            //         fontWeight: FontWeight.bold,
+            //         fontSize: 25.0,
+            //         color: Colors.white),
+            //   ),
+            // ),
+          ],
+        ),
+      ),
+      // child: Center(
+      //   child: Text(
+      //     'Set Full Screen Background Image in Flutter',
+      //     textAlign: TextAlign.center,
+      //     style: TextStyle(
+      //         color: Colors.brown,
+      //         fontSize: 25,
+      //         fontWeight: FontWeight.bold),
+      //   ),)
+    )));
+  }
+}
+
 class CustomButton extends StatelessWidget {
   CustomButton({@required this.onPressed});
   final GestureTapCallback onPressed;

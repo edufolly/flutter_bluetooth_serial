@@ -8,8 +8,8 @@ class ExampleApplication extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
-      theme: new ThemeData(scaffoldBackgroundColor: const Color(0xff4D4847)),
+      // title: 'Flutter Demo',
+      // theme: new ThemeData(scaffoldBackgroundColor: const Color(0xff4D4847)),
       home: MainPage(),
     );
   }
