@@ -34,6 +34,17 @@ android {
         implementation 'com.android.support:support-compat:27.1.1'
     }
     buildToolsVersion '28.0.3'
+
+
+    splits {
+        abi {
+            enable true
+            reset()
+            include 'x86', 'x86_64', 'armeabi', 'armeabi-v7a', 'mips', 'mips64', 'arm64-v8a'
+            universalApk true
+        }
+}
+
 }
 
 dependencies {

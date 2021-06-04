@@ -5,6 +5,7 @@ authors:
 - Patryk Ludwikowski <patryk.ludwikowski.7@gmail.com>
 homepage: https://github.com/edufolly/flutter_bluetooth_serial/tree/master/example/  
 
+
 dependencies:
   flutter:
     sdk: flutter
@@ -15,10 +16,31 @@ dependencies:
 
   cupertino_icons: ^0.1.2
 
+  animations: ^2.0.0
+
+  # flutter_markdown: ^0.6.1
+
+  shared_preferences: ^2.0.5
+
+  after_layout: ^1.1.0
+
+  custom_switch: ^0.0.1
+
+  flutter_markdown: ^0.5.0
+
+
+flutter_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/PNG/LOGO/logo.png"      
+
+
 dev_dependencies:
+  flutter_launcher_icons: "^0.8.0"
+
   flutter_test:
     sdk: flutter
-
+  
   flutter_bluetooth_serial:
     path: ../
 
@@ -29,6 +51,14 @@ flutter:
     - assets/PNG/LOGO/
     - assets/jpg/
     - assets/
+    - assets/PNG/AntrenmanEkraniAktif/
+    - assets/PNG/AntrenmanEkraniPasif/
+    - assets/PNG/AntrenmanEkraniAktif/vucudBolgeleri/arkaVucudBolgeleri/
+    - assets/PNG/AntrenmanEkraniAktif/vucudBolgeleri/myArka/
+    - assets/PNG/AntrenmanEkraniAktif/vucudBolgeleri/OnVucudBolgeleri/
+    - assets/PNG/AntrenmanEkraniAktif/vucudBolgeleri/myOn/
+    - assets/PNG/BLUETOOTH/
+    - assets/PNG/TibbiYazi/
 
 environment:
 

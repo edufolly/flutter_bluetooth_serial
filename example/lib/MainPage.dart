@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
+import 'package:flutter_bluetooth_serial_example/Pages/terms_conditions.dart';
 import 'package:scoped_model/scoped_model.dart';
 
 import './DiscoveryPage.dart';
@@ -9,6 +10,8 @@ import './ChatPage.dart';
 import './BackgroundCollectingTask.dart';
 import './BackgroundCollectedPage.dart';
 import './AnaModScreen.dart';
+import './Pages/TermsConditions.dart';
+import './Pages/picker_page.dart';
 
 // import './helpers/LineChart.dart';
 
@@ -132,7 +135,7 @@ class _MainPage extends State<MainPage> {
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => SecondRoute()),
+                    MaterialPageRoute(builder: (context) => PickerPage()),
                   );
                 },
               ),
