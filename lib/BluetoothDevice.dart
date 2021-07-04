@@ -3,10 +3,10 @@ part of flutter_bluetooth_serial;
 /// Represents information about the device. Could be out-of-date. // @TODO . add updating the info via some fn
 class BluetoothDevice {
   /// Broadcasted friendly name of the device.
-  final String name;
+  final String? name;
 
   /// MAC address of the device or identificator for platform system (if MAC addresses are prohibited).
-  final String address;
+  final String? address;
 
   /// Type of the device (Bluetooth standard type).
   final BluetoothDeviceType type;

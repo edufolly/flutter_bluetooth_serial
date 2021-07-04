@@ -6,7 +6,7 @@ class PairingVariant {
 
   const PairingVariant._(this.underlyingValue);
 
-  factory PairingVariant.fromUnderlyingValue(int value) {
+  factory PairingVariant.fromUnderlyingValue(int? value) {
     switch (value) {
       case 0:
         return PairingVariant.Pin;
@@ -74,13 +74,13 @@ class PairingVariant {
 /// Represents information about incoming pairing request
 class BluetoothPairingRequest {
   /// MAC address of the device or identificator for platform system (if MAC addresses are prohibited).
-  final String address;
+  final String? address;
 
   /// Variant of the pairing methods.
-  final PairingVariant pairingVariant;
+  final PairingVariant? pairingVariant;
 
   /// Passkey for confirmation.
-  final int passkey;
+  final int? passkey;
 
   /// Construct `BluetoothPairingRequest` with given values.
   const BluetoothPairingRequest({
