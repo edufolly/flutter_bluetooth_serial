@@ -23,7 +23,7 @@ The first goal of this project, started by `Edufolly` was making an interface fo
 
 + Connecting to multiple devices at the same time,
 
-+ Sending and recieving data (multiple connections).
++ Sending and receiving data (multiple connections).
 
 The plugin (for now) uses Serial Port profile for moving data over RFCOMM, so make sure there is running Service Discovery Protocol that points to SP/RFCOMM channel of the device. There could be [max up to 7 Bluetooth connections](https://stackoverflow.com/a/32149519/4880243).
 
