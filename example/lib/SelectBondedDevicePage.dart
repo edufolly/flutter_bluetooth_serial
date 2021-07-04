@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 
@@ -24,17 +25,18 @@ enum _DeviceAvailability {
 class _DeviceWithAvailability extends BluetoothDevice {
   BluetoothDevice device;
   _DeviceAvailability availability;
-  int rssi;
+  int? rssi;
 
   _DeviceWithAvailability(this.device, this.availability, [this.rssi]);
 }
 
 class _SelectBondedDevicePage extends State<SelectBondedDevicePage> {
-  List<_DeviceWithAvailability> devices = List<_DeviceWithAvailability>();
+  List<_DeviceWithAvailability> devices =
+      List<_DeviceWithAvailability>.empty(growable: true);
 
   // Availability
-  StreamSubscription<BluetoothDiscoveryResult> _discoveryStreamSubscription;
-  bool _isDiscovering;
+  StreamSubscription<BluetoothDiscoveryResult>? _discoveryStreamSubscription;
+  bool _isDiscovering = false;
 
   _SelectBondedDevicePage();
 
@@ -90,7 +92,7 @@ class _SelectBondedDevicePage extends State<SelectBondedDevicePage> {
       });
     });
 
-    _discoveryStreamSubscription.onDone(() {
+    _discoveryStreamSubscription?.onDone(() {
       setState(() {
         _isDiscovering = false;
       });
