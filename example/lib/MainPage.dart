@@ -117,7 +117,7 @@ class _MainPage extends State<MainPage> {
             ListTile(
               title: const Text('Bluetooth status'),
               subtitle: Text(_bluetoothState.toString()),
-              trailing: RaisedButton(
+              trailing: ElevatedButton(
                 child: const Text('Settings'),
                 onPressed: () {
                   FlutterBluetoothSerial.instance.openSettings();
@@ -216,7 +216,7 @@ class _MainPage extends State<MainPage> {
               },
             ),
             ListTile(
-              title: RaisedButton(
+              title: ElevatedButton(
                   child: const Text('Explore discovered devices'),
                   onPressed: () async {
                     final BluetoothDevice? selectedDevice =
@@ -236,7 +236,7 @@ class _MainPage extends State<MainPage> {
                   }),
             ),
             ListTile(
-              title: RaisedButton(
+              title: ElevatedButton(
                 child: const Text('Connect to paired device to chat'),
                 onPressed: () async {
                   final BluetoothDevice? selectedDevice =
@@ -260,7 +260,7 @@ class _MainPage extends State<MainPage> {
             Divider(),
             ListTile(title: const Text('Multiple connections example')),
             ListTile(
-              title: RaisedButton(
+              title: ElevatedButton(
                 child: ((_collectingTask?.inProgress ?? false)
                     ? const Text('Disconnect and stop background collecting')
                     : const Text('Connect to start background collecting')),
@@ -292,7 +292,7 @@ class _MainPage extends State<MainPage> {
               ),
             ),
             ListTile(
-              title: RaisedButton(
+              title: ElevatedButton(
                 child: const Text('View background collected data'),
                 onPressed: (_collectingTask != null)
                     ? () {
@@ -342,7 +342,7 @@ class _MainPage extends State<MainPage> {
             title: const Text('Error occured while connecting'),
             content: Text("${ex.toString()}"),
             actions: <Widget>[
-              new FlatButton(
+              new TextButton(
                 child: new Text("Close"),
                 onPressed: () {
                   Navigator.of(context).pop();
