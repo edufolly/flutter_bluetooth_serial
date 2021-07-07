@@ -1,11 +1,11 @@
 part of flutter_bluetooth_serial;
 
 class BluetoothDiscoveryResult {
-  final BluetoothDevice? device;
+  final BluetoothDevice device;
   final int rssi;
 
   BluetoothDiscoveryResult({
-    this.device,
+    required this.device,
     this.rssi = 0,
   });
 
