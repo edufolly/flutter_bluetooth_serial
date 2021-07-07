@@ -229,7 +229,7 @@ class _MainPage extends State<MainPage> {
                     );
 
                     if (selectedDevice != null) {
-                      print('Discovery -> selected ' + selectedDevice.address!);
+                      print('Discovery -> selected ' + selectedDevice.address);
                     } else {
                       print('Discovery -> no device selected');
                     }
@@ -249,7 +249,7 @@ class _MainPage extends State<MainPage> {
                   );
 
                   if (selectedDevice != null) {
-                    print('Connect -> selected ' + selectedDevice.address!);
+                    print('Connect -> selected ' + selectedDevice.address);
                     _startChat(context, selectedDevice);
                   } else {
                     print('Connect -> no device selected');

@@ -22,7 +22,7 @@ enum _DeviceAvailability {
   yes,
 }
 
-class _DeviceWithAvailability extends BluetoothDevice {
+class _DeviceWithAvailability {
   BluetoothDevice device;
   _DeviceAvailability availability;
   int? rssi;

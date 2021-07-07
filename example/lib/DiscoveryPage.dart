@@ -94,10 +94,10 @@ class _DiscoveryPage extends State<DiscoveryPage> {
         itemCount: results.length,
         itemBuilder: (BuildContext context, index) {
           BluetoothDiscoveryResult result = results[index];
-          final device = result.device!;
-          final address = device.address!;
+          final device = result.device;
+          final address = device.address;
           return BluetoothDeviceListEntry(
-            device: result.device!,
+            device: device,
             rssi: result.rssi,
             onTap: () {
               Navigator.of(context).pop(result.device);

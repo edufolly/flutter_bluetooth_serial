@@ -6,7 +6,7 @@ class BluetoothDevice {
   final String? name;
 
   /// MAC address of the device or identificator for platform system (if MAC addresses are prohibited).
-  final String? address;
+  final String address;
 
   /// Type of the device (Bluetooth standard type).
   final BluetoothDeviceType type;
@@ -30,7 +30,7 @@ class BluetoothDevice {
   /// Construct `BluetoothDevice` with given values.
   const BluetoothDevice({
     this.name,
-    this.address,
+    required this.address,
     this.type = BluetoothDeviceType.unknown,
     this.isConnected = false,
     this.bondState = BluetoothBondState.unknown,
@@ -42,7 +42,7 @@ class BluetoothDevice {
   factory BluetoothDevice.fromMap(Map map) {
     return BluetoothDevice(
       name: map["name"],
-      address: map["address"],
+      address: map["address"]!,
       type: map["type"] != null
           ? BluetoothDeviceType.fromUnderlyingValue(map["type"])
           : BluetoothDeviceType.unknown,
