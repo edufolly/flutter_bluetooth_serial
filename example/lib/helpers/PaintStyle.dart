@@ -27,7 +27,7 @@ class PaintStyle {
   ///
   /// This color is not used when compositing. To colorize a layer, use
   /// [colorFilter].
-  final Color color;
+  final Color? color;
 
   // Must be kept in sync with the default in paint.cc.
   static final int _kBlendModeDefault = BlendMode.srcOver.index;
@@ -131,7 +131,7 @@ class PaintStyle {
   /// drawn but before it has been composited into the image.
   ///
   /// See [MaskFilter] for details.
-  final MaskFilter maskFilter;
+  final MaskFilter? maskFilter;
 
   /// Controls the performance vs quality trade-off to use when applying
   /// filters, such as [maskFilter], or when drawing images, as with
@@ -151,7 +151,7 @@ class PaintStyle {
   ///  * [ImageShader], a shader that tiles an [Image].
   ///  * [colorFilter], which overrides [shader].
   ///  * [color], which is used if [shader] and [colorFilter] are null.
-  final Shader shader;
+  final Shader? shader;
 
   /// A color filter to apply when a shape is drawn or when a layer is
   /// composited.
@@ -159,7 +159,7 @@ class PaintStyle {
   /// See [ColorFilter] for details.
   ///
   /// When a shape is being drawn, [colorFilter] overrides [color] and [shader].
-  final ColorFilter colorFilter;
+  final ColorFilter? colorFilter;
 
   /// Whether the colors of the image are inverted when drawn.
   ///
@@ -244,7 +244,7 @@ class PaintStyle {
   Paint toPaint() {
     Paint paint = Paint();
     if (this.isAntiAlias != true) paint.isAntiAlias = this.isAntiAlias;
-    if (this.color != const Color(_kColorDefault)) paint.color = this.color;
+    if (this.color != const Color(_kColorDefault)) paint.color = this.color!;
     if (this.blendMode != BlendMode.srcOver) paint.blendMode = this.blendMode;
     if (this.style != PaintingStyle.fill) paint.style = this.style;
     if (this.strokeWidth != 0.0) paint.strokeWidth = this.strokeWidth;

@@ -1,13 +1,14 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 import 'package:scoped_model/scoped_model.dart';
 
+import './BackgroundCollectedPage.dart';
+import './BackgroundCollectingTask.dart';
+import './ChatPage.dart';
 import './DiscoveryPage.dart';
 import './SelectBondedDevicePage.dart';
-import './ChatPage.dart';
-import './BackgroundCollectingTask.dart';
-import './BackgroundCollectedPage.dart';
 
 // import './helpers/LineChart.dart';
 
@@ -22,10 +23,10 @@ class _MainPage extends State<MainPage> {
   String _address = "...";
   String _name = "...";
 
-  Timer _discoverableTimeoutTimer;
+  Timer? _discoverableTimeoutTimer;
   int _discoverableTimeoutSecondsLeft = 0;
 
-  BackgroundCollectingTask _collectingTask;
+  BackgroundCollectingTask? _collectingTask;
 
   bool _autoAcceptPairingRequests = false;
 
@@ -42,7 +43,7 @@ class _MainPage extends State<MainPage> {
 
     Future.doWhile(() async {
       // Wait if adapter not enabled
-      if (await FlutterBluetoothSerial.instance.isEnabled) {
+      if ((await FlutterBluetoothSerial.instance.isEnabled) ?? false) {
         return false;
       }
       await Future.delayed(Duration(milliseconds: 0xDD));
@@ -51,14 +52,14 @@ class _MainPage extends State<MainPage> {
       // Update the address field
       FlutterBluetoothSerial.instance.address.then((address) {
         setState(() {
-          _address = address;
+          _address = address!;
         });
       });
     });
 
     FlutterBluetoothSerial.instance.name.then((name) {
       setState(() {
-        _name = name;
+        _name = name!;
       });
     });
 
@@ -116,7 +117,7 @@ class _MainPage extends State<MainPage> {
             ListTile(
               title: const Text('Bluetooth status'),
               subtitle: Text(_bluetoothState.toString()),
-              trailing: RaisedButton(
+              trailing: ElevatedButton(
                 child: const Text('Settings'),
                 onPressed: () {
                   FlutterBluetoothSerial.instance.openSettings();
@@ -153,8 +154,8 @@ class _MainPage extends State<MainPage> {
                     icon: const Icon(Icons.refresh),
                     onPressed: () async {
                       print('Discoverable requested');
-                      final int timeout = await FlutterBluetoothSerial.instance
-                          .requestDiscoverable(60);
+                      final int timeout = (await FlutterBluetoothSerial.instance
+                          .requestDiscoverable(60))!;
                       if (timeout < 0) {
                         print('Discoverable mode denied');
                       } else {
@@ -170,7 +171,7 @@ class _MainPage extends State<MainPage> {
                             if (_discoverableTimeoutSecondsLeft < 0) {
                               FlutterBluetoothSerial.instance.isDiscoverable
                                   .then((isDiscoverable) {
-                                if (isDiscoverable) {
+                                if (isDiscoverable ?? false) {
                                   print(
                                       "Discoverable after timeout... might be infinity timeout :F");
                                   _discoverableTimeoutSecondsLeft += 1;
@@ -206,7 +207,7 @@ class _MainPage extends State<MainPage> {
                     if (request.pairingVariant == PairingVariant.Pin) {
                       return Future.value("1234");
                     }
-                    return null;
+                    return Future.value(null);
                   });
                 } else {
                   FlutterBluetoothSerial.instance
@@ -215,10 +216,10 @@ class _MainPage extends State<MainPage> {
               },
             ),
             ListTile(
-              title: RaisedButton(
+              title: ElevatedButton(
                   child: const Text('Explore discovered devices'),
                   onPressed: () async {
-                    final BluetoothDevice selectedDevice =
+                    final BluetoothDevice? selectedDevice =
                         await Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (context) {
@@ -235,10 +236,10 @@ class _MainPage extends State<MainPage> {
                   }),
             ),
             ListTile(
-              title: RaisedButton(
+              title: ElevatedButton(
                 child: const Text('Connect to paired device to chat'),
                 onPressed: () async {
-                  final BluetoothDevice selectedDevice =
+                  final BluetoothDevice? selectedDevice =
                       await Navigator.of(context).push(
                     MaterialPageRoute(
                       builder: (context) {
@@ -259,18 +260,18 @@ class _MainPage extends State<MainPage> {
             Divider(),
             ListTile(title: const Text('Multiple connections example')),
             ListTile(
-              title: RaisedButton(
-                child: ((_collectingTask != null && _collectingTask.inProgress)
+              title: ElevatedButton(
+                child: ((_collectingTask?.inProgress ?? false)
                     ? const Text('Disconnect and stop background collecting')
                     : const Text('Connect to start background collecting')),
                 onPressed: () async {
-                  if (_collectingTask != null && _collectingTask.inProgress) {
-                    await _collectingTask.cancel();
+                  if (_collectingTask?.inProgress ?? false) {
+                    await _collectingTask!.cancel();
                     setState(() {
                       /* Update for `_collectingTask.inProgress` */
                     });
                   } else {
-                    final BluetoothDevice selectedDevice =
+                    final BluetoothDevice? selectedDevice =
                         await Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (context) {
@@ -291,7 +292,7 @@ class _MainPage extends State<MainPage> {
               ),
             ),
             ListTile(
-              title: RaisedButton(
+              title: ElevatedButton(
                 child: const Text('View background collected data'),
                 onPressed: (_collectingTask != null)
                     ? () {
@@ -299,7 +300,7 @@ class _MainPage extends State<MainPage> {
                           MaterialPageRoute(
                             builder: (context) {
                               return ScopedModel<BackgroundCollectingTask>(
-                                model: _collectingTask,
+                                model: _collectingTask!,
                                 child: BackgroundCollectedPage(),
                               );
                             },
@@ -331,11 +332,9 @@ class _MainPage extends State<MainPage> {
   ) async {
     try {
       _collectingTask = await BackgroundCollectingTask.connect(server);
-      await _collectingTask.start();
+      await _collectingTask!.start();
     } catch (ex) {
-      if (_collectingTask != null) {
-        _collectingTask.cancel();
-      }
+      _collectingTask?.cancel();
       showDialog(
         context: context,
         builder: (BuildContext context) {
@@ -343,7 +342,7 @@ class _MainPage extends State<MainPage> {
             title: const Text('Error occured while connecting'),
             content: Text("${ex.toString()}"),
             actions: <Widget>[
-              new FlatButton(
+              new TextButton(
                 child: new Text("Close"),
                 onPressed: () {
                   Navigator.of(context).pop();

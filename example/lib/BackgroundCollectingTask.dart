@@ -1,4 +1,5 @@
 import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 import 'package:scoped_model/scoped_model.dart';
@@ -10,10 +11,10 @@ class DataSample {
   DateTime timestamp;
 
   DataSample({
-    this.temperature1,
-    this.temperature2,
-    this.waterpHlevel,
-    this.timestamp,
+    required this.temperature1,
+    required this.temperature2,
+    required this.waterpHlevel,
+    required this.timestamp,
   });
 }
 
@@ -28,18 +29,18 @@ class BackgroundCollectingTask extends Model {
       );
 
   final BluetoothConnection _connection;
-  List<int> _buffer = List<int>();
+  List<int> _buffer = List<int>.empty(growable: true);
 
   // @TODO , Such sample collection in real code should be delegated
   // (via `Stream<DataSample>` preferably) and then saved for later
   // displaying on chart (or even stright prepare for displaying).
   // @TODO ? should be shrinked at some point, endless colleting data would cause memory shortage.
-  List<DataSample> samples = List<DataSample>();
+  List<DataSample> samples = List<DataSample>.empty(growable: true);
 
-  bool inProgress;
+  bool inProgress = false;
 
   BackgroundCollectingTask._fromConnection(this._connection) {
-    _connection.input.listen((data) {
+    _connection.input!.listen((data) {
       _buffer += data;
 
       while (true) {
