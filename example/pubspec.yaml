@@ -21,6 +21,8 @@ dev_dependencies:
 
   flutter_bluetooth_serial:
     path: ../
+  integration_test:
+    sdk: flutter
 
 flutter:
   uses-material-design: true
