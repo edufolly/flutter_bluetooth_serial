@@ -6,10 +6,9 @@
 Flutter basic implementation for Classical Bluetooth (only RFCOMM for now).
 
 
-
 ## Features
 
-The first goal of this project, started by `Edufolly` was making an interface for Serial Port Protocol (HC-05 Adapter). Now the plugin features:
+The first goal of this project, started by @edufolly was making an interface for Serial Port Protocol (HC-05 Adapter). Now the plugin features:
 
 + Adapter status monitoring,
 
@@ -30,7 +29,6 @@ The plugin (for now) uses Serial Port profile for moving data over RFCOMM, so ma
 For now there is only Android support.
 
 
-
 ## Getting Started
 
 #### Depending 
@@ -38,8 +36,7 @@ For now there is only Android support.
 # Add dependency to `pubspec.yaml` of your project.
 dependencies:
     # ...
-    flutter_bluetooth_serial: ^0.2.2
-
+    flutter_bluetooth_serial: ^0.3.1
 ```
 
 #### Installing
@@ -93,7 +90,6 @@ Main screen and options |  Discovery and connecting  |  Simple chat with server 
 ![](https://i.imgur.com/qeeMsVe.png)  |  ![](https://i.imgur.com/zruuelZ.png)  |  ![](https://i.imgur.com/y5mTUey.png)  |  ![](https://i.imgur.com/3wvwDVo.png)
 
 
-
 ## To-do list
 
 + Add some utils to easier manage `BluetoothConnection` (see discussion #41),
@@ -105,3 +101,12 @@ Main screen and options |  Discovery and connecting  |  Simple chat with server 
 You might also want to check [milestones](https://github.com/edufolly/flutter_bluetooth_serial/milestones).
 
 
+## Credits
+
+- [Eduardo Folly](mailto:edufolly@gmail.com)
+- [Martin Mauch](mailto:martin.mauch@gmail.com)
+- [Patryk Ludwikowski](mailto:patryk.ludwikowski.7@gmail.com)
+
+After version 0.3.0 we have a lot of collaborators. If you would like to be credited, please send me an [email](mailto:edufolly@gmail.com).
+
+#### Thanks for all the support!

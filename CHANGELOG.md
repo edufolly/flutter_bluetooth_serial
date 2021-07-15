@@ -1,4 +1,14 @@
-## [0.3.0] - implemented nullable safety
+## [0.3.1] = 2021-07-15
+
+Patch release.
+
+* Update example to sound null safety and new Material Buttons.
+* Changed FutureOr<int> to FutureOr<dynamic> in getBondStateForAddress. 
+* Fix an unhandled exception when trying to get bluetooth state.
+
+## [0.3.0] - 2021-07-04
+
+Implementing null safety.
 
 ## [0.2.2] - 2019-08-19
 
