@@ -19,7 +19,7 @@ dependencies:
 
 flutter:
   plugin:
-    platform:
+    platforms:
       android:
         package: io.github.edufolly.flutterbluetoothserial
         pluginClass: FlutterBluetoothSerialPlugin
