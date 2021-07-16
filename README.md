@@ -36,7 +36,7 @@ For now there is only Android support.
 # Add dependency to `pubspec.yaml` of your project.
 dependencies:
     # ...
-    flutter_bluetooth_serial: ^0.3.1
+    flutter_bluetooth_serial: ^0.3.2
 ```
 
 #### Installing
