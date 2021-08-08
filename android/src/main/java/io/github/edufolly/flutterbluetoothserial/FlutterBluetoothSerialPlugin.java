@@ -54,7 +54,7 @@ public class FlutterBluetoothSerialPlugin implements FlutterPlugin, ActivityAwar
     private static final int REQUEST_DISCOVERABLE_BLUETOOTH = 2137;
 
     // General Bluetooth
-    private final BluetoothAdapter bluetoothAdapter;
+    private BluetoothAdapter bluetoothAdapter;
 
     // State
     private final BroadcastReceiver stateReceiver;
@@ -80,11 +80,6 @@ public class FlutterBluetoothSerialPlugin implements FlutterPlugin, ActivityAwar
 
     /// Constructs the plugin instance
     public FlutterBluetoothSerialPlugin() {
-        // General Bluetooth
-        BluetoothManager bluetoothManager = (BluetoothManager) activity.getSystemService(Context.BLUETOOTH_SERVICE);
-        assert bluetoothManager != null;
-
-        this.bluetoothAdapter = bluetoothManager.getAdapter();
 
         // State
         stateReceiver = new BroadcastReceiver() {
@@ -320,7 +315,7 @@ public class FlutterBluetoothSerialPlugin implements FlutterPlugin, ActivityAwar
     @Override
     public void onAttachedToEngine(@NonNull FlutterPlugin.FlutterPluginBinding binding) {
         Log.v("FlutterBluetoothSerial", "Attached to engine");
-        if (true) throw new RuntimeException("FlutterBluetoothSerial Attached to engine");
+//        if (true) throw new RuntimeException("FlutterBluetoothSerial Attached to engine");
         messenger = binding.getBinaryMessenger();
 
         methodChannel = new MethodChannel(messenger, PLUGIN_NAMESPACE + "/methods");
@@ -384,7 +379,13 @@ public class FlutterBluetoothSerialPlugin implements FlutterPlugin, ActivityAwar
 
     @Override
     public void onAttachedToActivity(@NonNull ActivityPluginBinding binding) {
-        if (true) throw new RuntimeException("FlutterBluetoothSerial Attached to activity");
+//        if (true) throw new RuntimeException("FlutterBluetoothSerial Attached to activity");
+        this.activity = binding.getActivity();
+        BluetoothManager bluetoothManager = (BluetoothManager) activity.getSystemService(Context.BLUETOOTH_SERVICE);
+        assert bluetoothManager != null;
+
+        this.bluetoothAdapter = bluetoothManager.getAdapter();
+
         binding.addActivityResultListener(
                 (requestCode, resultCode, data) -> {
                     switch (requestCode) {
