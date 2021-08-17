@@ -1,3 +1,7 @@
+## [0.4.0] - 2021-08-17
+
+Update flutter plugin v2.
+
 ## [0.3.2] - 2021-07-15
 
 Fixing pubspec.yaml typo.
