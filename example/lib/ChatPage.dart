@@ -124,7 +124,8 @@ class _ChatPage extends State<ChatPage> {
               child: ListView(
                   padding: const EdgeInsets.all(12.0),
                   controller: listScrollController,
-                  children: list),
+                  reverse: true,
+                  children: list.reversed.toList()),
             ),
             Row(
               children: <Widget>[
@@ -226,7 +227,7 @@ class _ChatPage extends State<ChatPage> {
 
         Future.delayed(Duration(milliseconds: 333)).then((_) {
           listScrollController.animateTo(
-              listScrollController.position.maxScrollExtent,
+              listScrollController.position.minScrollExtent,
               duration: Duration(milliseconds: 333),
               curve: Curves.easeOut);
         });
