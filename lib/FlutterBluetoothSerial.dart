@@ -217,13 +217,20 @@ class FlutterBluetoothSerial {
       },
     );
 
-    await _methodChannel.invokeMethod('startDiscovery');
+    // If we are already discovering we cancel the discovery
+    // This is useful to prevent subscription to be done before we call startDiscovery
+    if((await isDiscovering) == true) {
+      await cancelDiscovery();
+    }
 
+    // We subscribe before calling startDiscovery to prevent loosing results
     subscription = _discoveryChannel.receiveBroadcastStream().listen(
-          controller.add,
-          onError: controller.addError,
-          onDone: controller.close,
-        );
+      controller.add,
+      onError: controller.addError,
+      onDone: controller.close,
+    );
+
+    await _methodChannel.invokeMethod('startDiscovery');
 
     yield* controller.stream
         .map((map) => BluetoothDiscoveryResult.fromMap(map));
