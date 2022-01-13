@@ -471,7 +471,7 @@ public class FlutterBluetoothSerialPlugin implements FlutterPlugin, ActivityAwar
                     Manifest.permission.BLUETOOTH_SCAN)
                     != PackageManager.PERMISSION_GRANTED) {
                 ActivityCompat.requestPermissions(activity,
-                    new String[]{Manifest.permission.BLUETOOTH_SCAN},
+                    new String[]{Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT},
                     REQUEST_BLUETOOTH_SCAN_PERMISSIONS);
                 pendingPermissionsEnsureCallbacks = callbacks;
             } else {
