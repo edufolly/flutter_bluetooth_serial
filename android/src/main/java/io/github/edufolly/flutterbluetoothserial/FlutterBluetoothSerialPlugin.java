@@ -16,6 +16,7 @@ import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
+import android.os.Build;
 import android.util.Log;
 import android.util.SparseArray;
 import android.os.AsyncTask;
@@ -444,15 +445,32 @@ public class FlutterBluetoothSerialPlugin implements FlutterPlugin, ActivityAwar
     EnsurePermissionsCallback pendingPermissionsEnsureCallbacks = null;
 
     private void ensurePermissions(EnsurePermissionsCallback callbacks) {
-        if (
+        boolean permissionGranted = (
                 ContextCompat.checkSelfPermission(activity,
                         Manifest.permission.ACCESS_COARSE_LOCATION)
-                        != PackageManager.PERMISSION_GRANTED
-                        || ContextCompat.checkSelfPermission(activity,
+                        == PackageManager.PERMISSION_GRANTED
+                && ContextCompat.checkSelfPermission(activity,
                         Manifest.permission.ACCESS_FINE_LOCATION)
-                        != PackageManager.PERMISSION_GRANTED) {
+                        == PackageManager.PERMISSION_GRANTED);
+
+        String[] requestString = new String[]{Manifest.permission.ACCESS_COARSE_LOCATION,
+                Manifest.permission.ACCESS_FINE_LOCATION};
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            permissionGranted = (
+                    ContextCompat.checkSelfPermission(activity,
+                            Manifest.permission.BLUETOOTH_SCAN)
+                            == PackageManager.PERMISSION_GRANTED
+                    && ContextCompat.checkSelfPermission(activity,
+                            Manifest.permission.BLUETOOTH_CONNECT)
+                            == PackageManager.PERMISSION_GRANTED);
+            requestString = new String[]{Manifest.permission.BLUETOOTH_SCAN,
+                    Manifest.permission.BLUETOOTH_CONNECT};
+        }
+
+        if (!permissionGranted) {
             ActivityCompat.requestPermissions(activity,
-                    new String[]{Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION},
+                    requestString,
                     REQUEST_COARSE_LOCATION_PERMISSIONS);
 
             pendingPermissionsEnsureCallbacks = callbacks;
@@ -549,6 +567,7 @@ public class FlutterBluetoothSerialPlugin implements FlutterPlugin, ActivityAwar
 
     private class FlutterBluetoothSerialMethodCallHandler implements MethodCallHandler {
         /// Provides access to the plugin methods
+        @SuppressLint("MissingPermission")
         @Override
         public void onMethodCall(MethodCall call, Result result) {
             if (bluetoothAdapter == null) {
@@ -606,7 +625,11 @@ public class FlutterBluetoothSerialPlugin implements FlutterPlugin, ActivityAwar
                     break;
 
                 case "getAddress": {
-                    String address = bluetoothAdapter.getAddress();
+                    String address = "02:00:00:00:00:00";
+
+                    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+                        address = bluetoothAdapter.getAddress();
+                    }
 
                     if (address.equals("02:00:00:00:00:00")) {
                         Log.w(TAG, "Local Bluetooth MAC address is hidden by system, trying other options...");
