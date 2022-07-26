@@ -644,6 +644,7 @@ public class FlutterBluetoothSerialPlugin implements FlutterPlugin, ActivityAwar
                     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
                         address = bluetoothAdapter.getAddress();
                     }
+                    // else Local Bluetooth MAC address is hidden by system in newer releases.
 
                     if (address.equals("02:00:00:00:00:00")) {
                         Log.w(TAG, "Local Bluetooth MAC address is hidden by system, trying other options...");
