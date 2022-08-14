@@ -52,4 +52,13 @@ class BluetoothBondState {
   int get hashCode => underlyingValue.hashCode;
 
   bool get isBonded => this == bonded;
+
+  bool isBondingStatus() {
+    int checkvalue = this.underlyingValue;
+    if (checkvalue == 11) {
+      return true;
+    } else {
+      return false;
+    }
+  }
 }

@@ -1,10 +1,6 @@
 name: flutter_bluetooth_serial
 version: 0.4.0
 description: A basic Flutter Bluetooth Serial library
-authors:
-  - Eduardo Folly <edufolly@gmail.com>
-  - Martin Mauch <martin.mauch@gmail.com>
-  - Patryk Ludwikowski <patryk.ludwikowski.7@gmail.com>
 homepage: https://github.com/edufolly/flutter_bluetooth_serial
 repository: https://github.com/edufolly/flutter_bluetooth_serial
 issue_tracker: https://github.com/edufolly/flutter_bluetooth_serial/issues

@@ -9,12 +9,16 @@
 .buildlog/
 .history
 .svn/
+.iml
+.packages
 
 # IntelliJ related
 *.iml
 *.ipr
 *.iws
 .idea/
+.iml
+
 
 # Visual Studio Code related
 .vscode/
@@ -27,6 +31,9 @@
 .pub-cache/
 .pub/
 /build/
+/example/
+/ios/
+
 
 # Android related
 **/android/**/gradle-wrapper.jar
