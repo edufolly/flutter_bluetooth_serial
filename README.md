@@ -79,7 +79,44 @@ catch (exception) {
 }
 ```
 
+``` dart
+// Send message to connected device
+  Future<void> sendMessage(BluetoothConnection connection) async {
+    try {
+      if (!connection.isConnected) {
+        print("Device isn't connected");
+        return;
+      }
+      String message = "hello!";
+      // Encode the message to a byte list
+      Uint8List encodedMessage = ascii.encode(message);
+      // Send the message
+      connection.output.add(encodedMessage);
+    } catch (e) {
+      print("Exception while sending message: $e");
+    }
+  }
+```
+
+```dart
+// Receive message from connected device
+  Future<void> listenForMessages(BluetoothConnection connection) async {
+    // Subscribe to data updates
+    StreamSubscription? subscription = connection.input?.listen((data) {
+      // Decode the message
+      String message = ascii.decode(data);
+      print("Received new message: $message");
+    }, onDone: () {
+      // Cleanup code goes here for when connection is closed
+      print("Connection closed");
+    });
+  }
+```
+
 Note: Work is underway to make the communication easier than operations on byte streams. See #41 for discussion about the topic.
+
+#### Permissions
+See this page on [Android Bluetooth permissions](https://developer.android.com/guide/topics/connectivity/bluetooth/permissions) and request them according to your needs.
 
 #### Examples
 
@@ -89,6 +126,9 @@ Main screen and options |  Discovery and connecting  |  Simple chat with server 
 :---:|:---:|:---:|:---:|
 ![](https://i.imgur.com/qeeMsVe.png)  |  ![](https://i.imgur.com/zruuelZ.png)  |  ![](https://i.imgur.com/y5mTUey.png)  |  ![](https://i.imgur.com/3wvwDVo.png)
 
+## Important Notes
++ This package DOES NOT yet support bluetooth server sockets. In classical bluetooth connections, one of the devices must obtain a bluetooth server socket so that clients can connect. If your goal to achieve Flutter to Flutter device connection, you will not be able to achieve such using only this library.
++ [Android does not require developers to pair/bond devices before attempting to connect them.](https://developer.android.com/guide/topics/connectivity/bluetooth/connect-bluetooth-devices) If devices are not yet bonded, during connection the user will be prompted to accept a pairing request.
 
 ## To-do list
 
