@@ -66,6 +66,7 @@ class BluetoothDevice {
     "type": this.type.toUnderlyingValue(),
     "isConnected": this.isConnected,
     "bondState": this.bondState.toUnderlyingValue(),
+    "deviceClass": this.deviceClass
   };
 
   /// Compares for equality of this and other `BluetoothDevice`.
