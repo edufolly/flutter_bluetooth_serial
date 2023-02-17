@@ -18,7 +18,7 @@ class DiscoveryPage extends StatefulWidget {
 class _DiscoveryPage extends State<DiscoveryPage> {
   StreamSubscription<BluetoothDiscoveryResult>? _streamSubscription;
   List<BluetoothDiscoveryResult> results =
-      List<BluetoothDiscoveryResult>.empty(growable: true);
+  List<BluetoothDiscoveryResult>.empty(growable: true);
   bool isDiscovering = false;
 
   _DiscoveryPage();
@@ -45,15 +45,15 @@ class _DiscoveryPage extends State<DiscoveryPage> {
   void _startDiscovery() {
     _streamSubscription =
         FlutterBluetoothSerial.instance.startDiscovery().listen((r) {
-      setState(() {
-        final existingIndex = results.indexWhere(
-            (element) => element.device.address == r.device.address);
-        if (existingIndex >= 0)
-          results[existingIndex] = r;
-        else
-          results.add(r);
-      });
-    });
+          setState(() {
+            final existingIndex = results.indexWhere(
+                    (element) => element.device.address == r.device.address);
+            if (existingIndex >= 0)
+              results[existingIndex] = r;
+            else
+              results.add(r);
+          });
+        });
 
     _streamSubscription!.onDone(() {
       setState(() {
@@ -82,17 +82,17 @@ class _DiscoveryPage extends State<DiscoveryPage> {
         actions: <Widget>[
           isDiscovering
               ? FittedBox(
-                  child: Container(
-                    margin: new EdgeInsets.all(16.0),
-                    child: CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                    ),
-                  ),
-                )
+            child: Container(
+              margin: new EdgeInsets.all(16.0),
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+              ),
+            ),
+          )
               : IconButton(
-                  icon: Icon(Icons.replay),
-                  onPressed: _restartDiscovery,
-                )
+            icon: Icon(Icons.replay),
+            onPressed: _restartDiscovery,
+          )
         ],
       ),
       body: ListView.builder(
