@@ -6,12 +6,18 @@ repository: https://github.com/edufolly/flutter_bluetooth_serial
 issue_tracker: https://github.com/edufolly/flutter_bluetooth_serial/issues
 
 environment:
-  sdk: '>=2.12.0 <3.0.0'
-  flutter: ">=1.17.0"
+  sdk: '>=3.0.0 <4.0.0'
 
 dependencies:
   flutter:
     sdk: flutter
+
+dev_dependencies:
+  # https://pub.dev/packages/lints
+  lints: ^2.1.0
+
+  # https://pub.dev/packages/test
+  test: ^1.24.0
 
 flutter:
   plugin:
