@@ -510,7 +510,7 @@ class _LineChartPainter extends CustomPainter {
       Iterator<double> argument = arguments.iterator;
       while (value.moveNext()) {
         argument.moveNext();
-        if (value.current == null || value.current == double.nan) continue;
+        if (value.current == null) continue;
 
         if (argument.current < argumentsOffset) continue;
         final double xOffset = padding.left +

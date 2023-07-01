@@ -17,7 +17,7 @@ class SelectBondedDevicePage extends StatefulWidget {
 }
 
 enum _DeviceAvailability {
-  no,
+  // no,
   maybe,
   yes,
 }
