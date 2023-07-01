@@ -1,4 +1,4 @@
-part of flutter_bluetooth_serial;
+part of './flutter_bluetooth_serial.dart';
 
 /// Enum-like class for all types of pairing variants.
 class PairingVariant {

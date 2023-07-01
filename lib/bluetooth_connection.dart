@@ -1,4 +1,4 @@
-part of flutter_bluetooth_serial;
+part of './flutter_bluetooth_serial.dart';
 
 /// Represents ongoing Bluetooth connection to remote device.
 class BluetoothConnection {
@@ -71,13 +71,16 @@ class BluetoothConnection {
 
   /// Closes connection (rather immediately), in result should also disconnect.
   Future<void> close() {
-    return Future.wait([
-      output.close(),
-      _readStreamSubscription.cancel(),
-      (!_readStreamController.isClosed)
-          ? _readStreamController.close()
-          : Future.value(/* Empty future */)
-    ], eagerError: true);
+    return Future.wait(
+      [
+        output.close(),
+        _readStreamSubscription.cancel(),
+        (!_readStreamController.isClosed)
+            ? _readStreamController.close()
+            : Future.value(/* Empty future */)
+      ],
+      eagerError: true,
+    );
   }
 
   /// Closes connection (rather immediately), in result should also disconnect.
@@ -189,9 +192,10 @@ class _BluetoothStreamSink<Uint8List> extends StreamSink<Uint8List> {
   ///
   /// Otherwise, the returned future will complete when either:
   Future get allSent => Future(() async {
-        // Simple `await` can't get job done here, because the `_chainedFutures` member
-        // in one access time provides last Future, then `await`ing for it allows the library
-        // user to add more futures on top of the waited-out Future.
+        /// Simple `await` can't get job done here, because the
+        /// `_chainedFutures` member in one access time provides last Future,
+        /// then `await`ing for it allows the library user to add more futures
+        /// on top of the waited-out Future.
         Future lastFuture;
         do {
           lastFuture = this._chainedFutures;

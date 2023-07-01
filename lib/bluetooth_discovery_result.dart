@@ -1,4 +1,4 @@
-part of flutter_bluetooth_serial;
+part of './flutter_bluetooth_serial.dart';
 
 class BluetoothDiscoveryResult {
   final BluetoothDevice device;
