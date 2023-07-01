@@ -2,19 +2,24 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
+import 'package:flutter_bluetooth_serial_example/BluetoothDeviceListEntry.dart';
 
-import './BluetoothDeviceListEntry.dart';
-
+///
+///
+///
 class DiscoveryPage extends StatefulWidget {
   /// If true, discovery starts on page start, otherwise user must press action button.
   final bool start;
 
-  const DiscoveryPage({this.start = true});
+  const DiscoveryPage({this.start = true, super.key});
 
   @override
-  _DiscoveryPage createState() => new _DiscoveryPage();
+  State<DiscoveryPage> createState() => _DiscoveryPage();
 }
 
+///
+///
+///
 class _DiscoveryPage extends State<DiscoveryPage> {
   StreamSubscription<BluetoothDiscoveryResult>? _streamSubscription;
   List<BluetoothDiscoveryResult> results =
@@ -47,7 +52,8 @@ class _DiscoveryPage extends State<DiscoveryPage> {
         FlutterBluetoothSerial.instance.startDiscovery().listen((r) {
       setState(() {
         final existingIndex = results.indexWhere(
-            (element) => element.device.address == r.device.address);
+          (element) => element.device.address == r.device.address,
+        );
         if (existingIndex >= 0)
           results[existingIndex] = r;
         else
@@ -77,28 +83,29 @@ class _DiscoveryPage extends State<DiscoveryPage> {
     return Scaffold(
       appBar: AppBar(
         title: isDiscovering
-            ? Text('Discovering devices')
-            : Text('Discovered devices'),
+            ? const Text('Discovering devices')
+            : const Text('Discovered devices'),
         actions: <Widget>[
-          isDiscovering
-              ? FittedBox(
-                  child: Container(
-                    margin: new EdgeInsets.all(16.0),
-                    child: CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                    ),
-                  ),
-                )
-              : IconButton(
-                  icon: Icon(Icons.replay),
-                  onPressed: _restartDiscovery,
-                )
+          if (isDiscovering)
+            FittedBox(
+              child: Container(
+                margin:  const EdgeInsets.all(16.0),
+                child: const CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              ),
+            )
+          else
+            IconButton(
+              icon: const Icon(Icons.replay),
+              onPressed: _restartDiscovery,
+            )
         ],
       ),
       body: ListView.builder(
         itemCount: results.length,
-        itemBuilder: (BuildContext context, index) {
-          BluetoothDiscoveryResult result = results[index];
+        itemBuilder: (BuildContext context, int index) {
+          final BluetoothDiscoveryResult result = results[index];
           final device = result.device;
           final address = device.address;
           return BluetoothDeviceListEntry(
@@ -119,31 +126,32 @@ class _DiscoveryPage extends State<DiscoveryPage> {
                   print('Bonding with ${device.address}...');
                   bonded = (await FlutterBluetoothSerial.instance
                       .bondDeviceAtAddress(address))!;
-                  print(
-                      'Bonding with ${device.address} has ${bonded ? 'succed' : 'failed'}.');
+                  print('Bonding with ${device.address} '
+                      'has ${bonded ? 'succed' : 'failed'}.');
                 }
                 setState(() {
                   results[results.indexOf(result)] = BluetoothDiscoveryResult(
-                      device: BluetoothDevice(
-                        name: device.name ?? '',
-                        address: address,
-                        type: device.type,
-                        bondState: bonded
-                            ? BluetoothBondState.bonded
-                            : BluetoothBondState.none,
-                      ),
-                      rssi: result.rssi);
+                    device: BluetoothDevice(
+                      name: device.name ?? '',
+                      address: address,
+                      type: device.type,
+                      bondState: bonded
+                          ? BluetoothBondState.bonded
+                          : BluetoothBondState.none,
+                    ),
+                    rssi: result.rssi,
+                  );
                 });
-              } catch (ex) {
-                showDialog(
+              } on Exception catch (ex) {
+                await showDialog(
                   context: context,
                   builder: (BuildContext context) {
                     return AlertDialog(
                       title: const Text('Error occured while bonding'),
-                      content: Text("${ex.toString()}"),
+                      content: Text(ex.toString()),
                       actions: <Widget>[
-                        new TextButton(
-                          child: new Text("Close"),
+                        TextButton(
+                          child: const Text("Close"),
                           onPressed: () {
                             Navigator.of(context).pop();
                           },

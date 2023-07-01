@@ -4,7 +4,7 @@ class FlutterBluetoothSerial {
   // Plugin
   static const String namespace = 'flutter_bluetooth_serial';
 
-  static FlutterBluetoothSerial _instance = new FlutterBluetoothSerial._();
+  static FlutterBluetoothSerial _instance = FlutterBluetoothSerial._();
 
   static FlutterBluetoothSerial get instance => _instance;
 
@@ -17,7 +17,8 @@ class FlutterBluetoothSerial {
         case 'handlePairingRequest':
           if (_pairingRequestHandler != null) {
             return _pairingRequestHandler!(
-                BluetoothPairingRequest.fromMap(call.arguments));
+              BluetoothPairingRequest.fromMap(call.arguments),
+            );
           }
           break;
 
@@ -50,19 +51,20 @@ class FlutterBluetoothSerial {
 
   /// State of the Bluetooth adapter.
   Future<BluetoothState> get state async => BluetoothState.fromUnderlyingValue(
-      await _methodChannel.invokeMethod('getState'));
+        await _methodChannel.invokeMethod('getState'),
+      );
 
   /// Returns the hardware address of the local Bluetooth adapter.
   ///
   /// Does not work for third party applications starting at Android 6.0.
-  Future<String?> get address => _methodChannel.invokeMethod("getAddress");
+  Future<String?> get address => _methodChannel.invokeMethod('getAddress');
 
   /// Returns the friendly Bluetooth name of the local Bluetooth adapter.
   ///
   /// This name is visible to remote Bluetooth devices.
   ///
   /// Does not work for third party applications starting at Android 6.0.
-  Future<String?> get name => _methodChannel.invokeMethod("getName");
+  Future<String?> get name => _methodChannel.invokeMethod('getName');
 
   /// Sets the friendly Bluetooth name of the local Bluetooth adapter.
   ///
@@ -74,7 +76,7 @@ class FlutterBluetoothSerial {
   ///
   /// Does not work for third party applications starting at Android 6.0.
   Future<bool?> changeName(String name) =>
-      _methodChannel.invokeMethod("setName", {"name": name});
+      _methodChannel.invokeMethod('setName', {'name': name});
 
   /* Adapter settings and general */
   /// Tries to enable Bluetooth interface (if disabled).
@@ -93,8 +95,10 @@ class FlutterBluetoothSerial {
   /* Discovering and bonding devices */
   /// Checks bond state for given address (might be from system cache).
   Future<BluetoothBondState> getBondStateForAddress(String address) async {
-    return BluetoothBondState.fromUnderlyingValue(await _methodChannel
-        .invokeMethod('getDeviceBondState', {"address": address}));
+    return BluetoothBondState.fromUnderlyingValue(
+      await _methodChannel
+          .invokeMethod('getDeviceBondState', {'address': address}),
+    );
   }
 
   /// Starts outgoing bonding (pairing) with device with given address.
@@ -106,11 +110,14 @@ class FlutterBluetoothSerial {
   ///
   /// Note: `passkeyConfirm` will probably not work, since 3rd party apps cannot
   /// get `BLUETOOTH_PRIVILEGED` permission (at least on newest Androids).
-  Future<bool?> bondDeviceAtAddress(String address,
-      {String? pin, bool? passkeyConfirm}) async {
+  Future<bool?> bondDeviceAtAddress(
+    String address, {
+    String? pin,
+    bool? passkeyConfirm,
+  }) async {
     if (pin != null || passkeyConfirm != null) {
       if (_pairingRequestHandler != null) {
-        throw "pairing request handler already registered";
+        throw 'pairing request handler already registered';
       }
       setPairingRequestHandler((BluetoothPairingRequest request) async {
         Future.delayed(Duration(seconds: 1), () {
@@ -140,7 +147,7 @@ class FlutterBluetoothSerial {
       });
     }
     return await _methodChannel
-        .invokeMethod('bondDevice', {"address": address});
+        .invokeMethod('bondDevice', {'address': address});
   }
 
   /// Removes bond with device with specified address.
@@ -180,7 +187,8 @@ class FlutterBluetoothSerial {
   /// Note: It is necessary to return from handler within 10 seconds, since
   /// Android BroadcastReceiver can wait safely only up to that duration.
   void setPairingRequestHandler(
-      Future<dynamic> handler(BluetoothPairingRequest request)?) {
+    Future<dynamic> handler(BluetoothPairingRequest request)?,
+  ) {
     if (handler == null) {
       _pairingRequestHandler = null;
       _methodChannel.invokeMethod('pairingRequestHandlingDisable');
@@ -194,7 +202,7 @@ class FlutterBluetoothSerial {
 
   /// Returns list of bonded devices.
   Future<List<BluetoothDevice>> getBondedDevices() async {
-    final List list = await (_methodChannel.invokeMethod('getBondedDevices'));
+    final List list = await _methodChannel.invokeMethod('getBondedDevices');
     return list.map((map) => BluetoothDevice.fromMap(map)).toList();
   }
 
@@ -210,7 +218,7 @@ class FlutterBluetoothSerial {
     late StreamSubscription subscription;
     StreamController controller;
 
-    controller = new StreamController(
+    controller = StreamController(
       onCancel: () {
         // `cancelDiscovery` happens automaticly by platform code when closing event sink
         subscription.cancel();
@@ -235,15 +243,17 @@ class FlutterBluetoothSerial {
 
   /// Describes is the local device in discoverable mode.
   Future<bool?> get isDiscoverable =>
-      _methodChannel.invokeMethod("isDiscoverable");
+      _methodChannel.invokeMethod('isDiscoverable');
 
-  /// Asks for discoverable mode (probably always prompt for user interaction in fact).
-  /// Returns number of seconds acquired or zero if canceled or failed gracefully.
+  /// Asks for discoverable mode (probably always prompt for user interaction
+  /// in fact).
+  /// Returns number of seconds acquired or zero if canceled or failed
+  /// gracefully.
   ///
   /// Duration might be capped to 120, 300 or 3600 seconds on some devices.
   Future<int?> requestDiscoverable(int durationInSeconds) async =>
       await _methodChannel
-          .invokeMethod("requestDiscoverable", {"duration": durationInSeconds});
+          .invokeMethod('requestDiscoverable', {'duration': durationInSeconds});
 
   /* Connecting and connection */
   // Default connection methods
@@ -251,7 +261,8 @@ class FlutterBluetoothSerial {
 
   @Deprecated('Use `BluetoothConnection.isEnabled` instead')
   Future<bool> get isConnected async => Future.value(
-      _defaultConnection == null ? false : _defaultConnection!.isConnected);
+        _defaultConnection == null ? false : _defaultConnection!.isConnected,
+      );
 
   @Deprecated('Use `BluetoothConnection.toAddress(device.address)` instead')
   Future<void> connect(BluetoothDevice device) =>
@@ -262,15 +273,15 @@ class FlutterBluetoothSerial {
         _defaultConnection = await BluetoothConnection.toAddress(address);
       });
 
-  @Deprecated(
-      'Use `BluetoothConnection.finish` or `BluetoothConnection.close` instead')
+  @Deprecated('Use `BluetoothConnection.finish` or '
+      '`BluetoothConnection.close` instead')
   Future<void> disconnect() => _defaultConnection!.finish();
 
   @Deprecated('Use `BluetoothConnection.input` instead')
   Stream<Uint8List>? onRead() => _defaultConnection!.input;
 
-  @Deprecated(
-      'Use `BluetoothConnection.output` with some decoding (such as `ascii.decode` for strings) instead')
+  @Deprecated('Use `BluetoothConnection.output` with some decoding '
+      '(such as `ascii.decode` for strings) instead')
   Future<void> write(String message) {
     _defaultConnection!.output.add(utf8.encode(message) as Uint8List);
     return _defaultConnection!.output.allSent;

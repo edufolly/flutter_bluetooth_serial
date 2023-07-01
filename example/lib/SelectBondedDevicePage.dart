@@ -2,26 +2,20 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
+import 'package:flutter_bluetooth_serial_example/BluetoothDeviceListEntry.dart';
 
-import './BluetoothDeviceListEntry.dart';
-
-class SelectBondedDevicePage extends StatefulWidget {
-  /// If true, on page start there is performed discovery upon the bonded devices.
-  /// Then, if they are not avaliable, they would be disabled from the selection.
-  final bool checkAvailability;
-
-  const SelectBondedDevicePage({this.checkAvailability = true});
-
-  @override
-  _SelectBondedDevicePage createState() => new _SelectBondedDevicePage();
-}
-
+///
+///
+///
 enum _DeviceAvailability {
   // no,
   maybe,
   yes,
 }
 
+///
+///
+///
 class _DeviceWithAvailability {
   BluetoothDevice device;
   _DeviceAvailability availability;
@@ -30,6 +24,34 @@ class _DeviceWithAvailability {
   _DeviceWithAvailability(this.device, this.availability, [this.rssi]);
 }
 
+///
+///
+///
+class SelectBondedDevicePage extends StatefulWidget {
+  /// If true, on page start there is performed discovery upon the bonded
+  /// devices.
+  /// Then, if they are not avaliable, they would be disabled from the
+  /// selection.
+  final bool checkAvailability;
+
+  ///
+  ///
+  ///
+  const SelectBondedDevicePage({
+    this.checkAvailability = true,
+    super.key,
+  });
+
+  ///
+  ///
+  ///
+  @override
+  State<SelectBondedDevicePage> createState() => _SelectBondedDevicePage();
+}
+
+///
+///
+///
 class _SelectBondedDevicePage extends State<SelectBondedDevicePage> {
   List<_DeviceWithAvailability> devices =
       List<_DeviceWithAvailability>.empty(growable: true);
@@ -38,8 +60,9 @@ class _SelectBondedDevicePage extends State<SelectBondedDevicePage> {
   StreamSubscription<BluetoothDiscoveryResult>? _discoveryStreamSubscription;
   bool _isDiscovering = false;
 
-  _SelectBondedDevicePage();
-
+  ///
+  ///
+  ///
   @override
   void initState() {
     super.initState();
@@ -69,6 +92,9 @@ class _SelectBondedDevicePage extends State<SelectBondedDevicePage> {
     });
   }
 
+  ///
+  ///
+  ///
   void _restartDiscovery() {
     setState(() {
       _isDiscovering = true;
@@ -77,6 +103,9 @@ class _SelectBondedDevicePage extends State<SelectBondedDevicePage> {
     _startDiscovery();
   }
 
+  ///
+  ///
+  ///
   void _startDiscovery() {
     _discoveryStreamSubscription =
         FlutterBluetoothSerial.instance.startDiscovery().listen((r) {
@@ -99,6 +128,9 @@ class _SelectBondedDevicePage extends State<SelectBondedDevicePage> {
     });
   }
 
+  ///
+  ///
+  ///
   @override
   void dispose() {
     // Avoid memory leak (`setState` after dispose) and cancel discovery
@@ -107,37 +139,43 @@ class _SelectBondedDevicePage extends State<SelectBondedDevicePage> {
     super.dispose();
   }
 
+  ///
+  ///
+  ///
   @override
   Widget build(BuildContext context) {
     List<BluetoothDeviceListEntry> list = devices
-        .map((_device) => BluetoothDeviceListEntry(
-              device: _device.device,
-              rssi: _device.rssi,
-              enabled: _device.availability == _DeviceAvailability.yes,
-              onTap: () {
-                Navigator.of(context).pop(_device.device);
-              },
-            ))
+        .map(
+          (_device) => BluetoothDeviceListEntry(
+            device: _device.device,
+            rssi: _device.rssi,
+            enabled: _device.availability == _DeviceAvailability.yes,
+            onTap: () {
+              Navigator.of(context).pop(_device.device);
+            },
+          ),
+        )
         .toList();
     return Scaffold(
       appBar: AppBar(
-        title: Text('Select device'),
+        title: const Text('Select device'),
         actions: <Widget>[
-          _isDiscovering
-              ? FittedBox(
-                  child: Container(
-                    margin: new EdgeInsets.all(16.0),
-                    child: CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        Colors.white,
-                      ),
-                    ),
+          if (_isDiscovering)
+            FittedBox(
+              child: Container(
+                margin: const EdgeInsets.all(16),
+                child: const CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    Colors.white,
                   ),
-                )
-              : IconButton(
-                  icon: Icon(Icons.replay),
-                  onPressed: _restartDiscovery,
-                )
+                ),
+              ),
+            )
+          else
+            IconButton(
+              icon: const Icon(Icons.replay),
+              onPressed: _restartDiscovery,
+            )
         ],
       ),
       body: ListView(children: list),

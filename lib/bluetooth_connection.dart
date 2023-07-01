@@ -40,8 +40,8 @@ class BluetoothConnection {
   bool get isConnected => output.isConnected;
 
   BluetoothConnection._consumeConnectionID(int? id)
-      : this._id = id,
-        this._readChannel =
+      : _id = id,
+        _readChannel =
             EventChannel('${FlutterBluetoothSerial.namespace}/read/$id') {
     _readStreamController = StreamController<Uint8List>();
 
@@ -49,7 +49,7 @@ class BluetoothConnection {
         _readChannel.receiveBroadcastStream().cast<Uint8List>().listen(
               _readStreamController.add,
               onError: _readStreamController.addError,
-              onDone: this.close,
+              onDone: close,
             );
 
     input = _readStreamController.stream;
@@ -59,9 +59,10 @@ class BluetoothConnection {
   /// Returns connection to given address.
   static Future<BluetoothConnection> toAddress(String? address) async {
     // Sorry for pseudo-factory, but `factory` keyword disallows `Future`.
-    return BluetoothConnection._consumeConnectionID(await FlutterBluetoothSerial
-        ._methodChannel
-        .invokeMethod('connect', {"address": address}));
+    return BluetoothConnection._consumeConnectionID(
+      await FlutterBluetoothSerial._methodChannel
+          .invokeMethod('connect', {'address': address}),
+    );
   }
 
   /// Should be called to make sure the connection is closed and resources are freed (sockets/channels).
@@ -85,7 +86,7 @@ class BluetoothConnection {
 
   /// Closes connection (rather immediately), in result should also disconnect.
   @Deprecated('Use `close` instead')
-  Future<void> cancel() => this.close();
+  Future<void> cancel() => close();
 
   /// Closes connection (rather gracefully), in result should also disconnect.
   Future<void> finish() async {
@@ -135,12 +136,12 @@ class _BluetoothStreamSink<Uint8List> extends StreamSink<Uint8List> {
   @override
   void add(Uint8List data) {
     if (!isConnected) {
-      throw StateError("Not connected!");
+      throw StateError('Not connected!');
     }
 
     _chainedFutures = _chainedFutures.then((_) async {
       if (!isConnected) {
-        throw StateError("Not connected!");
+        throw StateError('Not connected!');
       }
 
       await FlutterBluetoothSerial._methodChannel
@@ -155,7 +156,8 @@ class _BluetoothStreamSink<Uint8List> extends StreamSink<Uint8List> {
   @override
   void addError(Object error, [StackTrace? stackTrace]) {
     throw UnsupportedError(
-        "BluetoothConnection output (response) sink cannot receive errors!");
+      'BluetoothConnection output (response) sink cannot receive errors!',
+    );
   }
 
   @override

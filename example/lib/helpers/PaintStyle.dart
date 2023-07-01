@@ -191,29 +191,35 @@ class PaintStyle {
     result.write('PaintStyle(');
     if (style == PaintingStyle.stroke) {
       result.write('$style');
-      if (strokeWidth != 0.0)
+      if (strokeWidth != 0.0) {
         result.write(' ${strokeWidth.toStringAsFixed(1)}');
-      else
+      } else {
         result.write(' hairline');
-      if (strokeCap != StrokeCap.butt) result.write(' $strokeCap');
+      }
+      if (strokeCap != StrokeCap.butt) {
+        result.write(' $strokeCap');
+      }
       if (strokeJoin == StrokeJoin.miter) {
-        if (strokeMiterLimit != _kStrokeMiterLimitDefault)
+        if (strokeMiterLimit != _kStrokeMiterLimitDefault) {
           result.write(
-              ' $strokeJoin up to ${strokeMiterLimit.toStringAsFixed(1)}');
+            ' $strokeJoin up to ${strokeMiterLimit.toStringAsFixed(1)}',
+          );
+        }
       } else {
         result.write(' $strokeJoin');
       }
       semicolon = '; ';
     }
-    if (isAntiAlias != true) {
+    if (!isAntiAlias) {
       result.write('${semicolon}antialias off');
       semicolon = '; ';
     }
     if (color != const Color(_kColorDefault)) {
-      if (color != null)
+      if (color != null) {
         result.write('$semicolon$color');
-      else
+      } else {
         result.write('${semicolon}no color');
+      }
       semicolon = '; ';
     }
     if (blendMode.index != _kBlendModeDefault) {
@@ -236,28 +242,54 @@ class PaintStyle {
       result.write('${semicolon}shader: $shader');
       semicolon = '; ';
     }
-    if (invertColors) result.write('${semicolon}invert: $invertColors');
+    if (invertColors) {
+      result.write('${semicolon}invert: $invertColors');
+    }
     result.write(')');
     return result.toString();
   }
 
   Paint toPaint() {
     Paint paint = Paint();
-    if (this.isAntiAlias != true) paint.isAntiAlias = this.isAntiAlias;
-    if (this.color != const Color(_kColorDefault)) paint.color = this.color!;
-    if (this.blendMode != BlendMode.srcOver) paint.blendMode = this.blendMode;
-    if (this.style != PaintingStyle.fill) paint.style = this.style;
-    if (this.strokeWidth != 0.0) paint.strokeWidth = this.strokeWidth;
-    if (this.strokeCap != StrokeCap.butt) paint.strokeCap = this.strokeCap;
-    if (this.strokeJoin != StrokeJoin.miter) paint.strokeJoin = this.strokeJoin;
-    if (this.strokeMiterLimit != 4.0)
-      paint.strokeMiterLimit = this.strokeMiterLimit;
-    if (this.maskFilter != null) paint.maskFilter = this.maskFilter;
-    if (this.filterQuality != FilterQuality.none)
-      paint.filterQuality = this.filterQuality;
-    if (this.shader != null) paint.shader = this.shader;
-    if (this.colorFilter != null) paint.colorFilter = this.colorFilter;
-    if (this.invertColors != false) paint.invertColors = this.invertColors;
+    if (isAntiAlias != true) {
+      paint.isAntiAlias = isAntiAlias;
+    }
+    if (color != const Color(_kColorDefault)) {
+      paint.color = color!;
+    }
+    if (blendMode != BlendMode.srcOver) {
+      paint.blendMode = blendMode;
+    }
+    if (style != PaintingStyle.fill) {
+      paint.style = style;
+    }
+    if (strokeWidth != 0.0) {
+      paint.strokeWidth = strokeWidth;
+    }
+    if (strokeCap != StrokeCap.butt) {
+      paint.strokeCap = strokeCap;
+    }
+    if (strokeJoin != StrokeJoin.miter) {
+      paint.strokeJoin = strokeJoin;
+    }
+    if (strokeMiterLimit != 4.0) {
+      paint.strokeMiterLimit = strokeMiterLimit;
+    }
+    if (maskFilter != null) {
+      paint.maskFilter = maskFilter;
+    }
+    if (filterQuality != FilterQuality.none) {
+      paint.filterQuality = filterQuality;
+    }
+    if (shader != null) {
+      paint.shader = shader;
+    }
+    if (colorFilter != null) {
+      paint.colorFilter = colorFilter;
+    }
+    if (invertColors != false) {
+      paint.invertColors = invertColors;
+    }
     return paint;
   }
 }

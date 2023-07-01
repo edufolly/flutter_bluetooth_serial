@@ -5,13 +5,22 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 
+///
+///
+///
 class ChatPage extends StatefulWidget {
   final BluetoothDevice server;
 
-  const ChatPage({required this.server});
+  ///
+  ///
+  ///
+  const ChatPage({required this.server, super.key});
 
+  ///
+  ///
+  ///
   @override
-  _ChatPage createState() => new _ChatPage();
+  State<ChatPage> createState() => _ChatPage();
 }
 
 class _Message {
@@ -22,18 +31,18 @@ class _Message {
 }
 
 class _ChatPage extends State<ChatPage> {
-  static final clientID = 0;
+  static const int clientID = 0;
   BluetoothConnection? connection;
 
   List<_Message> messages = List<_Message>.empty(growable: true);
   String _messageBuffer = '';
 
-  final TextEditingController textEditingController =
-      new TextEditingController();
-  final ScrollController listScrollController = new ScrollController();
+  final TextEditingController textEditingController = TextEditingController();
+  final ScrollController listScrollController = ScrollController();
 
   bool isConnecting = true;
-  bool get isConnected => (connection?.isConnected ?? false);
+
+  bool get isConnected => connection?.isConnected ?? false;
 
   bool isDisconnecting = false;
 
@@ -41,7 +50,8 @@ class _ChatPage extends State<ChatPage> {
   void initState() {
     super.initState();
 
-    BluetoothConnection.toAddress(widget.server.address).then((_connection) {
+    BluetoothConnection.toAddress(widget.server.address)
+        .then((BluetoothConnection _connection) {
       print('Connected to the device');
       connection = _connection;
       setState(() {
@@ -85,54 +95,58 @@ class _ChatPage extends State<ChatPage> {
 
   @override
   Widget build(BuildContext context) {
-    final List<Row> list = messages.map((_message) {
+    final List<Row> list = messages.map((_Message _message) {
       return Row(
-        children: <Widget>[
-          Container(
-            child: Text(
-                (text) {
-                  return text == '/shrug' ? '¯\\_(ツ)_/¯' : text;
-                }(_message.text.trim()),
-                style: TextStyle(color: Colors.white)),
-            padding: EdgeInsets.all(12.0),
-            margin: EdgeInsets.only(bottom: 8.0, left: 8.0, right: 8.0),
-            width: 222.0,
-            decoration: BoxDecoration(
-                color:
-                    _message.whom == clientID ? Colors.blueAccent : Colors.grey,
-                borderRadius: BorderRadius.circular(7.0)),
-          ),
-        ],
         mainAxisAlignment: _message.whom == clientID
             ? MainAxisAlignment.end
             : MainAxisAlignment.start,
+        children: <Widget>[
+          Container(
+            padding: const EdgeInsets.all(12),
+            margin: const EdgeInsets.only(bottom: 8, left: 8, right: 8),
+            width: 222,
+            decoration: BoxDecoration(
+              color:
+                  _message.whom == clientID ? Colors.blueAccent : Colors.grey,
+              borderRadius: BorderRadius.circular(7),
+            ),
+            child: Text(
+              (text) {
+                return text == '/shrug' ? '¯\\_(ツ)_/¯' : text;
+              }(_message.text.trim()),
+              style: const TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
       );
     }).toList();
 
-    final serverName = widget.server.name ?? "Unknown";
+    final String serverName = widget.server.name ?? 'Unknown';
     return Scaffold(
       appBar: AppBar(
-          title: (isConnecting
-              ? Text('Connecting chat to ' + serverName + '...')
-              : isConnected
-                  ? Text('Live chat with ' + serverName)
-                  : Text('Chat log with ' + serverName))),
+        title: (isConnecting
+            ? Text('Connecting chat to $serverName...')
+            : isConnected
+                ? Text('Live chat with $serverName')
+                : Text('Chat log with $serverName')),
+      ),
       body: SafeArea(
         child: Column(
           children: <Widget>[
             Flexible(
               child: ListView(
-                  padding: const EdgeInsets.all(12.0),
-                  controller: listScrollController,
-                  children: list),
+                padding: const EdgeInsets.all(12),
+                controller: listScrollController,
+                children: list,
+              ),
             ),
             Row(
               children: <Widget>[
                 Flexible(
                   child: Container(
-                    margin: const EdgeInsets.only(left: 16.0),
+                    margin: const EdgeInsets.only(left: 16),
                     child: TextField(
-                      style: const TextStyle(fontSize: 15.0),
+                      style: const TextStyle(fontSize: 15),
                       controller: textEditingController,
                       decoration: InputDecoration.collapsed(
                         hintText: isConnecting
@@ -147,12 +161,13 @@ class _ChatPage extends State<ChatPage> {
                   ),
                 ),
                 Container(
-                  margin: const EdgeInsets.all(8.0),
+                  margin: const EdgeInsets.all(8),
                   child: IconButton(
-                      icon: const Icon(Icons.send),
-                      onPressed: isConnected
-                          ? () => _sendMessage(textEditingController.text)
-                          : null),
+                    icon: const Icon(Icons.send),
+                    onPressed: isConnected
+                        ? () => _sendMessage(textEditingController.text)
+                        : null,
+                  ),
                 ),
               ],
             )
@@ -165,7 +180,7 @@ class _ChatPage extends State<ChatPage> {
   void _onDataReceived(Uint8List data) {
     // Allocate buffer for parsed data
     int backspacesCounter = 0;
-    data.forEach((byte) {
+    data.forEach((int byte) {
       if (byte == 8 || byte == 127) {
         backspacesCounter++;
       }
@@ -197,7 +212,9 @@ class _ChatPage extends State<ChatPage> {
             1,
             backspacesCounter > 0
                 ? _messageBuffer.substring(
-                    0, _messageBuffer.length - backspacesCounter)
+                    0,
+                    _messageBuffer.length - backspacesCounter,
+                  )
                 : _messageBuffer + dataString.substring(0, index),
           ),
         );
@@ -206,7 +223,9 @@ class _ChatPage extends State<ChatPage> {
     } else {
       _messageBuffer = (backspacesCounter > 0
           ? _messageBuffer.substring(
-              0, _messageBuffer.length - backspacesCounter)
+              0,
+              _messageBuffer.length - backspacesCounter,
+            )
           : _messageBuffer + dataString);
     }
   }
@@ -217,18 +236,19 @@ class _ChatPage extends State<ChatPage> {
 
     if (text.length > 0) {
       try {
-        connection!.output.add(Uint8List.fromList(utf8.encode(text + "\r\n")));
+        connection!.output.add(Uint8List.fromList(utf8.encode('$text\r\n')));
         await connection!.output.allSent;
 
         setState(() {
           messages.add(_Message(clientID, text));
         });
 
-        Future.delayed(Duration(milliseconds: 333)).then((_) {
+        Future.delayed(const Duration(milliseconds: 333)).then((_) {
           listScrollController.animateTo(
-              listScrollController.position.maxScrollExtent,
-              duration: Duration(milliseconds: 333),
-              curve: Curves.easeOut);
+            listScrollController.position.maxScrollExtent,
+            duration: const Duration(milliseconds: 333),
+            curve: Curves.easeOut,
+          );
         });
       } catch (e) {
         // Ignore error, but notify state

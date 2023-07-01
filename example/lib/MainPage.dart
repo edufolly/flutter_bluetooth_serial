@@ -14,14 +14,14 @@ import './SelectBondedDevicePage.dart';
 
 class MainPage extends StatefulWidget {
   @override
-  _MainPage createState() => new _MainPage();
+  _MainPage createState() => _MainPage();
 }
 
 class _MainPage extends State<MainPage> {
   BluetoothState _bluetoothState = BluetoothState.UNKNOWN;
 
-  String _address = "...";
-  String _name = "...";
+  String _address = '...';
+  String _name = '...';
 
   Timer? _discoverableTimeoutTimer;
   int _discoverableTimeoutSecondsLeft = 0;
@@ -46,7 +46,7 @@ class _MainPage extends State<MainPage> {
       if ((await FlutterBluetoothSerial.instance.isEnabled) ?? false) {
         return false;
       }
-      await Future.delayed(Duration(milliseconds: 0xDD));
+      await Future.delayed(const Duration(milliseconds: 0xDD));
       return true;
     }).then((_) {
       // Update the address field
@@ -94,8 +94,8 @@ class _MainPage extends State<MainPage> {
       body: Container(
         child: ListView(
           children: <Widget>[
-            Divider(),
-            ListTile(title: const Text('General')),
+            const Divider(),
+            const ListTile(title: Text('General')),
             SwitchListTile(
               title: const Text('Enable Bluetooth'),
               value: _bluetoothState.isEnabled,
@@ -135,10 +135,11 @@ class _MainPage extends State<MainPage> {
             ),
             ListTile(
               title: _discoverableTimeoutSecondsLeft == 0
-                  ? const Text("Discoverable")
+                  ? const Text('Discoverable')
                   : Text(
-                      "Discoverable for ${_discoverableTimeoutSecondsLeft}s"),
-              subtitle: const Text("PsychoX-Luna"),
+                      'Discoverable for ${_discoverableTimeoutSecondsLeft}s',
+                    ),
+              subtitle: const Text('PsychoX-Luna'),
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -146,8 +147,8 @@ class _MainPage extends State<MainPage> {
                     value: _discoverableTimeoutSecondsLeft != 0,
                     onChanged: null,
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.edit),
+                  const IconButton(
+                    icon: Icon(Icons.edit),
                     onPressed: null,
                   ),
                   IconButton(
@@ -160,20 +161,21 @@ class _MainPage extends State<MainPage> {
                         print('Discoverable mode denied');
                       } else {
                         print(
-                            'Discoverable mode acquired for $timeout seconds');
+                          'Discoverable mode acquired for $timeout seconds',
+                        );
                       }
                       setState(() {
                         _discoverableTimeoutTimer?.cancel();
                         _discoverableTimeoutSecondsLeft = timeout;
                         _discoverableTimeoutTimer =
-                            Timer.periodic(Duration(seconds: 1), (Timer timer) {
+                            Timer.periodic(const Duration(seconds: 1), (Timer timer) {
                           setState(() {
                             if (_discoverableTimeoutSecondsLeft < 0) {
                               FlutterBluetoothSerial.instance.isDiscoverable
                                   .then((isDiscoverable) {
                                 if (isDiscoverable ?? false) {
-                                  print(
-                                      "Discoverable after timeout... might be infinity timeout :F");
+                                  print('Discoverable after timeout... '
+                                      'might be infinity timeout :F');
                                   _discoverableTimeoutSecondsLeft += 1;
                                 }
                               });
@@ -190,8 +192,8 @@ class _MainPage extends State<MainPage> {
                 ],
               ),
             ),
-            Divider(),
-            ListTile(title: const Text('Devices discovery and connection')),
+            const Divider(),
+            const ListTile(title: Text('Devices discovery and connection')),
             SwitchListTile(
               title: const Text('Auto-try specific pin when pairing'),
               subtitle: const Text('Pin 1234'),
@@ -203,9 +205,9 @@ class _MainPage extends State<MainPage> {
                 if (value) {
                   FlutterBluetoothSerial.instance.setPairingRequestHandler(
                       (BluetoothPairingRequest request) {
-                    print("Trying to auto-pair with Pin 1234");
+                    print('Trying to auto-pair with Pin 1234');
                     if (request.pairingVariant == PairingVariant.Pin) {
-                      return Future.value("1234");
+                      return Future.value('1234');
                     }
                     return Future.value(null);
                   });
@@ -217,23 +219,24 @@ class _MainPage extends State<MainPage> {
             ),
             ListTile(
               title: ElevatedButton(
-                  child: const Text('Explore discovered devices'),
-                  onPressed: () async {
-                    final BluetoothDevice? selectedDevice =
-                        await Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) {
-                          return DiscoveryPage();
-                        },
-                      ),
-                    );
+                child: const Text('Explore discovered devices'),
+                onPressed: () async {
+                  final BluetoothDevice? selectedDevice =
+                      await Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) {
+                        return const DiscoveryPage();
+                      },
+                    ),
+                  );
 
-                    if (selectedDevice != null) {
-                      print('Discovery -> selected ' + selectedDevice.address);
-                    } else {
-                      print('Discovery -> no device selected');
-                    }
-                  }),
+                  if (selectedDevice != null) {
+                    print('Discovery -> selected ' + selectedDevice.address);
+                  } else {
+                    print('Discovery -> no device selected');
+                  }
+                },
+              ),
             ),
             ListTile(
               title: ElevatedButton(
@@ -243,7 +246,7 @@ class _MainPage extends State<MainPage> {
                       await Navigator.of(context).push(
                     MaterialPageRoute(
                       builder: (context) {
-                        return SelectBondedDevicePage(checkAvailability: false);
+                        return const SelectBondedDevicePage(checkAvailability: false);
                       },
                     ),
                   );
@@ -257,8 +260,8 @@ class _MainPage extends State<MainPage> {
                 },
               ),
             ),
-            Divider(),
-            ListTile(title: const Text('Multiple connections example')),
+            const Divider(),
+            const ListTile(title: Text('Multiple connections example')),
             ListTile(
               title: ElevatedButton(
                 child: ((_collectingTask?.inProgress ?? false)
@@ -275,8 +278,9 @@ class _MainPage extends State<MainPage> {
                         await Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (context) {
-                          return SelectBondedDevicePage(
-                              checkAvailability: false);
+                          return const SelectBondedDevicePage(
+                            checkAvailability: false,
+                          );
                         },
                       ),
                     );
@@ -333,17 +337,17 @@ class _MainPage extends State<MainPage> {
     try {
       _collectingTask = await BackgroundCollectingTask.connect(server);
       await _collectingTask!.start();
-    } catch (ex) {
-      _collectingTask?.cancel();
-      showDialog(
+    } on Exception catch (ex) {
+      await _collectingTask?.cancel();
+      await showDialog(
         context: context,
         builder: (BuildContext context) {
           return AlertDialog(
             title: const Text('Error occured while connecting'),
-            content: Text("${ex.toString()}"),
+            content: Text(ex.toString()),
             actions: <Widget>[
-              new TextButton(
-                child: new Text("Close"),
+              TextButton(
+                child: Text('Close'),
                 onPressed: () {
                   Navigator.of(context).pop();
                 },

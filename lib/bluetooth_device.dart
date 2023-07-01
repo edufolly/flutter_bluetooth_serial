@@ -29,8 +29,8 @@ class BluetoothDevice {
 
   /// Construct `BluetoothDevice` with given values.
   const BluetoothDevice({
-    this.name,
     required this.address,
+    this.name,
     this.type = BluetoothDeviceType.unknown,
     this.isConnected = false,
     this.bondState = BluetoothBondState.unknown,
@@ -41,25 +41,25 @@ class BluetoothDevice {
   /// Internally used to receive the object from platform code.
   factory BluetoothDevice.fromMap(Map map) {
     return BluetoothDevice(
-      name: map["name"],
-      address: map["address"]!,
-      type: map["type"] != null
-          ? BluetoothDeviceType.fromUnderlyingValue(map["type"])
+      name: map['name'],
+      address: map['address']!,
+      type: map['type'] != null
+          ? BluetoothDeviceType.fromUnderlyingValue(map['type'])
           : BluetoothDeviceType.unknown,
-      isConnected: map["isConnected"] ?? false,
-      bondState: map["bondState"] != null
-          ? BluetoothBondState.fromUnderlyingValue(map["bondState"])
+      isConnected: map['isConnected'] ?? false,
+      bondState: map['bondState'] != null
+          ? BluetoothBondState.fromUnderlyingValue(map['bondState'])
           : BluetoothBondState.unknown,
     );
   }
 
   /// Creates map from `BluetoothDevice`.
-  Map<String, dynamic> toMap() => {
-        "name": this.name,
-        "address": this.address,
-        "type": this.type.toUnderlyingValue(),
-        "isConnected": this.isConnected,
-        "bondState": this.bondState.toUnderlyingValue(),
+  Map<String, dynamic> toMap() => <String, dynamic>{
+        'name': name,
+        'address': address,
+        'type': type.toUnderlyingValue(),
+        'isConnected': isConnected,
+        'bondState': bondState.toUnderlyingValue(),
       };
 
   /// Compares for equality of this and other `BluetoothDevice`.
@@ -67,7 +67,7 @@ class BluetoothDevice {
   /// In fact, only `address` is compared, since this is most important
   /// and unchangable information that identifies each device.
   operator ==(Object other) {
-    return other is BluetoothDevice && other.address == this.address;
+    return other is BluetoothDevice && other.address == address;
   }
 
   @override

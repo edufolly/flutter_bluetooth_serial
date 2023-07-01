@@ -29,8 +29,11 @@ class BackgroundCollectedPage extends StatelessWidget {
 
     // Find first timestamp floored to step before
     final DateTime beginningArguments = lastSamples.first.timestamp;
-    DateTime beginningArgumentsStep = DateTime(beginningArguments.year,
-        beginningArguments.month, beginningArguments.day);
+    DateTime beginningArgumentsStep = DateTime(
+      beginningArguments.year,
+      beginningArguments.month,
+      beginningArguments.day,
+    );
     while (beginningArgumentsStep.isBefore(beginningArguments)) {
       beginningArgumentsStep = beginningArgumentsStep.add(argumentsStep);
     }
@@ -51,95 +54,104 @@ class BackgroundCollectedPage extends StatelessWidget {
     final Iterable<LabelEntry> argumentsLabels =
         argumentsLabelsTimestamps.map((timestamp) {
       return LabelEntry(
-          (timestamp.millisecondsSinceEpoch - argumentsShift).toDouble(),
-          ((timestamp.hour <= 9 ? '0' : '') +
-              timestamp.hour.toString() +
-              ':' +
-              (timestamp.minute <= 9 ? '0' : '') +
-              timestamp.minute.toString()));
+        (timestamp.millisecondsSinceEpoch - argumentsShift).toDouble(),
+        (timestamp.hour <= 9 ? '0' : '') +
+            timestamp.hour.toString() +
+            ':' +
+            (timestamp.minute <= 9 ? '0' : '') +
+            timestamp.minute.toString(),
+      );
     });
 
     return Scaffold(
-        appBar: AppBar(
-          title: Text('Collected data'),
-          actions: <Widget>[
-            // Progress circle
-            (task.inProgress
-                ? FittedBox(
-                    child: Container(
-                        margin: new EdgeInsets.all(16.0),
-                        child: CircularProgressIndicator(
-                            valueColor:
-                                AlwaysStoppedAnimation<Color>(Colors.white))))
-                : Container(/* Dummy */)),
-            // Start/stop buttons
-            (task.inProgress
-                ? IconButton(icon: Icon(Icons.pause), onPressed: task.pause)
-                : IconButton(
-                    icon: Icon(Icons.play_arrow), onPressed: task.reasume)),
-          ],
-        ),
-        body: ListView(
-          children: <Widget>[
-            Divider(),
-            ListTile(
-              leading: const Icon(Icons.brightness_7),
-              title: const Text('Temperatures'),
-              subtitle: const Text('In Celsius'),
-            ),
-            LineChart(
-              constraints: const BoxConstraints.expand(height: 350),
-              arguments: arguments,
-              argumentsLabels: argumentsLabels,
-              values: [
-                lastSamples.map((sample) => sample.temperature1),
-                lastSamples.map((sample) => sample.temperature2),
-              ],
-              verticalLinesStyle: const PaintStyle(color: Colors.grey),
-              additionalMinimalHorizontalLabelsInterval: 0,
-              additionalMinimalVerticalLablesInterval: 0,
-              seriesPointsStyles: [
-                null,
-                null,
-                //const PaintStyle(style: PaintingStyle.stroke, strokeWidth: 1.7*3, color: Colors.indigo, strokeCap: StrokeCap.round),
-              ],
-              seriesLinesStyles: [
-                const PaintStyle(
-                    style: PaintingStyle.stroke,
-                    strokeWidth: 1.7,
-                    color: Colors.indigoAccent),
-                const PaintStyle(
-                    style: PaintingStyle.stroke,
-                    strokeWidth: 1.7,
-                    color: Colors.redAccent),
-              ],
-            ),
-            Divider(),
-            ListTile(
-              leading: const Icon(Icons.filter_vintage),
-              title: const Text('Water pH level'),
-            ),
-            LineChart(
-              constraints: const BoxConstraints.expand(height: 200),
-              arguments: arguments,
-              argumentsLabels: argumentsLabels,
-              values: [
-                lastSamples.map((sample) => sample.waterpHlevel),
-              ],
-              verticalLinesStyle: const PaintStyle(color: Colors.grey),
-              additionalMinimalHorizontalLabelsInterval: 0,
-              additionalMinimalVerticalLablesInterval: 0,
-              seriesPointsStyles: [
-                null,
-              ],
-              seriesLinesStyles: [
-                const PaintStyle(
-                    style: PaintingStyle.stroke,
-                    strokeWidth: 1.7,
-                    color: Colors.greenAccent),
-              ],
-            ),
-          ],
-        ));
+      appBar: AppBar(
+        title: Text('Collected data'),
+        actions: <Widget>[
+          // Progress circle
+          (task.inProgress
+              ? FittedBox(
+                  child: Container(
+                    margin: EdgeInsets.all(16.0),
+                    child: CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  ),
+                )
+              : Container(/* Dummy */)),
+          // Start/stop buttons
+          (task.inProgress
+              ? IconButton(icon: Icon(Icons.pause), onPressed: task.pause)
+              : IconButton(
+                  icon: Icon(Icons.play_arrow),
+                  onPressed: task.reasume,
+                )),
+        ],
+      ),
+      body: ListView(
+        children: <Widget>[
+          Divider(),
+          ListTile(
+            leading: const Icon(Icons.brightness_7),
+            title: const Text('Temperatures'),
+            subtitle: const Text('In Celsius'),
+          ),
+          LineChart(
+            constraints: const BoxConstraints.expand(height: 350),
+            arguments: arguments,
+            argumentsLabels: argumentsLabels,
+            values: [
+              lastSamples.map((sample) => sample.temperature1),
+              lastSamples.map((sample) => sample.temperature2),
+            ],
+            verticalLinesStyle: const PaintStyle(color: Colors.grey),
+            additionalMinimalHorizontalLabelsInterval: 0,
+            additionalMinimalVerticalLablesInterval: 0,
+            seriesPointsStyles: [
+              null,
+              null,
+              //const PaintStyle(style: PaintingStyle.stroke, strokeWidth: 1.7*3, color: Colors.indigo, strokeCap: StrokeCap.round),
+            ],
+            seriesLinesStyles: [
+              const PaintStyle(
+                style: PaintingStyle.stroke,
+                strokeWidth: 1.7,
+                color: Colors.indigoAccent,
+              ),
+              const PaintStyle(
+                style: PaintingStyle.stroke,
+                strokeWidth: 1.7,
+                color: Colors.redAccent,
+              ),
+            ],
+          ),
+          Divider(),
+          ListTile(
+            leading: const Icon(Icons.filter_vintage),
+            title: const Text('Water pH level'),
+          ),
+          LineChart(
+            constraints: const BoxConstraints.expand(height: 200),
+            arguments: arguments,
+            argumentsLabels: argumentsLabels,
+            values: [
+              lastSamples.map((sample) => sample.waterpHlevel),
+            ],
+            verticalLinesStyle: const PaintStyle(color: Colors.grey),
+            additionalMinimalHorizontalLabelsInterval: 0,
+            additionalMinimalVerticalLablesInterval: 0,
+            seriesPointsStyles: [
+              null,
+            ],
+            seriesLinesStyles: [
+              const PaintStyle(
+                style: PaintingStyle.stroke,
+                strokeWidth: 1.7,
+                color: Colors.greenAccent,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 }
