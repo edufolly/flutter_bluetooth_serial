@@ -3,7 +3,7 @@ import 'dart:ui';
 /// A description of the style to use when drawing on a [Canvas].
 ///
 /// Most APIs on [Canvas] take a [Paint] object to describe the style
-/// to use for that operation. [PaintStyle] allows to be const 
+/// to use for that operation. [PaintStyle] allows to be const
 /// constructed and later in runtime forged into the [Paint] object.
 class PaintStyle {
   /// Whether to apply anti-aliasing to lines and images drawn on the
@@ -27,7 +27,7 @@ class PaintStyle {
   ///
   /// This color is not used when compositing. To colorize a layer, use
   /// [colorFilter].
-  final Color color;
+  final Color? color;
 
   // Must be kept in sync with the default in paint.cc.
   static final int _kBlendModeDefault = BlendMode.srcOver.index;
@@ -131,7 +131,7 @@ class PaintStyle {
   /// drawn but before it has been composited into the image.
   ///
   /// See [MaskFilter] for details.
-  final MaskFilter maskFilter;
+  final MaskFilter? maskFilter;
 
   /// Controls the performance vs quality trade-off to use when applying
   /// filters, such as [maskFilter], or when drawing images, as with
@@ -151,7 +151,7 @@ class PaintStyle {
   ///  * [ImageShader], a shader that tiles an [Image].
   ///  * [colorFilter], which overrides [shader].
   ///  * [color], which is used if [shader] and [colorFilter] are null.
-  final Shader shader;
+  final Shader? shader;
 
   /// A color filter to apply when a shape is drawn or when a layer is
   /// composited.
@@ -159,7 +159,7 @@ class PaintStyle {
   /// See [ColorFilter] for details.
   ///
   /// When a shape is being drawn, [colorFilter] overrides [color] and [shader].
-  final ColorFilter colorFilter;
+  final ColorFilter? colorFilter;
 
   /// Whether the colors of the image are inverted when drawn.
   ///
@@ -169,16 +169,16 @@ class PaintStyle {
   final bool invertColors;
 
   const PaintStyle({
-    this.isAntiAlias = true, 
-    this.color = const Color(_kColorDefault), 
+    this.isAntiAlias = true,
+    this.color = const Color(_kColorDefault),
     this.blendMode = BlendMode.srcOver,
     this.style = PaintingStyle.fill,
-    this.strokeWidth = 0.0, 
-    this.strokeCap = StrokeCap.butt, 
-    this.strokeJoin = StrokeJoin.miter, 
-    this.strokeMiterLimit = 4.0, 
-    this.maskFilter, // null 
-    this.filterQuality = FilterQuality.none, 
+    this.strokeWidth = 0.0,
+    this.strokeCap = StrokeCap.butt,
+    this.strokeJoin = StrokeJoin.miter,
+    this.strokeMiterLimit = 4.0,
+    this.maskFilter, // null
+    this.filterQuality = FilterQuality.none,
     this.shader, // null
     this.colorFilter, // null
     this.invertColors = false,
@@ -195,11 +195,11 @@ class PaintStyle {
         result.write(' ${strokeWidth.toStringAsFixed(1)}');
       else
         result.write(' hairline');
-      if (strokeCap != StrokeCap.butt)
-        result.write(' $strokeCap');
+      if (strokeCap != StrokeCap.butt) result.write(' $strokeCap');
       if (strokeJoin == StrokeJoin.miter) {
         if (strokeMiterLimit != _kStrokeMiterLimitDefault)
-          result.write(' $strokeJoin up to ${strokeMiterLimit.toStringAsFixed(1)}');
+          result.write(
+              ' $strokeJoin up to ${strokeMiterLimit.toStringAsFixed(1)}');
       } else {
         result.write(' $strokeJoin');
       }
@@ -236,40 +236,28 @@ class PaintStyle {
       result.write('${semicolon}shader: $shader');
       semicolon = '; ';
     }
-    if (invertColors)
-      result.write('${semicolon}invert: $invertColors');
+    if (invertColors) result.write('${semicolon}invert: $invertColors');
     result.write(')');
     return result.toString();
   }
 
   Paint toPaint() {
     Paint paint = Paint();
-    if (this.isAntiAlias != true)
-      paint.isAntiAlias = this.isAntiAlias;
-    if (this.color != const Color(_kColorDefault))
-      paint.color = this.color;
-    if (this.blendMode != BlendMode.srcOver)
-      paint.blendMode = this.blendMode;
-    if (this.style != PaintingStyle.fill)
-      paint.style = this.style;
-    if (this.strokeWidth != 0.0)
-      paint.strokeWidth = this.strokeWidth;
-    if (this.strokeCap != StrokeCap.butt)
-      paint.strokeCap = this.strokeCap;
-    if (this.strokeJoin != StrokeJoin.miter)
-      paint.strokeJoin = this.strokeJoin;
+    if (this.isAntiAlias != true) paint.isAntiAlias = this.isAntiAlias;
+    if (this.color != const Color(_kColorDefault)) paint.color = this.color!;
+    if (this.blendMode != BlendMode.srcOver) paint.blendMode = this.blendMode;
+    if (this.style != PaintingStyle.fill) paint.style = this.style;
+    if (this.strokeWidth != 0.0) paint.strokeWidth = this.strokeWidth;
+    if (this.strokeCap != StrokeCap.butt) paint.strokeCap = this.strokeCap;
+    if (this.strokeJoin != StrokeJoin.miter) paint.strokeJoin = this.strokeJoin;
     if (this.strokeMiterLimit != 4.0)
       paint.strokeMiterLimit = this.strokeMiterLimit;
-    if (this.maskFilter != null)
-      paint.maskFilter = this.maskFilter;
+    if (this.maskFilter != null) paint.maskFilter = this.maskFilter;
     if (this.filterQuality != FilterQuality.none)
       paint.filterQuality = this.filterQuality;
-    if (this.shader != null)
-      paint.shader = this.shader;
-    if (this.colorFilter != null)
-      paint.colorFilter = this.colorFilter;
-    if (this.invertColors != false)
-      paint.invertColors = this.invertColors;
+    if (this.shader != null) paint.shader = this.shader;
+    if (this.colorFilter != null) paint.colorFilter = this.colorFilter;
+    if (this.invertColors != false) paint.invertColors = this.invertColors;
     return paint;
   }
 }

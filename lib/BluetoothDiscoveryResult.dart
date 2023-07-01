@@ -5,7 +5,7 @@ class BluetoothDiscoveryResult {
   final int rssi;
 
   BluetoothDiscoveryResult({
-    this.device,
+    required this.device,
     this.rssi = 0,
   });
 
