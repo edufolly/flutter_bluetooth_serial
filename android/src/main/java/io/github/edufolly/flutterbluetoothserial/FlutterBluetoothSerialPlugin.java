@@ -19,6 +19,7 @@ import androidx.core.content.ContextCompat;
 import android.util.Log;
 import android.util.SparseArray;
 import android.os.AsyncTask;
+import android.os.Build;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -444,17 +445,29 @@ public class FlutterBluetoothSerialPlugin implements FlutterPlugin, ActivityAwar
     EnsurePermissionsCallback pendingPermissionsEnsureCallbacks = null;
 
     private void ensurePermissions(EnsurePermissionsCallback callbacks) {
-        if (
-                ContextCompat.checkSelfPermission(activity,
-                        Manifest.permission.ACCESS_COARSE_LOCATION)
-                        != PackageManager.PERMISSION_GRANTED
-                        || ContextCompat.checkSelfPermission(activity,
-                        Manifest.permission.ACCESS_FINE_LOCATION)
-                        != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(activity,
-                    new String[]{Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION},
-                    REQUEST_COARSE_LOCATION_PERMISSIONS);
-
+        String[] requiredPermissions;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S){
+            requiredPermissions = new String[]{
+                Manifest.permission.ACCESS_COARSE_LOCATION,
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.BLUETOOTH_SCAN,
+                Manifest.permission.BLUETOOTH_CONNECT,
+            };
+        } else {
+            requiredPermissions = new String[]{
+                Manifest.permission.ACCESS_COARSE_LOCATION,
+                Manifest.permission.ACCESS_FINE_LOCATION,
+            };
+        }
+        boolean hasPermissions = true;
+        for (String permission : requiredPermissions) {
+            if (ContextCompat.checkSelfPermission(activeContext, permission) != PackageManager.PERMISSION_GRANTED) {
+                hasPermissions = false;
+                break;
+            }
+        }
+        if (!hasPermissions) {
+            ActivityCompat.requestPermissions(activity, requiredPermissions, REQUEST_COARSE_LOCATION_PERMISSIONS);
             pendingPermissionsEnsureCallbacks = callbacks;
         } else {
             callbacks.onResult(true);
