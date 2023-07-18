@@ -19,3 +19,5 @@ flutter:
       android:
         package: io.github.edufolly.flutterbluetoothserial
         pluginClass: FlutterBluetoothSerialPlugin
+      ios:
+        pluginClass: FlutterBluetoothSerialPlugin
