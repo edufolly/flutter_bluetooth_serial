@@ -1,5 +1,5 @@
 name: flutter_bluetooth_serial
-version: 0.4.0
+version: 0.4.1
 description: Flutter basic implementation for Classical Bluetooth (only RFCOMM for now).
 homepage: https://github.com/edufolly/flutter_bluetooth_serial
 repository: https://github.com/edufolly/flutter_bluetooth_serial
