@@ -456,10 +456,10 @@ public class FlutterBluetoothSerialPlugin implements FlutterPlugin, ActivityAwar
         String[] requestString = new String[]{Manifest.permission.ACCESS_COARSE_LOCATION,
                 Manifest.permission.ACCESS_FINE_LOCATION};
 
-                            Log.e("TAG22","22222222222222222");
+        Log.e(TAG,"request permission");
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            Log.e("TAG22","1111111111111111111111111111");
+            Log.e(TAG,"request scan permission");
             permissionGranted = (
                     ContextCompat.checkSelfPermission(activity,
                             Manifest.permission.BLUETOOTH_SCAN)
@@ -959,6 +959,7 @@ public class FlutterBluetoothSerialPlugin implements FlutterPlugin, ActivityAwar
                     break;
 
                 case "startDiscovery":
+                    Log.d(TAG,"Starting discovery 22");
                     ensurePermissions(granted -> {
                         if (!granted) {
                             result.error("no_permissions", "discovering other devices requires location access permission", null);
