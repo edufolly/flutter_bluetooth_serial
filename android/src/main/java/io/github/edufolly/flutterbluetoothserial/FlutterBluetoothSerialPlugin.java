@@ -456,7 +456,10 @@ public class FlutterBluetoothSerialPlugin implements FlutterPlugin, ActivityAwar
         String[] requestString = new String[]{Manifest.permission.ACCESS_COARSE_LOCATION,
                 Manifest.permission.ACCESS_FINE_LOCATION};
 
+                            Log.e("TAG22","22222222222222222");
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            Log.e("TAG22","1111111111111111111111111111");
             permissionGranted = (
                     ContextCompat.checkSelfPermission(activity,
                             Manifest.permission.BLUETOOTH_SCAN)
