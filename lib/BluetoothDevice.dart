@@ -12,7 +12,7 @@ class BluetoothDevice {
   final BluetoothDeviceType type;
 
   /// Class of the device.
-  //final BluetoothClass bluetoothClass // @TODO . !BluetoothClass!
+  //final category category // @TODO . !category!
 
   /// Describes is device connected.
   final bool isConnected;
@@ -21,7 +21,7 @@ class BluetoothDevice {
   final BluetoothBondState bondState;
 
   /// Broadcasted friendly clas of the device.
-  final int? bluetoothClass;
+  final BluetoothDeviceCategory category;
 
   /// Tells whether the device is bonded (ready to secure connect).
   @Deprecated('Use `isBonded` instead')
@@ -37,7 +37,7 @@ class BluetoothDevice {
     this.type = BluetoothDeviceType.unknown,
     this.isConnected = false,
     this.bondState = BluetoothBondState.unknown,
-    this.bluetoothClass,
+    this.category = BluetoothDeviceCategory.UNKNOWN,
   });
 
   /// Creates `BluetoothDevice` from map.
@@ -54,7 +54,7 @@ class BluetoothDevice {
       bondState: map["bondState"] != null
           ? BluetoothBondState.fromUnderlyingValue(map["bondState"])
           : BluetoothBondState.unknown,
-      bluetoothClass: map['bluetoothClass']    
+      category: mapStringToDeviceCategory(map['category'])    
     );
   }
 
@@ -65,7 +65,7 @@ class BluetoothDevice {
         "type": this.type.toUnderlyingValue(),
         "isConnected": this.isConnected,
         "bondState": this.bondState.toUnderlyingValue(),
-        'bluetoothClass': this.bluetoothClass,
+        'category': mapDeviceCategoryToString(this.category),
       };
 
   /// Compares for equality of this and other `BluetoothDevice`.
