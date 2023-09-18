@@ -13,6 +13,10 @@ enum BluetoothDeviceCategory {
   HEALTH,
   UNCATEGORIZED,
   UNKNOWN,
+  PERIPHERAL_KEYBOARD,
+  PERIPHERAL_POINTING,
+  PERIPHERAL_KEYBOARD_POINTING,
+  PERIPHERAL_NON_KEYBOARD_NON_POINTING,
 }
 
 BluetoothDeviceCategory mapStringToDeviceCategory(String deviceCategoryString) {
@@ -39,6 +43,14 @@ BluetoothDeviceCategory mapStringToDeviceCategory(String deviceCategoryString) {
       return BluetoothDeviceCategory.HEALTH;
     case "UNCATEGORIZED":
       return BluetoothDeviceCategory.UNCATEGORIZED;
+    case "PERIPHERAL_KEYBOARD":
+      return BluetoothDeviceCategory.PERIPHERAL_KEYBOARD;
+    case "PERIPHERAL_POINTING":
+      return BluetoothDeviceCategory.PERIPHERAL_POINTING;
+    case "PERIPHERAL_KEYBOARD_POINTING":
+      return BluetoothDeviceCategory.PERIPHERAL_KEYBOARD_POINTING;
+    case "PERIPHERAL_NON_KEYBOARD_NON_POINTING":
+      return BluetoothDeviceCategory.PERIPHERAL_NON_KEYBOARD_NON_POINTING;
     default:
       return BluetoothDeviceCategory.UNKNOWN;
   }
@@ -68,6 +80,14 @@ String mapDeviceCategoryToString(BluetoothDeviceCategory category) {
       return "HEALTH";
     case BluetoothDeviceCategory.UNCATEGORIZED:
       return "UNCATEGORIZED";
+    case BluetoothDeviceCategory.PERIPHERAL_KEYBOARD:
+      return "PERIPHERAL_KEYBOARD";
+    case BluetoothDeviceCategory.PERIPHERAL_POINTING:
+      return "PERIPHERAL_POINTING";
+    case BluetoothDeviceCategory.PERIPHERAL_KEYBOARD_POINTING:
+      return "PERIPHERAL_KEYBOARD_POINTING";
+    case BluetoothDeviceCategory.PERIPHERAL_NON_KEYBOARD_NON_POINTING:
+      return "PERIPHERAL_NON_KEYBOARD_NON_POINTING";
     default:
       return "UNKNOWN";
   }

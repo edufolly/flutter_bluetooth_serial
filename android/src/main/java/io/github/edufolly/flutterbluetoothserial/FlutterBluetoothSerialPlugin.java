@@ -515,7 +515,20 @@ public class FlutterBluetoothSerialPlugin implements FlutterPlugin, ActivityAwar
             case BluetoothClass.Device.Major.AUDIO_VIDEO:
                 return "AUDIO_VIDEO";
             case BluetoothClass.Device.Major.PERIPHERAL:
-                return "PERIPHERAL";
+                // Separate categories for barcode scanners, keyboards, and mice within "PERIPHERAL"
+                int minorDeviceClass = deviceClassInt & 0xFF;
+                switch (minorDeviceClass) {
+                    case BluetoothClass.Device.PERIPHERAL_KEYBOARD:
+                        return "PERIPHERAL_KEYBOARD";
+                    case BluetoothClass.Device.PERIPHERAL_POINTING:
+                        return "PERIPHERAL_POINTING";
+                    case BluetoothClass.Device.PERIPHERAL_KEYBOARD_POINTING:
+                        return "PERIPHERAL_KEYBOARD_POINTING";
+                    case BluetoothClass.Device.PERIPHERAL_NON_KEYBOARD_NON_POINTING:
+                        return "PERIPHERAL_NON_KEYBOARD_NON_POINTING";
+                    default:
+                        return "PERIPHERAL (UNKNOWN)";
+                }
             case BluetoothClass.Device.Major.IMAGING:
                 return "IMAGING";
             case BluetoothClass.Device.Major.WEARABLE:
