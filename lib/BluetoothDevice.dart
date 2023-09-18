@@ -21,7 +21,7 @@ class BluetoothDevice {
   final BluetoothBondState bondState;
 
   /// Broadcasted friendly clas of the device.
-  final String? bluetoothClass;
+  final int? bluetoothClass;
 
   /// Tells whether the device is bonded (ready to secure connect).
   @Deprecated('Use `isBonded` instead')
