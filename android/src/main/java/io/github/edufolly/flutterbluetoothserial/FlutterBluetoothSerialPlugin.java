@@ -945,7 +945,8 @@ public class FlutterBluetoothSerialPlugin implements FlutterPlugin, ActivityAwar
                             entry.put("type", device.getType());
                             entry.put("isConnected", checkIsDeviceConnected(device));
                             entry.put("bondState", BluetoothDevice.BOND_BONDED);
-                            entry.put("bluetoothClass", device.getBluetoothClass());
+                            entry.put("bluetoothClass", device.getBluetoothClass().getDeviceClass());
+                            Log.d(TAG, "Discovered " + device.getAddress() + " (bluetoothClass: " + device.getBluetoothClass().getDeviceClass() + ")");
                             list.add(entry);
                         }
 
