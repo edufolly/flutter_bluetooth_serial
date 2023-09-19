@@ -282,9 +282,9 @@ public class FlutterBluetoothSerialPlugin implements FlutterPlugin, ActivityAwar
                         discoveryResult.put("isConnected", checkIsDeviceConnected(device));
                         discoveryResult.put("bondState", device.getBondState());
                         discoveryResult.put("rssi", deviceRSSI);
-                        discoveryResult.put("category", convertDeviceClass(device.getBluetoothClass().getDeviceClass()));
+                        discoveryResult.put("deviceClass", device.getBluetoothClass().getDeviceClass());
 
-                        Log.d(TAG, "Discovered " + device.getAddress() + " (category: " + convertDeviceClass(device.getBluetoothClass().getDeviceClass()) + ")");
+                        Log.d(TAG, "Discovered " + device.getAddress() + " (deviceClass: " + device.getBluetoothClass().getDeviceClass() + ")");
                         if (discoverySink != null) {
                             discoverySink.success(discoveryResult);
                         }
@@ -500,50 +500,6 @@ public class FlutterBluetoothSerialPlugin implements FlutterPlugin, ActivityAwar
             return false;
         }
     }
-
-    static private String convertDeviceClass(int deviceClassInt) {
-        int majorDeviceClass = deviceClassInt & 0x1F00; // Mask to extract major device class
-        switch (majorDeviceClass) {
-            case BluetoothClass.Device.Major.MISC:
-                return "MISC";
-            case BluetoothClass.Device.Major.COMPUTER:
-                return "COMPUTER";
-            case BluetoothClass.Device.Major.PHONE:
-                return "PHONE";
-            case BluetoothClass.Device.Major.NETWORKING:
-                return "NETWORKING";
-            case BluetoothClass.Device.Major.AUDIO_VIDEO:
-                return "AUDIO_VIDEO";
-            case BluetoothClass.Device.Major.PERIPHERAL:
-                // Separate categories for barcode scanners, keyboards, and mice within "PERIPHERAL"
-                int minorDeviceClass = deviceClassInt & 0xFF;
-                switch (minorDeviceClass) {
-                    case BluetoothClass.Device.PERIPHERAL_KEYBOARD:
-                        return "PERIPHERAL_KEYBOARD";
-                    case BluetoothClass.Device.PERIPHERAL_POINTING:
-                        return "PERIPHERAL_POINTING";
-                    case BluetoothClass.Device.PERIPHERAL_KEYBOARD_POINTING:
-                        return "PERIPHERAL_KEYBOARD_POINTING";
-                    case BluetoothClass.Device.PERIPHERAL_NON_KEYBOARD_NON_POINTING:
-                        return "PERIPHERAL_NON_KEYBOARD_NON_POINTING";
-                    default:
-                        return "PERIPHERAL (UNKNOWN)";
-                }
-            case BluetoothClass.Device.Major.IMAGING:
-                return "IMAGING";
-            case BluetoothClass.Device.Major.WEARABLE:
-                return "WEARABLE";
-            case BluetoothClass.Device.Major.TOY:
-                return "TOY";
-            case BluetoothClass.Device.Major.HEALTH:
-                return "HEALTH";
-            case BluetoothClass.Device.Major.UNCATEGORIZED:
-                return "UNCATEGORIZED";
-            default:
-                return "UNKNOWN";
-        }
-    }
-
 
     /// Helper wrapper class for `BluetoothConnection`
     private class BluetoothConnectionWrapper extends BluetoothConnection {
@@ -989,8 +945,8 @@ public class FlutterBluetoothSerialPlugin implements FlutterPlugin, ActivityAwar
                             entry.put("type", device.getType());
                             entry.put("isConnected", checkIsDeviceConnected(device));
                             entry.put("bondState", BluetoothDevice.BOND_BONDED);
-                            entry.put("category", convertDeviceClass(device.getBluetoothClass().getDeviceClass()));
-                            Log.d(TAG, "Discovered " + device.getAddress() + " (category: " + convertDeviceClass(device.getBluetoothClass().getDeviceClass()) + ")");
+                            entry.put("deviceClass", device.getBluetoothClass().getDeviceClass());
+                            Log.d(TAG, "Discovered " + device.getAddress() + " (deviceClass: " + device.getBluetoothClass().getDeviceClass() + ")");
                             list.add(entry);
                         }
 
