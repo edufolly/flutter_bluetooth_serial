@@ -45,17 +45,18 @@ class BluetoothDevice {
   /// Internally used to receive the object from platform code.
   factory BluetoothDevice.fromMap(Map map) {
     return BluetoothDevice(
-      name: map["name"],
-      address: map["address"]!,
-      type: map["type"] != null
-          ? BluetoothDeviceType.fromUnderlyingValue(map["type"])
-          : BluetoothDeviceType.unknown,
-      isConnected: map["isConnected"] ?? false,
-      bondState: map["bondState"] != null
-          ? BluetoothBondState.fromUnderlyingValue(map["bondState"])
-          : BluetoothBondState.unknown,
-      deviceClass: (map['deviceClass'] as int).getBluetoothDeviceClassFromValue   
-    );
+        name: map["name"],
+        address: map["address"]!,
+        type: map["type"] != null
+            ? BluetoothDeviceType.fromUnderlyingValue(map["type"])
+            : BluetoothDeviceType.unknown,
+        isConnected: map["isConnected"] ?? false,
+        bondState: map["bondState"] != null
+            ? BluetoothBondState.fromUnderlyingValue(map["bondState"])
+            : BluetoothBondState.unknown,
+        deviceClass: map["deviceClass"] != null
+            ? (map['deviceClass'] as int).getBluetoothDeviceClassFromValue
+            : BluetoothDeviceClass.UNCATEGORIZED);
   }
 
   /// Creates map from `BluetoothDevice`.
