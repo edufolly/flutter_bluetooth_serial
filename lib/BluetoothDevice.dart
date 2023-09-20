@@ -12,13 +12,16 @@ class BluetoothDevice {
   final BluetoothDeviceType type;
 
   /// Class of the device.
-  //final BluetoothClass bluetoothClass // @TODO . !BluetoothClass!
+  //final category category // @TODO . !category!
 
   /// Describes is device connected.
   final bool isConnected;
 
   /// Bonding state of the device.
   final BluetoothBondState bondState;
+
+  /// Broadcasted friendly clas of the device.
+  final BluetoothDeviceClass deviceClass;
 
   /// Tells whether the device is bonded (ready to secure connect).
   @Deprecated('Use `isBonded` instead')
@@ -34,6 +37,7 @@ class BluetoothDevice {
     this.type = BluetoothDeviceType.unknown,
     this.isConnected = false,
     this.bondState = BluetoothBondState.unknown,
+    this.deviceClass = BluetoothDeviceClass.UNCATEGORIZED,
   });
 
   /// Creates `BluetoothDevice` from map.
@@ -41,16 +45,18 @@ class BluetoothDevice {
   /// Internally used to receive the object from platform code.
   factory BluetoothDevice.fromMap(Map map) {
     return BluetoothDevice(
-      name: map["name"],
-      address: map["address"]!,
-      type: map["type"] != null
-          ? BluetoothDeviceType.fromUnderlyingValue(map["type"])
-          : BluetoothDeviceType.unknown,
-      isConnected: map["isConnected"] ?? false,
-      bondState: map["bondState"] != null
-          ? BluetoothBondState.fromUnderlyingValue(map["bondState"])
-          : BluetoothBondState.unknown,
-    );
+        name: map["name"],
+        address: map["address"]!,
+        type: map["type"] != null
+            ? BluetoothDeviceType.fromUnderlyingValue(map["type"])
+            : BluetoothDeviceType.unknown,
+        isConnected: map["isConnected"] ?? false,
+        bondState: map["bondState"] != null
+            ? BluetoothBondState.fromUnderlyingValue(map["bondState"])
+            : BluetoothBondState.unknown,
+        deviceClass: map["deviceClass"] != null
+            ? (map['deviceClass'] as int).getBluetoothDeviceClassFromValue
+            : BluetoothDeviceClass.UNCATEGORIZED);
   }
 
   /// Creates map from `BluetoothDevice`.
@@ -60,6 +66,7 @@ class BluetoothDevice {
         "type": this.type.toUnderlyingValue(),
         "isConnected": this.isConnected,
         "bondState": this.bondState.toUnderlyingValue(),
+        'deviceClass': this.deviceClass.value,
       };
 
   /// Compares for equality of this and other `BluetoothDevice`.
