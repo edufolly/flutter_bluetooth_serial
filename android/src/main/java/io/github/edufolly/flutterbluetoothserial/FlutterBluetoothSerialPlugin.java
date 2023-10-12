@@ -6,6 +6,7 @@ import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
+import android.bluetooth.BluetoothClass;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -269,7 +270,7 @@ public class FlutterBluetoothSerialPlugin implements FlutterPlugin, ActivityAwar
                 switch (action) {
                     case BluetoothDevice.ACTION_FOUND:
                         final BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-                        //final BluetoothClass deviceClass = intent.getParcelableExtra(BluetoothDevice.EXTRA_CLASS); // @TODO . !BluetoothClass!
+                        // final BluetoothClass deviceClass = intent.getParcelableExtra(BluetoothDevice.EXTRA_CLASS); // @TODO . !BluetoothClass!
                         //final String extraName = intent.getStringExtra(BluetoothDevice.EXTRA_NAME); // @TODO ? !EXTRA_NAME!
                         final int deviceRSSI = intent.getShortExtra(BluetoothDevice.EXTRA_RSSI, Short.MIN_VALUE);
 
@@ -277,12 +278,13 @@ public class FlutterBluetoothSerialPlugin implements FlutterPlugin, ActivityAwar
                         discoveryResult.put("address", device.getAddress());
                         discoveryResult.put("name", device.getName());
                         discoveryResult.put("type", device.getType());
-                        //discoveryResult.put("class", deviceClass); // @TODO . it isn't my priority for now !BluetoothClass!
+                        // discoveryResult.put("class", deviceClass); // @TODO . it isn't my priority for now !BluetoothClass!
                         discoveryResult.put("isConnected", checkIsDeviceConnected(device));
                         discoveryResult.put("bondState", device.getBondState());
                         discoveryResult.put("rssi", deviceRSSI);
+                        discoveryResult.put("deviceClass", device.getBluetoothClass().getDeviceClass());
 
-                        Log.d(TAG, "Discovered " + device.getAddress());
+                        Log.d(TAG, "Discovered " + device.getAddress() + " (deviceClass: " + device.getBluetoothClass().getDeviceClass() + ")");
                         if (discoverySink != null) {
                             discoverySink.success(discoveryResult);
                         }
@@ -501,7 +503,6 @@ public class FlutterBluetoothSerialPlugin implements FlutterPlugin, ActivityAwar
             return false;
         }
     }
-
 
     /// Helper wrapper class for `BluetoothConnection`
     private class BluetoothConnectionWrapper extends BluetoothConnection {
@@ -947,6 +948,8 @@ public class FlutterBluetoothSerialPlugin implements FlutterPlugin, ActivityAwar
                             entry.put("type", device.getType());
                             entry.put("isConnected", checkIsDeviceConnected(device));
                             entry.put("bondState", BluetoothDevice.BOND_BONDED);
+                            entry.put("deviceClass", device.getBluetoothClass().getDeviceClass());
+                            Log.d(TAG, "Discovered " + device.getAddress() + " (deviceClass: " + device.getBluetoothClass().getDeviceClass() + ")");
                             list.add(entry);
                         }
 

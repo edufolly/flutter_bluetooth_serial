@@ -17,6 +17,7 @@ class BluetoothConnection {
   //
 
   /// This ID identifies real full `BluetoothConenction` object on platform side code.
+  // ignore: unused_field
   final int? _id;
 
   final EventChannel _readChannel;
