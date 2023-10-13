@@ -12,8 +12,7 @@ class BluetoothDeviceListEntry extends ListTile {
           onTap: onTap,
           onLongPress: onLongPress,
           enabled: enabled,
-          leading:
-              Icon(Icons.devices), // @TODO . !BluetoothClass! class aware icon
+          leading: Icon(getIcon(device.deviceClass)), // @TODO . !BluetoothClass! class aware icon
           title: Text(device.name ?? ""),
           subtitle: Text(device.address.toString()),
           trailing: Row(
@@ -43,6 +42,29 @@ class BluetoothDeviceListEntry extends ListTile {
             ],
           ),
         );
+
+  static IconData getIcon(BluetoothDeviceClass deviceClass) {
+    switch (deviceClass) {
+      case BluetoothDeviceClass.PERIPHERAL_KEYBOARD:
+        return Icons.keyboard;
+      case BluetoothDeviceClass.AUDIO_VIDEO_WEARABLE_HEADSET:
+        return Icons.headphones;
+      case BluetoothDeviceClass.AUDIO_VIDEO_HEADPHONES:
+        return Icons.headphones;
+      case BluetoothDeviceClass.AUDIO_VIDEO_HANDSFREE:
+        return Icons.headphones;
+      case BluetoothDeviceClass.AUDIO_VIDEO_LOUDSPEAKER:
+        return Icons.speaker;
+      case BluetoothDeviceClass.PHONE_SMART:
+        return Icons.smartphone;
+      case BluetoothDeviceClass.COMPUTER_DESKTOP:
+        return Icons.computer;
+      case BluetoothDeviceClass.COMPUTER_LAPTOP:
+        return Icons.laptop;
+      default:
+        return Icons.devices;
+    }
+  }
 
   static TextStyle _computeTextStyle(int rssi) {
     /**/ if (rssi >= -35)
