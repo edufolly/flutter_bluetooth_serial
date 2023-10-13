@@ -6,6 +6,7 @@ import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
+import android.bluetooth.BluetoothClass;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -16,6 +17,7 @@ import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
+import android.os.Build;
 import android.util.Log;
 import android.util.SparseArray;
 import android.os.AsyncTask;
@@ -268,7 +270,7 @@ public class FlutterBluetoothSerialPlugin implements FlutterPlugin, ActivityAwar
                 switch (action) {
                     case BluetoothDevice.ACTION_FOUND:
                         final BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-                        //final BluetoothClass deviceClass = intent.getParcelableExtra(BluetoothDevice.EXTRA_CLASS); // @TODO . !BluetoothClass!
+                        // final BluetoothClass deviceClass = intent.getParcelableExtra(BluetoothDevice.EXTRA_CLASS); // @TODO . !BluetoothClass!
                         //final String extraName = intent.getStringExtra(BluetoothDevice.EXTRA_NAME); // @TODO ? !EXTRA_NAME!
                         final int deviceRSSI = intent.getShortExtra(BluetoothDevice.EXTRA_RSSI, Short.MIN_VALUE);
 
@@ -276,12 +278,13 @@ public class FlutterBluetoothSerialPlugin implements FlutterPlugin, ActivityAwar
                         discoveryResult.put("address", device.getAddress());
                         discoveryResult.put("name", device.getName());
                         discoveryResult.put("type", device.getType());
-                        //discoveryResult.put("class", deviceClass); // @TODO . it isn't my priority for now !BluetoothClass!
+                        // discoveryResult.put("class", deviceClass); // @TODO . it isn't my priority for now !BluetoothClass!
                         discoveryResult.put("isConnected", checkIsDeviceConnected(device));
                         discoveryResult.put("bondState", device.getBondState());
                         discoveryResult.put("rssi", deviceRSSI);
+                        discoveryResult.put("deviceClass", device.getBluetoothClass().getDeviceClass());
 
-                        Log.d(TAG, "Discovered " + device.getAddress());
+                        Log.d(TAG, "Discovered " + device.getAddress() + " (deviceClass: " + device.getBluetoothClass().getDeviceClass() + ")");
                         if (discoverySink != null) {
                             discoverySink.success(discoveryResult);
                         }
@@ -444,15 +447,35 @@ public class FlutterBluetoothSerialPlugin implements FlutterPlugin, ActivityAwar
     EnsurePermissionsCallback pendingPermissionsEnsureCallbacks = null;
 
     private void ensurePermissions(EnsurePermissionsCallback callbacks) {
-        if (
+        boolean permissionGranted = (
                 ContextCompat.checkSelfPermission(activity,
                         Manifest.permission.ACCESS_COARSE_LOCATION)
-                        != PackageManager.PERMISSION_GRANTED
-                        || ContextCompat.checkSelfPermission(activity,
+                        == PackageManager.PERMISSION_GRANTED
+                && ContextCompat.checkSelfPermission(activity,
                         Manifest.permission.ACCESS_FINE_LOCATION)
-                        != PackageManager.PERMISSION_GRANTED) {
+                        == PackageManager.PERMISSION_GRANTED);
+
+        String[] requestString = new String[]{Manifest.permission.ACCESS_COARSE_LOCATION,
+                Manifest.permission.ACCESS_FINE_LOCATION};
+
+        Log.e(TAG,"request permission");
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            Log.e(TAG,"request scan permission");
+            permissionGranted = (
+                    ContextCompat.checkSelfPermission(activity,
+                            Manifest.permission.BLUETOOTH_SCAN)
+                            == PackageManager.PERMISSION_GRANTED
+                    && ContextCompat.checkSelfPermission(activity,
+                            Manifest.permission.BLUETOOTH_CONNECT)
+                            == PackageManager.PERMISSION_GRANTED);
+            requestString = new String[]{Manifest.permission.BLUETOOTH_SCAN,
+                    Manifest.permission.BLUETOOTH_CONNECT};
+        }
+
+        if (!permissionGranted) {
             ActivityCompat.requestPermissions(activity,
-                    new String[]{Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION},
+                    requestString,
                     REQUEST_COARSE_LOCATION_PERMISSIONS);
 
             pendingPermissionsEnsureCallbacks = callbacks;
@@ -480,7 +503,6 @@ public class FlutterBluetoothSerialPlugin implements FlutterPlugin, ActivityAwar
             return false;
         }
     }
-
 
     /// Helper wrapper class for `BluetoothConnection`
     private class BluetoothConnectionWrapper extends BluetoothConnection {
@@ -549,6 +571,7 @@ public class FlutterBluetoothSerialPlugin implements FlutterPlugin, ActivityAwar
 
     private class FlutterBluetoothSerialMethodCallHandler implements MethodCallHandler {
         /// Provides access to the plugin methods
+        @SuppressLint("MissingPermission")
         @Override
         public void onMethodCall(MethodCall call, Result result) {
             if (bluetoothAdapter == null) {
@@ -580,9 +603,16 @@ public class FlutterBluetoothSerialPlugin implements FlutterPlugin, ActivityAwar
 
                 case "requestEnable":
                     if (!bluetoothAdapter.isEnabled()) {
-                        pendingResultForActivityResult = result;
-                        Intent intent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-                        ActivityCompat.startActivityForResult(activity, intent, REQUEST_ENABLE_BLUETOOTH, null);
+                        ensurePermissions(granted -> {
+                            if (!granted) {
+                                result.error("no_permissions", "Enabling bluetooth requires bluetooth permission", null);
+                                return;
+                            }
+
+                            pendingResultForActivityResult = result;
+                            Intent intent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+                            ActivityCompat.startActivityForResult(activity, intent, REQUEST_ENABLE_BLUETOOTH, null);
+                        });
                     } else {
                         result.success(true);
                     }
@@ -590,8 +620,15 @@ public class FlutterBluetoothSerialPlugin implements FlutterPlugin, ActivityAwar
 
                 case "requestDisable":
                     if (bluetoothAdapter.isEnabled()) {
+                        ensurePermissions(granted -> {
+                            if (!granted) {
+                                result.error("no_permissions", "Enabling bluetooth requires bluetooth permission", null);
+                                return;
+                            }
+
                         bluetoothAdapter.disable();
                         result.success(true);
+                        });
                     } else {
                         result.success(false);
                     }
@@ -606,7 +643,11 @@ public class FlutterBluetoothSerialPlugin implements FlutterPlugin, ActivityAwar
                     break;
 
                 case "getAddress": {
-                    String address = bluetoothAdapter.getAddress();
+                    String address = "02:00:00:00:00:00";
+
+                    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+                        address = bluetoothAdapter.getAddress();
+                    }
 
                     if (address.equals("02:00:00:00:00:00")) {
                         Log.w(TAG, "Local Bluetooth MAC address is hidden by system, trying other options...");
@@ -907,6 +948,8 @@ public class FlutterBluetoothSerialPlugin implements FlutterPlugin, ActivityAwar
                             entry.put("type", device.getType());
                             entry.put("isConnected", checkIsDeviceConnected(device));
                             entry.put("bondState", BluetoothDevice.BOND_BONDED);
+                            entry.put("deviceClass", device.getBluetoothClass().getDeviceClass());
+                            Log.d(TAG, "Discovered " + device.getAddress() + " (deviceClass: " + device.getBluetoothClass().getDeviceClass() + ")");
                             list.add(entry);
                         }
 
@@ -919,6 +962,7 @@ public class FlutterBluetoothSerialPlugin implements FlutterPlugin, ActivityAwar
                     break;
 
                 case "startDiscovery":
+                    Log.d(TAG,"Starting discovery 22");
                     ensurePermissions(granted -> {
                         if (!granted) {
                             result.error("no_permissions", "discovering other devices requires location access permission", null);
