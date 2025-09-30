@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:scoped_model/scoped_model.dart';
 
 import './BackgroundCollectedPage.dart';
@@ -34,47 +36,94 @@ class _MainPage extends State<MainPage> {
   void initState() {
     super.initState();
 
+    // Request permissions first, then initialize Bluetooth
+    _initializeBluetoothWithPermissions();
+  }
+
+  Future<void> _initializeBluetoothWithPermissions() async {
+    // Request permissions and wait for them to be granted
+    await _requestPermissions();
+
+    // Only proceed with Bluetooth operations after permissions are granted
+    if (!mounted) return;
+
     // Get current state
-    FlutterBluetoothSerial.instance.state.then((state) {
-      setState(() {
-        _bluetoothState = state;
-      });
-    });
-
-    Future.doWhile(() async {
-      // Wait if adapter not enabled
-      if ((await FlutterBluetoothSerial.instance.isEnabled) ?? false) {
-        return false;
-      }
-      await Future.delayed(Duration(milliseconds: 0xDD));
-      return true;
-    }).then((_) {
-      // Update the address field
-      FlutterBluetoothSerial.instance.address.then((address) {
+    try {
+      final state = await FlutterBluetoothSerial.instance.state;
+      if (mounted) {
         setState(() {
-          _address = address!;
+          _bluetoothState = state;
         });
-      });
-    });
+      }
 
-    FlutterBluetoothSerial.instance.name.then((name) {
-      setState(() {
-        _name = name!;
+      // Wait for adapter to be enabled
+      await Future.doWhile(() async {
+        if ((await FlutterBluetoothSerial.instance.isEnabled) ?? false) {
+          return false;
+        }
+        await Future.delayed(Duration(milliseconds: 0xDD));
+        return true;
       });
-    });
 
-    // Listen for futher state changes
-    FlutterBluetoothSerial.instance
-        .onStateChanged()
-        .listen((BluetoothState state) {
-      setState(() {
-        _bluetoothState = state;
+      // Update the address field
+      if (mounted) {
+        final address = await FlutterBluetoothSerial.instance.address;
+        setState(() {
+          _address = address ?? "...";
+        });
+      }
 
-        // Discoverable mode is disabled when Bluetooth gets disabled
-        _discoverableTimeoutTimer = null;
-        _discoverableTimeoutSecondsLeft = 0;
+      // Get the name
+      if (mounted) {
+        final name = await FlutterBluetoothSerial.instance.name;
+        setState(() {
+          _name = name ?? "...";
+        });
+      }
+
+      // Listen for further state changes
+      FlutterBluetoothSerial.instance
+          .onStateChanged()
+          .listen((BluetoothState state) {
+        if (mounted) {
+          setState(() {
+            _bluetoothState = state;
+            // Discoverable mode is disabled when Bluetooth gets disabled
+            _discoverableTimeoutTimer = null;
+            _discoverableTimeoutSecondsLeft = 0;
+          });
+        }
       });
-    });
+    } catch (e) {
+      print('Error initializing Bluetooth: $e');
+      // Handle the error gracefully - permissions might be denied
+      if (mounted) {
+        setState(() {
+          _name = "Permissions required";
+          _address = "Permissions required";
+        });
+      }
+    }
+  }
+
+  Future<void> _requestPermissions() async {
+    if (Platform.isAndroid) {
+      // Request Bluetooth permissions for Android 12+
+      if (await Permission.bluetoothScan.isDenied) {
+        await Permission.bluetoothScan.request();
+      }
+      if (await Permission.bluetoothConnect.isDenied) {
+        await Permission.bluetoothConnect.request();
+      }
+      if (await Permission.bluetoothAdvertise.isDenied) {
+        await Permission.bluetoothAdvertise.request();
+      }
+
+      // Request location permission for Bluetooth scanning
+      if (await Permission.locationWhenInUse.isDenied) {
+        await Permission.locationWhenInUse.request();
+      }
+    }
   }
 
   @override

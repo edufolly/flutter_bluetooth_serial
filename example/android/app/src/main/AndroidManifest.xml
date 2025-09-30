@@ -1,11 +1,23 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="io.github.edufolly.flutterbluetoothserialexample">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <!-- The INTERNET permission is required for development. Specifically,
          flutter needs it to communicate with the running application
          to allow setting breakpoints, to provide hot reload, etc.
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
+
+    <!-- Bluetooth permissions for Android 11 and below -->
+    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
+
+    <!-- Bluetooth permissions for Android 12 and above -->
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" />
+
+    <!-- Location permissions for Bluetooth device discovery -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
 
     <!-- io.flutter.app.FlutterApplication is an android.app.Application that
          calls FlutterMain.startInitialization(this); in its onCreate method.
@@ -17,6 +29,7 @@
         android:icon="@mipmap/ic_launcher">
         <activity
             android:name="io.flutter.embedding.android.FlutterActivity"
+            android:exported="true"
             android:launchMode="singleTop"
             android:theme="@style/LaunchTheme"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|layoutDirection|fontScale|screenLayout|density"
